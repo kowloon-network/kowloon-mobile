@@ -189,7 +189,7 @@ export default function AdminUsers() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 96 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => load(tab, { isRefresh: true })} />
         }

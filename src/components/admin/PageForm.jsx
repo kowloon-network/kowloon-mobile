@@ -30,7 +30,6 @@ import { pmToMarkdown } from "../../lib/pmToMarkdown.js";
 const TOOLBAR_ITEMS = DEFAULT_TOOLBAR_ITEMS.filter(
   (item) => item.image?.() !== Images.checkList
 );
-const EDITOR_HEIGHT = 300;
 const TOOLBAR_HEIGHT = 44;
 
 const inputCls =
@@ -69,7 +68,7 @@ function PageBodyEditor({ initialHtml, editorRef }) {
     editorRef.current = editor;
   }, [editor, editorRef]);
   return (
-    <View style={{ height: EDITOR_HEIGHT }} className="bg-white border border-base-300 mt-1.5">
+    <View className="flex-1 bg-white border border-base-300 mt-1.5">
       <View style={{ height: TOOLBAR_HEIGHT }}>
         <Toolbar editor={editor} hidden={false} items={TOOLBAR_ITEMS} />
       </View>
@@ -122,91 +121,93 @@ export function PageForm({
 
   return (
     <View className="flex-1">
-      {/* Title + body editor pinned at the top. The RichText webview keeps its
-          own internal scroll (nesting it in a ScrollView steals the gesture),
-          so the body is always reachable and never trapped under the keyboard. */}
-      <View className="px-5 pt-4">
-        <FieldLabel>Title</FieldLabel>
-        <TextInput
-          value={title}
-          onChangeText={onTitleChange}
-          placeholder="Page title"
-          placeholderTextColor="rgba(26,26,32,0.35)"
-          className={inputCls}
-        />
-        <View className="mt-4">
-          <FieldLabel>Content</FieldLabel>
-          <PageBodyEditor initialHtml={initialValues.body} editorRef={editorRef} />
-        </View>
+      {/* Metadata — its own scroll region so every field is reachable even with
+          the keyboard up. */}
+      <View style={{ flex: 2 }}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}
+        >
+          <View className="mb-4">
+            <FieldLabel>Title</FieldLabel>
+            <TextInput
+              value={title}
+              onChangeText={onTitleChange}
+              placeholder="Page title"
+              placeholderTextColor="rgba(26,26,32,0.35)"
+              className={inputCls}
+            />
+          </View>
+
+          <View className="mb-4">
+            <FieldLabel>Slug</FieldLabel>
+            <TextInput
+              value={slug}
+              onChangeText={(v) => {
+                slugTouched.current = true;
+                setSlug(v);
+              }}
+              placeholder="page-url-slug"
+              placeholderTextColor="rgba(26,26,32,0.35)"
+              autoCapitalize="none"
+              autoCorrect={false}
+              className={inputCls}
+            />
+          </View>
+
+          <View className="mb-4">
+            <FieldLabel>Summary (optional)</FieldLabel>
+            <TextInput
+              value={summary}
+              onChangeText={setSummary}
+              placeholder="A short description"
+              placeholderTextColor="rgba(26,26,32,0.35)"
+              className={inputCls}
+            />
+          </View>
+
+          <View>
+            <FieldLabel>Visibility</FieldLabel>
+            <View className="flex-row">
+              {[
+                { key: "public", label: "Public" },
+                { key: "server", label: "Server" },
+              ].map((o) => {
+                const active = visibility === o.key;
+                return (
+                  <Pressable
+                    key={o.key}
+                    onPress={() => setVisibility(o.key)}
+                    className={`flex-1 items-center py-2.5 border ${
+                      active ? "bg-primary border-primary" : "border-base-300"
+                    }`}
+                    android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+                  >
+                    <Text
+                      className={`font-ui uppercase tracking-[0.12em] text-[11px] ${
+                        active ? "text-primary-content" : "text-base-content/60"
+                      }`}
+                    >
+                      {o.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </ScrollView>
       </View>
 
-      {/* Lesser fields scroll below. */}
-      <ScrollView
-        className="flex-1"
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 }}
-      >
-        <View className="mb-4">
-          <FieldLabel>Slug</FieldLabel>
-          <TextInput
-            value={slug}
-            onChangeText={(v) => {
-              slugTouched.current = true;
-              setSlug(v);
-            }}
-            placeholder="page-url-slug"
-            placeholderTextColor="rgba(26,26,32,0.35)"
-            autoCapitalize="none"
-            autoCorrect={false}
-            className={inputCls}
-          />
-        </View>
+      {/* Content — the editor fills the remaining space, with its own internal
+          scroll; shrinks above the keyboard when focused. */}
+      <View style={{ flex: 3 }} className="px-5">
+        <FieldLabel>Content</FieldLabel>
+        <PageBodyEditor initialHtml={initialValues.body} editorRef={editorRef} />
+      </View>
 
-        <View className="mb-4">
-          <FieldLabel>Summary (optional)</FieldLabel>
-          <TextInput
-            value={summary}
-            onChangeText={setSummary}
-            placeholder="A short description"
-            placeholderTextColor="rgba(26,26,32,0.35)"
-            className={inputCls}
-          />
-        </View>
-
-        <View>
-          <FieldLabel>Visibility</FieldLabel>
-          <View className="flex-row">
-            {[
-              { key: "public", label: "Public" },
-              { key: "server", label: "Server" },
-            ].map((o) => {
-              const active = visibility === o.key;
-              return (
-                <Pressable
-                  key={o.key}
-                  onPress={() => setVisibility(o.key)}
-                  className={`flex-1 items-center py-2.5 border ${
-                    active ? "bg-primary border-primary" : "border-base-300"
-                  }`}
-                  android_ripple={{ color: "rgba(0,0,0,0.06)" }}
-                >
-                  <Text
-                    className={`font-ui uppercase tracking-[0.12em] text-[11px] ${
-                      active ? "text-primary-content" : "text-base-content/60"
-                    }`}
-                  >
-                    {o.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        {error ? (
-          <Text className="font-ui text-xs text-error pt-3">{error}</Text>
-        ) : null}
-      </ScrollView>
+      {error ? (
+        <Text className="font-ui text-xs text-error px-5 pt-2">{error}</Text>
+      ) : null}
 
       {/* Footer clears the Android nav bar / home indicator. */}
       <View

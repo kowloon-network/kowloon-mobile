@@ -412,7 +412,9 @@ function DiscoverSection({ client, onNavigate }) {
       {groups.length > 0 ? (
         <View>
           <SubHeading>Groups</SubHeading>
-          {groups.map((group) => (
+          {/* Dedupe by id — the source can list the same group twice, which
+              collides React keys. */}
+          {Array.from(new Map(groups.map((g) => [g.id, g])).values()).map((group) => (
             <Pressable
               key={group.id}
               onPress={() =>
