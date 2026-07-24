@@ -14,6 +14,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   CoreBridge,
   DEFAULT_TOOLBAR_ITEMS,
@@ -96,6 +97,7 @@ export function PageForm({
   );
   const slugTouched = useRef(!!initialValues.slug);
   const editorRef = useRef(null);
+  const insets = useSafeAreaInsets();
 
   function onTitleChange(v) {
     setTitle(v);
@@ -120,18 +122,30 @@ export function PageForm({
 
   return (
     <View className="flex-1">
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, paddingBottom: 8 }}>
-        <View className="mb-4">
-          <FieldLabel>Title</FieldLabel>
-          <TextInput
-            value={title}
-            onChangeText={onTitleChange}
-            placeholder="Page title"
-            placeholderTextColor="rgba(26,26,32,0.35)"
-            className={inputCls}
-          />
+      {/* Title + body editor pinned at the top. The RichText webview keeps its
+          own internal scroll (nesting it in a ScrollView steals the gesture),
+          so the body is always reachable and never trapped under the keyboard. */}
+      <View className="px-5 pt-4">
+        <FieldLabel>Title</FieldLabel>
+        <TextInput
+          value={title}
+          onChangeText={onTitleChange}
+          placeholder="Page title"
+          placeholderTextColor="rgba(26,26,32,0.35)"
+          className={inputCls}
+        />
+        <View className="mt-4">
+          <FieldLabel>Content</FieldLabel>
+          <PageBodyEditor initialHtml={initialValues.body} editorRef={editorRef} />
         </View>
+      </View>
 
+      {/* Lesser fields scroll below. */}
+      <ScrollView
+        className="flex-1"
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 }}
+      >
         <View className="mb-4">
           <FieldLabel>Slug</FieldLabel>
           <TextInput
@@ -159,7 +173,7 @@ export function PageForm({
           />
         </View>
 
-        <View className="mb-2">
+        <View>
           <FieldLabel>Visibility</FieldLabel>
           <View className="flex-row">
             {[
@@ -189,20 +203,16 @@ export function PageForm({
           </View>
         </View>
 
-        <FieldLabel>Content</FieldLabel>
+        {error ? (
+          <Text className="font-ui text-xs text-error pt-3">{error}</Text>
+        ) : null}
       </ScrollView>
 
-      {/* Editor is a sibling of the metadata ScrollView so it keeps its own
-          scroll gesture (nesting it steals the scroll). */}
-      <View className="px-5">
-        <PageBodyEditor initialHtml={initialValues.body} editorRef={editorRef} />
-      </View>
-
-      {error ? (
-        <Text className="font-ui text-xs text-error px-5 pt-2">{error}</Text>
-      ) : null}
-
-      <View className="flex-row items-center justify-end px-5 py-3">
+      {/* Footer clears the Android nav bar / home indicator. */}
+      <View
+        className="flex-row items-center justify-end px-5 pt-3 border-t border-base-200"
+        style={{ paddingBottom: insets.bottom + 12 }}
+      >
         <Pressable onPress={onCancel} hitSlop={6} className="px-4 py-2.5 mr-2">
           <Text className="font-ui uppercase tracking-[0.16em] text-[11px] text-base-content/55">
             Cancel
