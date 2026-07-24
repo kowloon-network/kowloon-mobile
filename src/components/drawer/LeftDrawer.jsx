@@ -28,12 +28,14 @@ import {
   Globe,
   MapPin,
   Search,
+  Shield,
   Users,
   X,
 } from "lucide-react-native";
 
 import { useActiveClient } from "../../lib/useActiveClient.js";
 import { resolveImageUrl } from "../../lib/resolveImageUrl.js";
+import { useIsAdmin } from "../../lib/useIsAdmin.js";
 import { selectActiveAccount } from "../../state/accountsSlice.js";
 
 const DRAWER_WIDTH_PCT = 0.85;
@@ -450,6 +452,7 @@ export function LeftDrawer({ visible, onClose }) {
   const screenWidth = Dimensions.get("window").width;
   const panelWidth = Math.round(screenWidth * DRAWER_WIDTH_PCT);
   const [serverIcon, setServerIcon] = useState(null);
+  const isAdmin = useIsAdmin();
 
   // Server icon for the header, matching the feed masthead.
   useEffect(() => {
@@ -529,6 +532,18 @@ export function LeftDrawer({ visible, onClose }) {
             <SearchBar onNavigate={navigate} />
             <PagesMenuSection client={client} onNavigate={navigate} />
             <DiscoverSection client={client} onNavigate={navigate} />
+            {isAdmin ? (
+              <Pressable
+                onPress={() => navigate("/admin")}
+                android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+                className="flex-row items-center mt-4 pt-4 border-t border-base-200"
+              >
+                <Shield size={18} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />
+                <Text className="font-ui uppercase tracking-[0.16em] text-xs text-base-content ml-2.5">
+                  Server Admin
+                </Text>
+              </Pressable>
+            ) : null}
           </ScrollView>
         </SafeAreaView>
 

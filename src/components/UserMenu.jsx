@@ -11,6 +11,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 import { Avatar } from "./posts/Avatar.jsx";
 import { useUnreadCount } from "../lib/UnreadCountContext.js";
+import { useIsAdmin } from "../lib/useIsAdmin.js";
 import {
   selectAccounts,
   selectActiveAccount,
@@ -48,6 +49,7 @@ export function UserMenu({ visible, onClose }) {
   const account = useSelector(selectActiveAccount);
   const accounts = useSelector(selectAccounts);
   const { count: unreadCount } = useUnreadCount();
+  const isAdmin = useIsAdmin();
 
   if (!account) return null;
 
@@ -122,6 +124,9 @@ export function UserMenu({ visible, onClose }) {
             <MenuRow label="Search" onPress={() => go("/search")} />
             <MenuRow label="Circles" onPress={() => go("/circles")} />
             <MenuRow label="Groups" onPress={() => go("/groups")} />
+            {isAdmin ? (
+              <MenuRow label="Server Admin" onPress={() => go("/admin")} />
+            ) : null}
             <MenuRow label="Settings" onPress={() => go("/settings")} />
             <MenuRow
               label="Log out"
