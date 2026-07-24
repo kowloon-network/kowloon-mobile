@@ -8,12 +8,15 @@ import { Modal, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
+import { Plus } from "lucide-react-native";
 
 import { Avatar } from "./posts/Avatar.jsx";
 import { useUnreadCount } from "../lib/UnreadCountContext.js";
+import { useIsAdmin } from "../lib/useIsAdmin.js";
 import {
   selectAccounts,
   selectActiveAccount,
+  setActiveAndPersist,
   signOutAccount,
 } from "../state/accountsSlice.js";
 
@@ -48,6 +51,7 @@ export function UserMenu({ visible, onClose }) {
   const account = useSelector(selectActiveAccount);
   const accounts = useSelector(selectAccounts);
   const { count: unreadCount } = useUnreadCount();
+  const isAdmin = useIsAdmin();
 
   if (!account) return null;
 
@@ -68,6 +72,23 @@ export function UserMenu({ visible, onClose }) {
     onClose();
     await dispatch(signOutAccount(account.id));
     router.replace(accounts.length <= 1 ? "/welcome" : "/feed");
+  }
+
+  // Other signed-in accounts, tap to switch to.
+  const others = accounts.filter((a) => a.id !== account.id);
+
+  async function switchTo(id) {
+    onClose();
+    await dispatch(setActiveAndPersist(id));
+    // Reset to the feed so no screen keeps the previous account's data.
+    router.replace("/feed");
+  }
+
+  function addAccount() {
+    onClose();
+    // Login adds the account (addAccountAndPersist) without signing out the
+    // current one, then returns to the feed as the new active account.
+    router.push("/login");
   }
 
   return (
@@ -109,6 +130,45 @@ export function UserMenu({ visible, onClose }) {
               </View>
             </Pressable>
 
+            {/* Account switcher — other signed-in accounts + add another. */}
+            {others.map((a) => (
+              <Pressable
+                key={a.id}
+                onPress={() => switchTo(a.id)}
+                android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+                className="flex-row items-center px-4 py-3 border-t border-base-200"
+              >
+                <Avatar
+                  actor={{ name: a.profile?.name || a.username, icon: a.profile?.icon }}
+                  size={32}
+                  baseUrl={a.baseUrl}
+                />
+                <View className="flex-1 ml-3 min-w-0">
+                  <Text className="font-ui text-sm text-base-content" numberOfLines={1}>
+                    {a.profile?.name || a.username}
+                  </Text>
+                  <Text className="font-ui text-xs text-base-content/50" numberOfLines={1}>
+                    {a.id}
+                  </Text>
+                </View>
+                <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-primary ml-2">
+                  Switch
+                </Text>
+              </Pressable>
+            ))}
+            <Pressable
+              onPress={addAccount}
+              android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+              className="flex-row items-center px-4 py-3 border-t border-base-200"
+            >
+              <View className="w-8 h-8 items-center justify-center border border-base-300">
+                <Plus size={16} color="rgba(26,26,32,0.6)" strokeWidth={2} />
+              </View>
+              <Text className="font-ui text-sm text-base-content ml-3">Add account</Text>
+            </Pressable>
+
+            <View className="h-2 bg-base-200" />
+
             <MenuRow
               label="Profile"
               onPress={() => go(`/user/${encodeURIComponent(account.id)}`)}
@@ -122,6 +182,9 @@ export function UserMenu({ visible, onClose }) {
             <MenuRow label="Search" onPress={() => go("/search")} />
             <MenuRow label="Circles" onPress={() => go("/circles")} />
             <MenuRow label="Groups" onPress={() => go("/groups")} />
+            {isAdmin ? (
+              <MenuRow label="Server Admin" onPress={() => go("/admin")} />
+            ) : null}
             <MenuRow label="Settings" onPress={() => go("/settings")} />
             <MenuRow
               label="Log out"

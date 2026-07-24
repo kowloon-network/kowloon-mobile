@@ -15,7 +15,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Link2, Share2, Tag, X } from "lucide-react-native";
 
 import { Avatar } from "../../src/components/posts/Avatar.jsx";
@@ -108,6 +108,8 @@ export default function PageDetail() {
     }
   }
 
+  const insets = useSafeAreaInsets();
+
   const typography = {
     fonts: {
       regular: resolved.regularFamily,
@@ -137,7 +139,7 @@ export default function PageDetail() {
           ) : null
         }
       />
-      <ScrollView contentContainerStyle={{ paddingBottom: 48 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 48 }}>
         {loading ? (
           <View className="py-20 items-center">
             <ActivityIndicator />
