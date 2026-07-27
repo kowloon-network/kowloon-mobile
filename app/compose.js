@@ -56,8 +56,6 @@ import { pmToMarkdown } from "../src/lib/pmToMarkdown.js";
 import { uploadFile } from "../src/lib/uploadFile.js";
 import { COMPOSABLE_TYPES, POST_TYPES } from "../src/lib/postTypes.js";
 
-const TOOLBAR_HEIGHT = 44;
-
 // The default editor toolbar minus the task-list (checkbox) button — matched by
 // its checkList image so it survives item-order changes across versions.
 const TOOLBAR_ITEMS = DEFAULT_TOOLBAR_ITEMS.filter(
@@ -932,14 +930,11 @@ export default function Compose() {
               </Text>
             ) : null}
 
-            {/* Editor — formatting toolbar on top, then the body. The body
-                grows to fit its content (dynamicHeight) instead of scrolling in
-                a fixed box, so the single outer ScrollView handles all scrolling
-                (issue #76). `hidden={false}` overrides 10tap's auto-hide. */}
+            {/* Editor body — grows to fit its content (dynamicHeight) instead
+                of scrolling in a fixed box, so the single outer ScrollView
+                handles all scrolling (issue #76). The formatting toolbar is
+                pinned above the keyboard (below), not inline. */}
             <View className="mx-4 mt-3">
-              <View style={{ height: TOOLBAR_HEIGHT }}>
-                <Toolbar editor={editor} hidden={false} items={TOOLBAR_ITEMS} />
-              </View>
               <RichText editor={editor} />
             </View>
             </ScrollView>
@@ -1004,6 +999,17 @@ export default function Compose() {
             </View>
           </>
         )}
+      </View>
+
+      {/* Formatting toolbar, pinned just above the keyboard. tentap auto-hides
+          it unless the body editor is focused (Toolbar's default `hidden`
+          behaviour), so it appears only while you're writing the body — never
+          over the title fields or when the composer is idle. */}
+      <View
+        style={{ position: "absolute", left: 0, right: 0, bottom: keyboardInset }}
+        pointerEvents="box-none"
+      >
+        <Toolbar editor={editor} items={TOOLBAR_ITEMS} />
       </View>
 
       {/* Add-media chooser — a centered dialog (not Alert.alert, whose Android
