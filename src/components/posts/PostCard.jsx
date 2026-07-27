@@ -17,7 +17,7 @@ import { HtmlContent } from "../HtmlContent.jsx";
 import { useImageViewer } from "../ImageViewerProvider.jsx";
 import { useActiveClient } from "../../lib/useActiveClient.js";
 import { useTypography } from "../../lib/TypographyContext.js";
-import { kowloonPostIdFromUrl } from "../../lib/parseKowloonUrl.js";
+import { openKowloonLink } from "../../lib/parseKowloonUrl.js";
 import { timeAgo } from "../../lib/timeAgo.js";
 
 // Classify an attachment by mediaType, with a fallback for `.m4a` files
@@ -105,20 +105,10 @@ export function PostCard({ post, onDeleted }) {
     router.push(`/post/${encodeURIComponent(post.id)}`);
   }
 
-  async function openExternal() {
-    const href = post?.href;
-    if (!href) return;
-    // Kowloon post URL → open in-app instead of the browser.
-    const kowloonId = kowloonPostIdFromUrl(href);
-    if (kowloonId) {
-      router.push(`/post/${encodeURIComponent(kowloonId)}`);
-      return;
-    }
-    try {
-      await Linking.openURL(href);
-    } catch {
-      // some URLs may not be supported by the OS; silently no-op
-    }
+  function openExternal() {
+    // A Kowloon link (post, group, circle, user, page) opens in-app; anything
+    // else goes to the browser.
+    if (post?.href) openKowloonLink(post.href);
   }
 
   return (

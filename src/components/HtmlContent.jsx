@@ -14,18 +14,13 @@ import { router } from "expo-router";
 import RenderHtml from "react-native-render-html";
 
 import { fontName } from "../lib/typography.js";
-import { kowloonPostIdFromUrl } from "../lib/parseKowloonUrl.js";
+import { openKowloonLink } from "../lib/parseKowloonUrl.js";
 
-// Links to Kowloon posts open in-app (the post detail); everything else goes to
-// the browser. Uses the imported router singleton so it works even from surfaces
-// outside the active screen's router context.
+// Links to Kowloon objects (posts, circles, groups, users, pages) open in-app;
+// everything else goes to the browser. openKowloonLink uses the imported router
+// singleton so it works even from surfaces outside the active screen's context.
 function handleLinkPress(_event, href) {
-  const postId = kowloonPostIdFromUrl(href);
-  if (postId) {
-    router.push(`/post/${encodeURIComponent(postId)}`);
-    return;
-  }
-  if (href) Linking.openURL(href).catch(() => {});
+  openKowloonLink(href);
 }
 
 const RENDERERS_PROPS = { a: { onPress: handleLinkPress } };

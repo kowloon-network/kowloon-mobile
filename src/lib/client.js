@@ -7,6 +7,7 @@
 
 import KowloonClient from "@kowloon/client";
 import { makeAccountStorage } from "./storage.js";
+import { registerKowloonHost } from "./parseKowloonUrl.js";
 
 const clients = new Map();
 
@@ -14,6 +15,10 @@ const clients = new Map();
 // have at least `{ id, baseUrl }`.
 export function ensureClient(account) {
   if (!account?.id) throw new Error("ensureClient requires account.id");
+  // Learn this account's server host so page links (whose slugs aren't self-
+  // identifying) route in-app. Cheap + idempotent; runs even for cached clients.
+  registerKowloonHost(account.server);
+  registerKowloonHost(account.baseUrl);
   if (clients.has(account.id)) return clients.get(account.id);
   const client = new KowloonClient({
     baseUrl: account.baseUrl,

@@ -14,7 +14,7 @@
 import { Linking, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 
-import { kowloonPostIdFromUrl } from "../../lib/parseKowloonUrl.js";
+import { openKowloonLink } from "../../lib/parseKowloonUrl.js";
 import { SmartImage as Image } from "../ui/SmartImage.jsx";
 import { AudioAttachment } from "./AudioAttachment.jsx";
 import { VideoAttachment } from "./VideoAttachment.jsx";
@@ -165,20 +165,9 @@ export function PostBody({ post, typography }) {
       ? null
       : post?.featuredImage || (type === "Link" ? post?.image : null);
 
-  async function openHref() {
-    const href = post?.href;
-    if (!href) return;
-    // A Link post that points at a Kowloon post opens in-app, not the browser.
-    const postId = kowloonPostIdFromUrl(href);
-    if (postId) {
-      router.push(`/post/${encodeURIComponent(postId)}`);
-      return;
-    }
-    try {
-      await Linking.openURL(href);
-    } catch {
-      // no-op
-    }
+  function openHref() {
+    // A Link post that points at any Kowloon object opens in-app, not the browser.
+    if (post?.href) openKowloonLink(post.href);
   }
 
   const hasLocation = !!post?.location?.name;
