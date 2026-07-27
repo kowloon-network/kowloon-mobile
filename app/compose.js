@@ -371,12 +371,19 @@ export default function Compose() {
     autofocus: false,
     avoidIosKeyboard: true,
     initialContent: "",
-    // Give the editor content breathing room from the  — the WebView has
-    // no horizontal padding by default, so text sat flush against the edge.
+    // Grow the editor to fit its content instead of scrolling inside a fixed
+    // box. The WebView's own scroll is disabled, so a fixed height meant long
+    // body text couldn't be scrolled (the parent ScrollView stole the gesture
+    // and dragging just moved the caret — issue #76). With dynamicHeight the
+    // editor expands and the single outer ScrollView scrolls the whole form.
+    dynamicHeight: true,
+    // Give the editor content breathing room from the edge (the WebView has no
+    // horizontal padding by default) and a comfortable minimum editing height
+    // so the empty body still presents a big tap target.
     bridgeExtensions: [
       ...TenTapStartKit,
       CoreBridge.configureCSS(`
-        .ProseMirror { padding: 10px 16px; }
+        .ProseMirror { padding: 10px 16px; min-height: 220px; }
       `),
     ],
   });
@@ -925,22 +932,15 @@ export default function Compose() {
               </Text>
             ) : null}
 
-            {/* Editor — bordered box with formatting toolbar on top. Fixed
-                height so the WebView has defined bounds inside the parent
-                ScrollView. `hidden={false}` overrides 10tap's auto-hide. */}
-            <View
-              style={{ height: 320 }}
-              className="mx-4 mt-3  "
-            >
-              <View
-                style={{ height: TOOLBAR_HEIGHT }}
-                className=" "
-              >
+            {/* Editor — formatting toolbar on top, then the body. The body
+                grows to fit its content (dynamicHeight) instead of scrolling in
+                a fixed box, so the single outer ScrollView handles all scrolling
+                (issue #76). `hidden={false}` overrides 10tap's auto-hide. */}
+            <View className="mx-4 mt-3">
+              <View style={{ height: TOOLBAR_HEIGHT }}>
                 <Toolbar editor={editor} hidden={false} items={TOOLBAR_ITEMS} />
               </View>
-              <View className="flex-1">
-                <RichText editor={editor} />
-              </View>
+              <RichText editor={editor} />
             </View>
             </ScrollView>
 
