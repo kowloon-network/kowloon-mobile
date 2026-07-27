@@ -214,19 +214,24 @@ function RowV({ entry, children }) {
 }
 
 function Pill({ label, active, onPress }) {
+  // Background lives on a plain inner View, NOT the Pressable: a dynamic
+  // backgroundColor on a Pressable with android_ripple won't repaint on Android
+  // (the label would flip to white while the button stayed grey).
   return (
     <Pressable
       onPress={onPress}
       android_ripple={{ color: "rgba(0,0,0,0.08)" }}
-      className={`px-3 py-2 mr-2 mb-1 ${active ? "bg-primary" : "bg-base-200"}`}
+      className="mr-2 mb-1"
     >
-      <Text
-        className={`font-ui text-sm ${
-          active ? "text-primary-content" : "text-base-content"
-        }`}
-      >
-        {label}
-      </Text>
+      <View className={`px-3 py-2 ${active ? "bg-primary" : "bg-base-200"}`}>
+        <Text
+          className={`font-ui text-sm ${
+            active ? "text-primary-content" : "text-base-content"
+          }`}
+        >
+          {label}
+        </Text>
+      </View>
     </Pressable>
   );
 }
