@@ -223,7 +223,10 @@ function Pill({ label, active, onPress }) {
       android_ripple={{ color: "rgba(0,0,0,0.08)" }}
       className="mr-2 mb-1"
     >
+      {/* key flips with `active` so the View remounts on toggle — guarantees a
+          background repaint even where in-place restyle is unreliable. */}
       <View
+        key={active ? "on" : "off"}
         className="px-3 py-2"
         style={{ backgroundColor: active ? "#5588B1" : "#F4F4F4" }}
       >
