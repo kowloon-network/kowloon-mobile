@@ -43,14 +43,18 @@ function make(type, raw) {
 
 export function parseKowloonUrl(href) {
   if (!href) return null;
-  let u;
-  try {
-    u = new URL(href);
-  } catch {
-    return null;
-  }
-  if (u.protocol !== "https:" && u.protocol !== "http:") return null;
-  const p = u.pathname;
+  // Parse the raw href ourselves instead of via `new URL()`. React Native's
+  // built-in URL percent-encodes the `@` in `.pathname` (e.g. %40), which broke
+  // every Kowloon path match — post:..@domain, group:/circle:.., and
+  // /users/@handle@domain all carry an `@`. Regexing the string keeps the
+  // literal `@` and works with or without a URL polyfill.
+  const parts = String(href).match(/^(https?):\/\/([^/?#]+)([^?#]*)/i);
+  if (!parts) return null;
+  const host = parts[2].toLowerCase().replace(/:\d+$/, "");
+  let p = parts[3] || "/";
+  // A pasted link may arrive percent-encoded; normalize so `/users/@x@y` and
+  // `/users/%40x%40y` match identically. Keep the raw path on malformed input.
+  try { p = decodeURIComponent(p); } catch { /* noop */ }
   let m;
 
   // Prefixed IDs in the path — self-identifying, any server.
@@ -60,8 +64,8 @@ export function parseKowloonUrl(href) {
   if ((m = p.match(/^\/users\/(@[^/?#]+@[^/?#]+)/)))         return make("user", m[1]);
 
   // Pages use slugs — only Kowloon when we recognize the host.
-  if ((m = p.match(/^\/pages\/([^/?#]+)/)) && kowloonHosts.has(u.hostname.toLowerCase())) {
-    const slug = decodeURIComponent(m[1]);
+  if ((m = p.match(/^\/pages\/([^/?#]+)/)) && kowloonHosts.has(host)) {
+    const slug = m[1];
     return { type: "page", id: slug, slug, route: routeFor("page", slug) };
   }
 
