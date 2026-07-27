@@ -16,7 +16,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -109,6 +111,25 @@ function pickerErrorMessage(e, fallback) {
   return e?.message || fallback;
 }
 
+// Video-frame thumbnails need the expo-video-thumbnails native module. Guard the
+// require + call so a dev client that wasn't built with it (or any failure) just
+// falls back to a labeled tile instead of crashing.
+let VideoThumbnails;
+try {
+  VideoThumbnails = require("expo-video-thumbnails");
+} catch {
+  VideoThumbnails = null;
+}
+async function makeVideoThumb(uri) {
+  if (!VideoThumbnails?.getThumbnailAsync) return null;
+  try {
+    const { uri: thumb } = await VideoThumbnails.getThumbnailAsync(uri, { time: 0 });
+    return thumb || null;
+  } catch {
+    return null;
+  }
+}
+
 export default function Compose() {
   const router = useRouter();
   const client = useActiveClient();
@@ -180,12 +201,18 @@ export default function Compose() {
   // file IDs become the post's attachments[] array.
   const [attachments, setAttachments] = useState(
     shared?.kind === "files" && Array.isArray(shared.files)
-      ? shared.files.map((f) => ({
-          uri: f.uri,
-          name: f.name,
-          mimeType: f.mimeType,
-          kind: kindFromMime(f.mimeType),
-        }))
+      ? shared.files.map((f) => {
+          const kind = kindFromMime(f.mimeType);
+          return {
+            uri: f.uri,
+            name: f.name,
+            title: "",
+            alt: "",
+            mimeType: f.mimeType,
+            kind,
+            thumbUri: kind === "image" ? f.uri : null,
+          };
+        })
       : []
   );
 
@@ -255,11 +282,30 @@ export default function Compose() {
             `${isVideo ? "video" : "image"}-${Date.now()}.${
               isVideo ? "mp4" : "jpg"
             }`,
+          title: "",
+          alt: "",
           mimeType: a.mimeType || (isVideo ? "video/mp4" : "image/jpeg"),
           kind: isVideo ? "video" : "image",
+          // Images use their own uri as the thumbnail; video thumbs are
+          // generated below (native module) and patched in.
+          thumbUri: isVideo ? null : a.uri,
         };
       });
       setAttachments((prev) => [...prev, ...next]);
+      for (const item of next) {
+        if (item.kind === "video") {
+          makeVideoThumb(item.uri).then((thumb) => {
+            if (!thumb) return;
+            setAttachments((prev) =>
+              prev.map((att) =>
+                att.uri === item.uri && att.kind === "video"
+                  ? { ...att, thumbUri: thumb }
+                  : att
+              )
+            );
+          });
+        }
+      }
     } catch (e) {
       setError(pickerErrorMessage(e, "Couldn't open the photo library."));
     }
@@ -276,8 +322,11 @@ export default function Compose() {
       const next = result.assets.map((a) => ({
         uri: a.uri,
         name: a.name || `audio-${Date.now()}.mp3`,
+        title: "",
+        alt: "",
         mimeType: a.mimeType || "audio/mpeg",
         kind: "audio",
+        thumbUri: null,
       }));
       setAttachments((prev) => [...prev, ...next]);
     } catch (e) {
@@ -297,6 +346,13 @@ export default function Compose() {
   function removeAttachment(index) {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
+
+  function updateAttachment(index, patch) {
+    setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, ...patch } : a)));
+  }
+
+  // Index of the attachment whose title/alt editor is open, or null.
+  const [editingIndex, setEditingIndex] = useState(null);
 
   // The Android window doesn't reliably resize for the keyboard under Expo
   // Go, so the content area is padded at the bottom by the measured keyboard
@@ -536,7 +592,9 @@ export default function Compose() {
                 uri: a.uri,
                 name: a.name,
                 mimeType: a.mimeType,
-                title: a.name,
+                // Per-attachment title → File.name, alt text → File.summary.
+                title: a.title?.trim() || a.name,
+                summary: a.alt?.trim() || undefined,
                 to: audience,
                 generateThumbnail: a.kind === "image",
               })
@@ -545,7 +603,8 @@ export default function Compose() {
           uploadedAttachments = results
             .map((r, i) => ({
               fileId: r?.file?.id,
-              title: attachments[i].name || undefined,
+              title: attachments[i].title?.trim() || attachments[i].name || undefined,
+              alt: attachments[i].alt?.trim() || undefined,
             }))
             .filter((x) => x.fileId);
         } catch (e) {
@@ -744,58 +803,68 @@ export default function Compose() {
 
             {type === "Media" ? (
               <View className="px-4 pt-3">
-                {attachments.map((att, i) => (
-                  <View
-                    key={`${att.uri}-${i}`}
-                    className="flex-row items-center   bg-white p-2 mb-2"
-                  >
-                    {att.kind === "image" ? (
-                      <Image
-                        source={{ uri: att.uri }}
-                        className="w-14 h-14 mr-3   bg-base-200"
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View className="w-14 h-14 mr-3   bg-base-200 items-center justify-center">
-                        <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-base-content/60">
-                          {att.kind === "audio" ? "Audio" : "Video"}
-                        </Text>
-                      </View>
-                    )}
-                    <View className="flex-1">
-                      <Text
-                        className="font-ui text-sm text-base-content"
-                        numberOfLines={1}
+                {/* 2-up thumbnail grid. Tap a tile to edit its title/alt or
+                    delete it. Images use their own uri; video uses a generated
+                    frame (falls back to a labeled tile); audio shows an icon. */}
+                <View className="flex-row flex-wrap -mx-1">
+                  {attachments.map((att, i) => (
+                    <View key={`${att.uri}-${i}`} className="w-1/2 p-1">
+                      <Pressable
+                        onPress={() => setEditingIndex(i)}
+                        android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+                        style={{ aspectRatio: 1 }}
+                        className="bg-base-200 overflow-hidden"
                       >
-                        {att.name || "untitled"}
-                      </Text>
-                      <Text
-                        className="font-ui text-xs text-base-content/45"
-                        numberOfLines={1}
-                      >
-                        {att.kind} · {att.mimeType || ""}
-                      </Text>
+                        {att.thumbUri ? (
+                          <Image
+                            source={{ uri: att.thumbUri }}
+                            style={{ width: "100%", height: "100%" }}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View className="flex-1 items-center justify-center">
+                            <Text className="text-2xl text-base-content/40">
+                              {att.kind === "audio" ? "♪" : "▶"}
+                            </Text>
+                            <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-base-content/45 mt-1">
+                              {att.kind === "audio" ? "Audio" : "Video"}
+                            </Text>
+                          </View>
+                        )}
+                        {att.kind === "video" && att.thumbUri ? (
+                          <View className="absolute inset-0 items-center justify-center">
+                            <View className="w-9 h-9 bg-black/50 items-center justify-center">
+                              <Text className="text-white text-base">▶</Text>
+                            </View>
+                          </View>
+                        ) : null}
+                        {att.kind !== "audio" && !att.alt?.trim() ? (
+                          <View className="absolute bottom-1 left-1 bg-black/55 px-1.5 py-0.5">
+                            <Text className="font-ui text-[9px] tracking-wider text-white">
+                              ALT?
+                            </Text>
+                          </View>
+                        ) : null}
+                      </Pressable>
                     </View>
+                  ))}
+                  {/* Add tile */}
+                  <View className="w-1/2 p-1">
                     <Pressable
-                      onPress={() => removeAttachment(i)}
-                      hitSlop={6}
-                      className="px-2 py-1"
+                      onPress={pickMedia}
+                      android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+                      style={{ aspectRatio: 1 }}
+                      className="bg-white border border-base-300 items-center justify-center"
                     >
-                      <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-error">
-                        Remove
+                      <Text className="text-3xl text-base-content/40 leading-none">
+                        +
+                      </Text>
+                      <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-base-content/55 mt-1">
+                        Add
                       </Text>
                     </Pressable>
                   </View>
-                ))}
-                <Pressable
-                  onPress={pickMedia}
-                  android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-                  className="  bg-white py-3 items-center"
-                >
-                  <Text className="font-ui uppercase tracking-[0.14em] text-xs text-base-content/55">
-                    + Add media
-                  </Text>
-                </Pressable>
+                </View>
               </View>
             ) : null}
 
@@ -966,6 +1035,96 @@ export default function Compose() {
             </Pressable>
           </Pressable>
         </Pressable>
+      </Modal>
+
+      {/* Per-attachment editor — larger preview + title / alt text + delete. */}
+      <Modal
+        visible={editingIndex !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditingIndex(null)}
+        statusBarTranslucent
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1"
+        >
+          <Pressable
+            className="flex-1 bg-black/40 items-center justify-center px-6"
+            onPress={() => setEditingIndex(null)}
+          >
+            <Pressable onPress={() => {}} className="w-full max-w-sm bg-base-100">
+              {editingIndex !== null && attachments[editingIndex] ? (
+                <>
+                  {attachments[editingIndex].thumbUri ? (
+                    <Image
+                      source={{ uri: attachments[editingIndex].thumbUri }}
+                      style={{ width: "100%", height: 200 }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View
+                      style={{ height: 120 }}
+                      className="bg-base-200 items-center justify-center"
+                    >
+                      <Text className="text-4xl text-base-content/40">
+                        {attachments[editingIndex].kind === "audio" ? "♪" : "▶"}
+                      </Text>
+                    </View>
+                  )}
+                  <View className="p-5">
+                    <Text className="font-ui uppercase tracking-[0.16em] text-[11px] text-base-content/55 mb-1.5">
+                      Title
+                    </Text>
+                    <TextInput
+                      value={attachments[editingIndex].title}
+                      onChangeText={(v) => updateAttachment(editingIndex, { title: v })}
+                      placeholder="Optional title"
+                      placeholderTextColor="rgba(26,26,32,0.35)"
+                      className="bg-white border border-base-300 px-3 py-2.5 font-ui text-base text-base-content mb-4"
+                    />
+                    <Text className="font-ui uppercase tracking-[0.16em] text-[11px] text-base-content/55 mb-1.5">
+                      Alt text
+                    </Text>
+                    <TextInput
+                      value={attachments[editingIndex].alt}
+                      onChangeText={(v) => updateAttachment(editingIndex, { alt: v })}
+                      placeholder="Describe this for screen readers"
+                      placeholderTextColor="rgba(26,26,32,0.35)"
+                      multiline
+                      style={{ minHeight: 64 }}
+                      className="bg-white border border-base-300 px-3 py-2.5 font-ui text-base text-base-content"
+                    />
+                    <View className="flex-row items-center justify-between mt-5">
+                      <Pressable
+                        onPress={() => {
+                          const idx = editingIndex;
+                          setEditingIndex(null);
+                          removeAttachment(idx);
+                        }}
+                        hitSlop={6}
+                        className="px-2 py-2"
+                      >
+                        <Text className="font-ui uppercase tracking-[0.14em] text-xs text-error">
+                          Delete
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => setEditingIndex(null)}
+                        android_ripple={{ color: "rgba(0,0,0,0.08)" }}
+                        className="px-6 py-2.5 bg-primary"
+                      >
+                        <Text className="font-ui uppercase tracking-[0.16em] text-[11px] text-primary-content">
+                          Done
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </>
+              ) : null}
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
