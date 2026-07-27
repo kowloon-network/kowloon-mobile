@@ -27,6 +27,13 @@ import { useImageViewer } from "../ImageViewerProvider.jsx";
 // for stored proxy URLs).
 const attUrl = (att) => (typeof att === "string" ? att : att?.url || att?.href || "");
 
+// Full-viewer item: URL plus title (File.name) and alt (File.summary) so the
+// fullscreen viewer can caption the image.
+const attItem = (att) =>
+  typeof att === "string"
+    ? att
+    : { uri: attUrl(att), title: att?.name || "", alt: att?.alt || att?.summary || "" };
+
 function attachmentKind(att) {
   const mime = (att?.mediaType || att?.mimeType || att?.type || "").toLowerCase();
   const src = (attUrl(att) || att?.name || "").toLowerCase();
@@ -99,10 +106,10 @@ function formatEventRange(post) {
 function ImageGrid({ images }) {
   const viewer = useImageViewer();
   if (images.length === 0) return null;
-  const urls = images.map(attUrl);
+  const items = images.map(attItem);
   if (images.length === 1) {
     return (
-      <Pressable onPress={() => viewer?.open(urls, 0)}>
+      <Pressable onPress={() => viewer?.open(items, 0)}>
         <Image
           source={{ uri: attUrl(images[0]) }}
           className="w-full h-80 mb-3 bg-base-200"
@@ -118,7 +125,7 @@ function ImageGrid({ images }) {
         return (
           <Pressable
             key={`${attUrl(img)}-${i}`}
-            onPress={() => viewer?.open(urls, i)}
+            onPress={() => viewer?.open(items, i)}
             style={{ width: lastOdd ? "100%" : "49%" }}
           >
             <Image

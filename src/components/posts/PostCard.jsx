@@ -27,6 +27,13 @@ import { timeAgo } from "../../lib/timeAgo.js";
 // and enriched feeds hand back empty mediaType for stored proxy URLs).
 const attUrl = (att) => (typeof att === "string" ? att : att?.url || att?.href || "");
 
+// Full-viewer item: URL plus title (File.name) and alt (File.summary) so the
+// fullscreen viewer can caption the image.
+const attItem = (att) =>
+  typeof att === "string"
+    ? att
+    : { uri: attUrl(att), title: att?.name || "", alt: att?.alt || att?.summary || "" };
+
 function attachmentKind(att) {
   const mime = (att?.mediaType || att?.mimeType || att?.type || "").toLowerCase();
   const src = (attUrl(att) || att?.name || "").toLowerCase();
@@ -191,10 +198,10 @@ export function PostCard({ post, onDeleted }) {
                     (a) => attachmentKind(a) === "image"
                   );
                   if (imgs.length === 0) return null;
-                  const urls = imgs.map(attUrl);
+                  const items = imgs.map(attItem);
                   if (imgs.length === 1) {
                     return (
-                      <Pressable onPress={() => viewer?.open(urls, 0)}>
+                      <Pressable onPress={() => viewer?.open(items, 0)}>
                         <Image
                           source={{ uri: attUrl(imgs[0]) }}
                           className="w-full mb-2 bg-base-200"
@@ -212,7 +219,7 @@ export function PostCard({ post, onDeleted }) {
                         return (
                           <Pressable
                             key={`${attUrl(img)}-${i}`}
-                            onPress={() => viewer?.open(urls, i)}
+                            onPress={() => viewer?.open(items, i)}
                             style={{ width: lastOdd ? "100%" : "49%" }}
                           >
                             <Image

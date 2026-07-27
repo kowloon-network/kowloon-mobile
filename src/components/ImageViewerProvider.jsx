@@ -43,17 +43,28 @@ function extFor(mime = "") {
 }
 
 export function ImageViewerProvider({ children }) {
-  const [state, setState] = useState(null); // { images: [uri], index } | null
+  const [state, setState] = useState(null); // { data: [uri], meta: [{title,alt}] } | null
   const [menuOpen, setMenuOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  // Tracks the currently-visible image so Save/Share act on the right one.
+  // Tracks the currently-visible image so Save/Share + the caption overlay act
+  // on the right one. indexRef is for the async handlers; currentIndex re-renders
+  // the overlay on swipe.
   const indexRef = useRef(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  const open = useCallback((images, index = 0) => {
-    const list = (Array.isArray(images) ? images : [images]).filter(Boolean);
-    if (list.length) {
-      indexRef.current = Math.max(0, index);
-      setState({ images: list, index: Math.max(0, index) });
+  // Accepts an array of image URLs (strings) or { uri, title, alt } objects, so
+  // the caption overlay can show each image's title/alt when available.
+  const open = useCallback((items, index = 0) => {
+    const list = (Array.isArray(items) ? items : [items]).filter(Boolean);
+    const data = list.map((it) => (typeof it === "string" ? it : it.uri || it.url)).filter(Boolean);
+    const meta = list.map((it) =>
+      typeof it === "string" ? {} : { title: it.title || "", alt: it.alt || "" }
+    );
+    if (data.length) {
+      const i = Math.max(0, index);
+      indexRef.current = i;
+      setCurrentIndex(i);
+      setState({ data, meta });
     }
   }, []);
 
@@ -62,7 +73,7 @@ export function ImageViewerProvider({ children }) {
     setMenuOpen(false);
   }, []);
 
-  const currentUrl = () => state?.images?.[indexRef.current] || null;
+  const currentUrl = () => state?.data?.[indexRef.current] || null;
 
   // Download the current image to the cache with a correct extension (from the
   // response content-type), returning { uri, name, mime }.
@@ -138,6 +149,9 @@ export function ImageViewerProvider({ children }) {
   }
 
   const { width, height } = Dimensions.get("window");
+  const cap = state?.meta?.[currentIndex] || {};
+  const capTitle = (cap.title || "").trim();
+  const capAlt = (cap.alt || "").trim();
 
   return (
     <ImageViewerContext.Provider value={{ open }}>
@@ -154,10 +168,11 @@ export function ImageViewerProvider({ children }) {
           <View className="flex-1 bg-black">
             {state ? (
               <Gallery
-                data={state.images}
-                initialIndex={state.index}
+                data={state.data}
+                initialIndex={currentIndex}
                 onIndexChange={(i) => {
                   indexRef.current = i;
+                  setCurrentIndex(i);
                 }}
                 onSwipeToClose={close}
                 onLongPress={() => setMenuOpen(true)}
@@ -176,30 +191,63 @@ export function ImageViewerProvider({ children }) {
               />
             ) : null}
 
-            {/* Top bar — close (left) + menu (right) */}
+            {/* Top bar — close (left) + menu (right), with the image title below */}
             <SafeAreaView
               edges={["top"]}
-              className="absolute top-0 left-0 right-0 flex-row items-center justify-between"
+              className="absolute top-0 left-0 right-0"
               pointerEvents="box-none"
             >
-              <Pressable
-                onPress={close}
-                hitSlop={12}
-                className="m-4 p-2 bg-white/10"
-                android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: true }}
+              <View
+                className="flex-row items-center justify-between"
+                pointerEvents="box-none"
               >
-                <X size={26} color="#FFFFFF" strokeWidth={2} />
-              </Pressable>
-              <Pressable
-                onPress={() => setMenuOpen(true)}
-                hitSlop={12}
-                className="m-4 p-2 bg-white/10"
-                android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: true }}
-                accessibilityLabel="Image options"
-              >
-                <MoreVertical size={24} color="#FFFFFF" strokeWidth={2} />
-              </Pressable>
+                <Pressable
+                  onPress={close}
+                  hitSlop={12}
+                  className="m-4 p-2 bg-white/10"
+                  android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: true }}
+                >
+                  <X size={26} color="#FFFFFF" strokeWidth={2} />
+                </Pressable>
+                <Pressable
+                  onPress={() => setMenuOpen(true)}
+                  hitSlop={12}
+                  className="m-4 p-2 bg-white/10"
+                  android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: true }}
+                  accessibilityLabel="Image options"
+                >
+                  <MoreVertical size={24} color="#FFFFFF" strokeWidth={2} />
+                </Pressable>
+              </View>
+              {capTitle ? (
+                <View className="px-4 pb-2" pointerEvents="none">
+                  <Text
+                    className="font-reading text-2xl text-white"
+                    numberOfLines={2}
+                    style={{
+                      textShadowColor: "rgba(0,0,0,0.85)",
+                      textShadowOffset: { width: 0, height: 1 },
+                      textShadowRadius: 4,
+                    }}
+                  >
+                    {capTitle}
+                  </Text>
+                </View>
+              ) : null}
             </SafeAreaView>
+
+            {/* Alt text — bottom, white on 60% black for legibility over light images */}
+            {capAlt ? (
+              <SafeAreaView
+                edges={["bottom"]}
+                className="absolute bottom-0 left-0 right-0 bg-black/60"
+                pointerEvents="none"
+              >
+                <Text className="font-ui text-sm text-white px-4 py-3 leading-5">
+                  {capAlt}
+                </Text>
+              </SafeAreaView>
+            ) : null}
 
             {busy ? (
               <View className="absolute inset-0 items-center justify-center bg-black/40">
