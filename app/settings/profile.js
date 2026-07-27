@@ -376,6 +376,23 @@ export default function ProfileSettings() {
                 </View>
               )}
             </Field>
+
+            {/* App & Kowloon preferences live on their own screen. */}
+            <Pressable
+              onPress={() => router.push("/settings/preferences")}
+              android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+              className="mt-4 py-4 flex-row items-center justify-between border-t border-base-200"
+            >
+              <View className="flex-1 pr-3">
+                <Text className="font-ui text-base text-base-content">
+                  Preferences
+                </Text>
+                <Text className="font-ui text-xs text-base-content/50 mt-0.5">
+                  Composing, feed, notifications, time zone
+                </Text>
+              </View>
+              <Text className="font-ui text-lg text-base-content/40">›</Text>
+            </Pressable>
           </View>
         </ScrollView>
 

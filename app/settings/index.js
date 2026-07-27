@@ -166,6 +166,11 @@ export default function Settings() {
             onPress={() => router.push("/settings/profile")}
           />
           <NavRow
+            label="Preferences"
+            hint="Composing, feed, notifications, time zone"
+            onPress={() => router.push("/settings/preferences")}
+          />
+          <NavRow
             label="Typography"
             hint="Reading font, size, spacing, margins"
             onPress={() => router.push("/settings/typography")}
