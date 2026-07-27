@@ -16,9 +16,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Image,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -803,68 +801,88 @@ export default function Compose() {
 
             {type === "Media" ? (
               <View className="px-4 pt-3">
-                {/* 2-up thumbnail grid. Tap a tile to edit its title/alt or
-                    delete it. Images use their own uri; video uses a generated
-                    frame (falls back to a labeled tile); audio shows an icon. */}
-                <View className="flex-row flex-wrap -mx-1">
-                  {attachments.map((att, i) => (
-                    <View key={`${att.uri}-${i}`} className="w-1/2 p-1">
-                      <Pressable
-                        onPress={() => setEditingIndex(i)}
-                        android_ripple={{ color: "rgba(0,0,0,0.06)" }}
-                        style={{ aspectRatio: 1 }}
-                        className="bg-base-200 overflow-hidden"
-                      >
-                        {att.thumbUri ? (
-                          <Image
-                            source={{ uri: att.thumbUri }}
-                            style={{ width: "100%", height: "100%" }}
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <View className="flex-1 items-center justify-center">
-                            <Text className="text-2xl text-base-content/40">
-                              {att.kind === "audio" ? "♪" : "▶"}
-                            </Text>
-                            <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-base-content/45 mt-1">
-                              {att.kind === "audio" ? "Audio" : "Video"}
-                            </Text>
-                          </View>
-                        )}
-                        {att.kind === "video" && att.thumbUri ? (
-                          <View className="absolute inset-0 items-center justify-center">
-                            <View className="w-9 h-9 bg-black/50 items-center justify-center">
-                              <Text className="text-white text-base">▶</Text>
+                {/* Empty: a compact add button so the body editor below stays
+                    visible. With attachments: a 2-up thumbnail grid — tap a tile
+                    to edit its title/alt, or the X to remove it. */}
+                {attachments.length === 0 ? (
+                  <Pressable
+                    onPress={pickMedia}
+                    android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+                    className="flex-row items-center justify-center bg-white border border-base-300 py-4"
+                  >
+                    <Text className="text-xl text-base-content/45 leading-none mr-2">+</Text>
+                    <Text className="font-ui uppercase tracking-[0.14em] text-xs text-base-content/55">
+                      Add media
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <View className="flex-row flex-wrap -mx-1">
+                    {attachments.map((att, i) => (
+                      <View key={`${att.uri}-${i}`} className="w-1/2 p-1">
+                        <Pressable
+                          onPress={() => setEditingIndex(i)}
+                          android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+                          style={{ aspectRatio: 1 }}
+                          className="bg-base-200 overflow-hidden"
+                        >
+                          {att.thumbUri ? (
+                            <Image
+                              source={{ uri: att.thumbUri }}
+                              style={{ width: "100%", height: "100%" }}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <View className="flex-1 items-center justify-center">
+                              <Text className="text-2xl text-base-content/40">
+                                {att.kind === "audio" ? "♪" : "▶"}
+                              </Text>
+                              <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-base-content/45 mt-1">
+                                {att.kind === "audio" ? "Audio" : "Video"}
+                              </Text>
                             </View>
-                          </View>
-                        ) : null}
-                        {att.kind !== "audio" && !att.alt?.trim() ? (
-                          <View className="absolute bottom-1 left-1 bg-black/55 px-1.5 py-0.5">
-                            <Text className="font-ui text-[9px] tracking-wider text-white">
-                              ALT?
-                            </Text>
-                          </View>
-                        ) : null}
+                          )}
+                          {att.kind === "video" && att.thumbUri ? (
+                            <View className="absolute inset-0 items-center justify-center">
+                              <View className="w-9 h-9 bg-black/50 items-center justify-center">
+                                <Text className="text-white text-base">▶</Text>
+                              </View>
+                            </View>
+                          ) : null}
+                          {att.kind !== "audio" && !att.alt?.trim() ? (
+                            <View className="absolute bottom-1 left-1 bg-black/55 px-1.5 py-0.5">
+                              <Text className="font-ui text-[9px] tracking-wider text-white">
+                                ALT?
+                              </Text>
+                            </View>
+                          ) : null}
+                        </Pressable>
+                        {/* Quick remove — no need to open the editor. */}
+                        <Pressable
+                          onPress={() => removeAttachment(i)}
+                          hitSlop={8}
+                          className="absolute top-2 right-2 w-6 h-6 bg-black/60 items-center justify-center"
+                        >
+                          <Text className="text-white text-xs leading-none">✕</Text>
+                        </Pressable>
+                      </View>
+                    ))}
+                    <View className="w-1/2 p-1">
+                      <Pressable
+                        onPress={pickMedia}
+                        android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+                        style={{ aspectRatio: 1 }}
+                        className="bg-white border border-base-300 items-center justify-center"
+                      >
+                        <Text className="text-3xl text-base-content/40 leading-none">
+                          +
+                        </Text>
+                        <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-base-content/55 mt-1">
+                          Add
+                        </Text>
                       </Pressable>
                     </View>
-                  ))}
-                  {/* Add tile */}
-                  <View className="w-1/2 p-1">
-                    <Pressable
-                      onPress={pickMedia}
-                      android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-                      style={{ aspectRatio: 1 }}
-                      className="bg-white border border-base-300 items-center justify-center"
-                    >
-                      <Text className="text-3xl text-base-content/40 leading-none">
-                        +
-                      </Text>
-                      <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-base-content/55 mt-1">
-                        Add
-                      </Text>
-                    </Pressable>
                   </View>
-                </View>
+                )}
               </View>
             ) : null}
 
@@ -1045,14 +1063,11 @@ export default function Compose() {
         onRequestClose={() => setEditingIndex(null)}
         statusBarTranslucent
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1"
+        <Pressable
+          className="flex-1 bg-black/40 items-center justify-center px-6"
+          style={{ paddingBottom: keyboardInset }}
+          onPress={() => setEditingIndex(null)}
         >
-          <Pressable
-            className="flex-1 bg-black/40 items-center justify-center px-6"
-            onPress={() => setEditingIndex(null)}
-          >
             <Pressable onPress={() => {}} className="w-full max-w-sm bg-base-100">
               {editingIndex !== null && attachments[editingIndex] ? (
                 <>
@@ -1124,7 +1139,6 @@ export default function Compose() {
               ) : null}
             </Pressable>
           </Pressable>
-        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
