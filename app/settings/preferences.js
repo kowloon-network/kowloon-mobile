@@ -214,20 +214,22 @@ function RowV({ entry, children }) {
 }
 
 function Pill({ label, active, onPress }) {
-  // Background lives on a plain inner View, NOT the Pressable: a dynamic
-  // backgroundColor on a Pressable with android_ripple won't repaint on Android
-  // (the label would flip to white while the button stayed grey).
+  // Colors via inline style, not NativeWind classes: a conditional `className`
+  // background doesn't reliably repaint on Android (same reason the feed filter
+  // toggles icon COLOR, not a background). Inline color values always re-apply.
   return (
     <Pressable
       onPress={onPress}
       android_ripple={{ color: "rgba(0,0,0,0.08)" }}
       className="mr-2 mb-1"
     >
-      <View className={`px-3 py-2 ${active ? "bg-primary" : "bg-base-200"}`}>
+      <View
+        className="px-3 py-2"
+        style={{ backgroundColor: active ? "#5588B1" : "#F4F4F4" }}
+      >
         <Text
-          className={`font-ui text-sm ${
-            active ? "text-primary-content" : "text-base-content"
-          }`}
+          className="font-ui text-sm"
+          style={{ color: active ? "#F4F5F7" : "#1A1A20" }}
         >
           {label}
         </Text>
