@@ -919,9 +919,9 @@ export default function Compose() {
         )}
       </View>
 
-      {/* Add-media chooser — a bottom sheet (not Alert.alert) so the options lay
-          out as clean full-width rows. Launch the picker just after the sheet
-          closes to avoid the Android modal-dismiss / picker-open race. */}
+      {/* Add-media chooser — a centered dialog (not Alert.alert, whose Android
+          3-button layout can't be aligned). Launch the picker just after the
+          dialog closes to avoid the Android modal-dismiss / picker-open race. */}
       <Modal
         visible={mediaSheetOpen}
         transparent
@@ -930,42 +930,40 @@ export default function Compose() {
         statusBarTranslucent
       >
         <Pressable
-          className="flex-1 bg-black/40 justify-end"
+          className="flex-1 bg-black/40 items-center justify-center px-8"
           onPress={() => setMediaSheetOpen(false)}
         >
-          <Pressable onPress={() => {}}>
-            <SafeAreaView edges={["bottom"]} className="bg-base-100">
-              <View className="px-5 py-3 bg-secondary">
-                <Text className="font-ui text-lg text-secondary-content">Add media</Text>
-              </View>
-              <Pressable
-                onPress={() => {
-                  setMediaSheetOpen(false);
-                  setTimeout(pickPhotosOrVideos, 180);
-                }}
-                android_ripple={{ color: "rgba(0,0,0,0.06)" }}
-                className="px-5 py-4 border-b border-base-200"
-              >
-                <Text className="font-ui text-base text-base-content">Photo or Video</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  setMediaSheetOpen(false);
-                  setTimeout(pickAudio, 180);
-                }}
-                android_ripple={{ color: "rgba(0,0,0,0.06)" }}
-                className="px-5 py-4 border-b border-base-200"
-              >
-                <Text className="font-ui text-base text-base-content">Audio</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setMediaSheetOpen(false)}
-                android_ripple={{ color: "rgba(0,0,0,0.06)" }}
-                className="px-5 py-4"
-              >
-                <Text className="font-ui text-base text-base-content/55">Cancel</Text>
-              </Pressable>
-            </SafeAreaView>
+          <Pressable onPress={() => {}} className="w-full max-w-sm bg-base-100">
+            <View className="px-5 py-3 bg-secondary">
+              <Text className="font-ui text-lg text-secondary-content">Add media</Text>
+            </View>
+            <Pressable
+              onPress={() => {
+                setMediaSheetOpen(false);
+                setTimeout(pickPhotosOrVideos, 180);
+              }}
+              android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+              className="px-5 py-4 border-b border-base-200"
+            >
+              <Text className="font-ui text-base text-base-content">Photo or Video</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setMediaSheetOpen(false);
+                setTimeout(pickAudio, 180);
+              }}
+              android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+              className="px-5 py-4 border-b border-base-200"
+            >
+              <Text className="font-ui text-base text-base-content">Audio</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setMediaSheetOpen(false)}
+              android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+              className="px-5 py-4"
+            >
+              <Text className="font-ui text-base text-base-content/55">Cancel</Text>
+            </Pressable>
           </Pressable>
         </Pressable>
       </Modal>
