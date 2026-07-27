@@ -369,19 +369,12 @@ export default function Compose() {
     autofocus: false,
     avoidIosKeyboard: true,
     initialContent: "",
-    // Grow the editor to fit its content instead of scrolling inside a fixed
-    // box. The WebView's own scroll is disabled, so a fixed height meant long
-    // body text couldn't be scrolled (the parent ScrollView stole the gesture
-    // and dragging just moved the caret — issue #76). With dynamicHeight the
-    // editor expands and the single outer ScrollView scrolls the whole form.
-    dynamicHeight: true,
-    // Give the editor content breathing room from the edge (the WebView has no
-    // horizontal padding by default) and a comfortable minimum editing height
-    // so the empty body still presents a big tap target.
+    // Give the editor content breathing room from the edge — the WebView has
+    // no horizontal padding by default, so text sat flush against the edge.
     bridgeExtensions: [
       ...TenTapStartKit,
       CoreBridge.configureCSS(`
-        .ProseMirror { padding: 10px 16px; min-height: 220px; }
+        .ProseMirror { padding: 10px 16px; }
       `),
     ],
   });
@@ -685,12 +678,13 @@ export default function Compose() {
                 style={{ position: "absolute", width: 1, height: 1, opacity: 0 }}
               />
             ) : null}
-            {/* Upper composer content (everything above the controls) scrolls
-                independently — keeps the editor reachable when a long
-                attachment list pushes things off-screen. The editor itself
-                gets a fixed height so the WebView inside has defined bounds. */}
+            {/* Fields (title / media / featured) scroll in their own region and
+                only take the height their content needs (flexShrink lets a tall
+                attachment list give way to the editor below). The body editor is
+                a separate flex-1 region so it fills the remaining space up to the
+                controls + keyboard toolbar, rather than the fields pushing it off. */}
             <ScrollView
-              className="flex-1"
+              style={{ flexGrow: 0, flexShrink: 1 }}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{ paddingBottom: 4 }}
             >
@@ -930,14 +924,21 @@ export default function Compose() {
               </Text>
             ) : null}
 
-            {/* Editor body — grows to fit its content (dynamicHeight) instead
-                of scrolling in a fixed box, so the single outer ScrollView
-                handles all scrolling (issue #76). The formatting toolbar is
-                pinned above the keyboard (below), not inline. */}
-            <View className="mx-4 mt-3">
-              <RichText editor={editor} />
-            </View>
             </ScrollView>
+
+            {/* Editor body — fills the space between the fields above and the
+                controls + pinned toolbar below, and scrolls INTERNALLY (issue
+                #76). scrollEnabled/nestedScrollEnabled turn on the WebView's own
+                scroll (10tap disables it by default), so long text scrolls in
+                place instead of the parent stealing the gesture, and the field
+                stays a sensible height instead of growing to thousands of px. */}
+            <View className="mx-4 mt-3" style={{ flex: 1, minHeight: 140 }}>
+              <RichText
+                editor={editor}
+                scrollEnabled
+                nestedScrollEnabled
+              />
+            </View>
 
             {/* Universal location picker — pinned above the controls so a
                 geotag is always one tap away regardless of post type. */}
