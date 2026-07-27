@@ -50,7 +50,7 @@ import { useActiveClient } from "../src/lib/useActiveClient.js";
 import { requestFeedRefresh } from "../src/lib/feedRefreshSignal.js";
 import { consumePendingShare } from "../src/lib/pendingShare.js";
 import { useKeyboardInset } from "../src/lib/useKeyboardInset.js";
-import { kowloonPostIdFromUrl } from "../src/lib/parseKowloonUrl.js";
+import { parseKowloonUrl } from "../src/lib/parseKowloonUrl.js";
 import { pmToMarkdown } from "../src/lib/pmToMarkdown.js";
 import { uploadFile } from "../src/lib/uploadFile.js";
 import { COMPOSABLE_TYPES, POST_TYPES } from "../src/lib/postTypes.js";
@@ -475,13 +475,14 @@ export default function Compose() {
       return;
     }
 
-    // Auto-target: if the Link's href is a Kowloon post URL, mark it as a
-    // first-class share so the feed can render an embedded preview rather
-    // than a generic link card. (See parseKowloonUrl.)
+    // Auto-target: if the Link's href points at any Kowloon object (post,
+    // group, circle, user, page), store its canonical ID in `target` so it's a
+    // first-class, durable reference — server-agnostic and independent of the
+    // display URL. (See parseKowloonUrl.)
     let target;
     if (type === "Link") {
-      const id = kowloonPostIdFromUrl(linkHref.trim());
-      if (id) target = id;
+      const parsed = parseKowloonUrl(linkHref.trim());
+      if (parsed?.id) target = parsed.id;
     }
 
     setPosting(true);
