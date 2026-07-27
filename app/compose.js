@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -282,6 +283,17 @@ export default function Compose() {
     } catch (e) {
       setError(pickerErrorMessage(e, "Couldn't open audio picker."));
     }
+  }
+
+  // Single "Add media" entry point. Photos/videos come from the image picker
+  // and audio from the document picker (different native pickers), so we offer
+  // the choice rather than launch one combined picker.
+  function pickMedia() {
+    Alert.alert("Add media", undefined, [
+      { text: "Photo or Video", onPress: pickPhotosOrVideos },
+      { text: "Audio", onPress: pickAudio },
+      { text: "Cancel", style: "cancel" },
+    ]);
   }
 
   function removeAttachment(index) {
@@ -777,26 +789,15 @@ export default function Compose() {
                     </Pressable>
                   </View>
                 ))}
-                <View className="flex-row">
-                  <Pressable
-                    onPress={pickPhotosOrVideos}
-                    android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-                    className="flex-1 mr-2   bg-white py-3 items-center"
-                  >
-                    <Text className="font-ui uppercase tracking-[0.14em] text-xs text-base-content/55">
-                      + Photo / Video
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={pickAudio}
-                    android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-                    className="flex-1   bg-white py-3 items-center"
-                  >
-                    <Text className="font-ui uppercase tracking-[0.14em] text-xs text-base-content/55">
-                      + Audio
-                    </Text>
-                  </Pressable>
-                </View>
+                <Pressable
+                  onPress={pickMedia}
+                  android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+                  className="  bg-white py-3 items-center"
+                >
+                  <Text className="font-ui uppercase tracking-[0.14em] text-xs text-base-content/55">
+                    + Add media
+                  </Text>
+                </Pressable>
               </View>
             ) : null}
 
