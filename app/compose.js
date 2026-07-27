@@ -301,8 +301,9 @@ export default function Compose() {
   ).current;
 
   const editor = useEditorBridge({
-    // Don't blanket-focus the body — we focus it explicitly only for Note and
-    // Article below, so the form opens at the top with fields visible.
+    // Don't blanket-focus the body — only Note focuses it (below); the titled
+    // types (Article/Media/Event) focus their title field, so the form opens at
+    // the top with fields visible.
     autofocus: false,
     avoidIosKeyboard: true,
     initialContent: "",
@@ -325,9 +326,9 @@ export default function Compose() {
   useEffect(() => {
     if (editorState.isReady && !handedOff.current) {
       handedOff.current = true;
-      // Focus the body for Notes and Articles (the two writing types). Other
-      // types keep focus on their own native input (title / link URL).
-      if (type === "Note" || type === "Article") editor.focus();
+      // Only pull focus into the editor for Notes; other types keep focus on
+      // their own native input (title / link URL), which stays visible.
+      if (type === "Note") editor.focus();
     }
     // Repost: once the editor is up, drop the source post's excerpt in as a
     // blockquote. Followed by an empty paragraph so the cursor lands below
@@ -602,30 +603,15 @@ export default function Compose() {
 
         {composable && (
           <>
-            {/* Hidden keyboard-kicker — for Note and Article, where the editor
-                is the focus target. It raises the keyboard on mount, then focus
-                hands off to the editor. Other types autofocus their own visible
-                input (title / link URL), which raises the keyboard directly. */}
-            {type === "Note" || type === "Article" ? (
+            {/* Hidden keyboard-kicker — only for Note, where the editor is the
+                focus target. It raises the keyboard on mount, then focus hands
+                off to the editor. Other types autofocus their own visible input
+                (title / link URL), which raises the keyboard directly. */}
+            {type === "Note" ? (
               <TextInput
                 autoFocus
                 style={{ position: "absolute", width: 1, height: 1, opacity: 0 }}
               />
-            ) : null}
-
-            {/* Article title is pinned ABOVE the scroll so focusing the body
-                (below) never scrolls it out of view — the title stays visible
-                from the get-go. Other types keep their title inside the scroll. */}
-            {type === "Article" ? (
-              <View className="px-4 pt-1 pb-1">
-                <TextInput
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder="Article title"
-                  placeholderTextColor="rgba(26,26,32,0.35)"
-                  className="  bg-white px-3 py-3 font-ui text-lg text-base-content"
-                />
-              </View>
             ) : null}
             {/* Upper composer content (everything above the controls) scrolls
                 independently — keeps the editor reachable when a long
@@ -701,7 +687,8 @@ export default function Compose() {
               </View>
             ) : null}
 
-            {type === "Link" ||
+            {type === "Article" ||
+            type === "Link" ||
             type === "Media" ||
             type === "Event" ? (
               <View className="px-4 pt-3">
@@ -709,7 +696,9 @@ export default function Compose() {
                   value={title}
                   onChangeText={setTitle}
                   placeholder={
-                    type === "Event"
+                    type === "Article"
+                      ? "Article title"
+                      : type === "Event"
                       ? "Event title"
                       : type === "Link"
                       ? "Optional title for this link"
