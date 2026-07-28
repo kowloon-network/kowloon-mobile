@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, router } from "expo-router";
 import { useSelector } from "react-redux";
 import {
   ActivityIndicator,
@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Check, ExternalLink, Globe, MapPin, PlusCircle, Users, X } from "lucide-react-native";
+import { Check, ChevronRight, Globe, MapPin, PlusCircle, Users, X } from "lucide-react-native";
 import { selectActiveAccount } from "../../src/state/accountsSlice.js";
 
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
@@ -143,17 +143,31 @@ function CachedRow({ item, baseUrl }) {
   );
 }
 
-function PageRow({ page }) {
+function PageRow({ page, domain }) {
+  // Open the page IN-APP: we know the server (domain) and these are Kowloon
+  // pages, so route to the viewer with ?domain= (our server hydrates the remote
+  // page). Fall back to the browser only if we can't derive a slug.
+  const openPage = () => {
+    const m = (page.url || "").match(/\/pages\/([^/?#]+)/);
+    const slug = page.slug || (m ? decodeURIComponent(m[1]) : null);
+    if (slug && domain) {
+      router.push(
+        `/pages/${encodeURIComponent(slug)}?domain=${encodeURIComponent(domain)}`
+      );
+    } else if (page.url) {
+      Linking.openURL(page.url);
+    }
+  };
   return (
     <Pressable
-      onPress={() => Linking.openURL(page.url)}
+      onPress={openPage}
       android_ripple={{ color: "rgba(0,0,0,0.05)" }}
       className="flex-row items-center justify-between py-3 px-5  "
     >
       <Text className="font-ui text-base text-base-content flex-1 mr-3" numberOfLines={1}>
         {page.title}
       </Text>
-      <ExternalLink size={14} color="rgba(26,26,32,0.4)" strokeWidth={1.75} />
+      <ChevronRight size={16} color="rgba(26,26,32,0.4)" strokeWidth={1.75} />
     </Pressable>
   );
 }
@@ -501,7 +515,7 @@ export default function ServerProfile() {
               <>
                 <SectionHeading>Pages</SectionHeading>
                 {pages.map((p, i) => (
-                  <PageRow key={p.url || i} page={p} />
+                  <PageRow key={p.url || i} page={p} domain={domain} />
                 ))}
               </>
             )
