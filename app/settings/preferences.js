@@ -6,7 +6,7 @@
 //     handler replaces prefs.notifications wholesale.
 // Reading typography has its own dedicated screen and is linked, not inlined.
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -28,30 +28,38 @@ export default function PreferencesScreen() {
   const [prefs, setPrefs] = useState(() => ({
     ...(client?.auth?.getUser?.()?.prefs || {}),
   }));
+  // Always build the next write off the LATEST prefs, not the render snapshot.
+  // Otherwise rapid successive edits (audience, then reply, then react) each use
+  // a stale base and quietly revert earlier changes in the local cached user
+  // the composer reads — the server writes stay correct (each is an independent
+  // patch), which is why the DB looked right while the composer didn't.
+  const prefsRef = useRef(prefs);
 
   const writePref = useCallback(
     (key, value) => {
+      const prev = prefsRef.current;
       let nextPrefs;
       let payload;
       if (key.startsWith("notifications.")) {
         const sub = key.slice("notifications.".length);
-        const nextNotifs = { ...(prefs.notifications || {}), [sub]: value };
-        nextPrefs = { ...prefs, notifications: nextNotifs };
+        const nextNotifs = { ...(prev.notifications || {}), [sub]: value };
+        nextPrefs = { ...prev, notifications: nextNotifs };
         payload = { notifications: nextNotifs }; // send the whole nested object
       } else {
-        nextPrefs = { ...prefs, [key]: value };
+        nextPrefs = { ...prev, [key]: value };
         payload = { [key]: value };
       }
+      prefsRef.current = nextPrefs;
       setPrefs(nextPrefs);
-      // Keep the client's cached user fresh so other screens read the new value
-      // this session (the server is the source of truth on next launch).
+      // Keep the client's cached user fresh so other screens (the composer) read
+      // the new value this session; the server is the source of truth on launch.
       const u = client?.auth?.getUser?.();
       if (u) u.prefs = nextPrefs;
       client?.activities
         ?.updateProfile?.({ updates: { prefs: payload } })
         .catch(() => {});
     },
-    [prefs, client]
+    [client]
   );
 
   return (
