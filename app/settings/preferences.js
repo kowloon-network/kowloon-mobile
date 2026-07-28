@@ -6,15 +6,12 @@
 //     handler replaces prefs.notifications wholesale.
 // Reading typography has its own dedicated screen and is linked, not inlined.
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Modal,
   Pressable,
   ScrollView,
   Switch,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -24,7 +21,6 @@ import { PREFS, PREF_GROUPS, getPrefValue } from "@kowloon/client";
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { AudienceSelector } from "../../src/components/posts/AudienceSelector.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
-import { allTimeZones, deviceTimeZone, prettyZone } from "../../src/lib/timezones.js";
 
 export default function PreferencesScreen() {
   const client = useActiveClient();
@@ -170,8 +166,6 @@ function PrefControl({ entry, value, onChange }) {
           />
         </View>
       );
-    case "timezone":
-      return <TimezoneRow entry={entry} value={value} onChange={onChange} />;
     default:
       return null;
   }
@@ -237,124 +231,6 @@ function Pill({ label, active, onPress }) {
           {label}
         </Text>
       </View>
-    </Pressable>
-  );
-}
-
-function TimezoneRow({ entry, value, onChange }) {
-  const [open, setOpen] = useState(false);
-  const device = deviceTimeZone();
-  const display = value ? prettyZone(value) : `Device (${prettyZone(device)})`;
-  return (
-    <>
-      <Pressable
-        onPress={() => setOpen(true)}
-        android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-        className="px-4 py-3 border-b border-base-200 flex-row items-center justify-between"
-      >
-        <View className="flex-1 pr-3">
-          <Text className="font-ui text-base text-base-content">
-            {entry.label}
-          </Text>
-          {entry.hint ? (
-            <Text className="font-ui text-xs text-base-content/50 mt-0.5">
-              {entry.hint}
-            </Text>
-          ) : null}
-        </View>
-        <Text
-          className="font-ui text-sm text-primary max-w-[45%] text-right"
-          numberOfLines={1}
-        >
-          {display}
-        </Text>
-      </Pressable>
-      <TimezoneModal
-        visible={open}
-        current={value}
-        onClose={() => setOpen(false)}
-        onPick={(tz) => {
-          onChange(tz);
-          setOpen(false);
-        }}
-      />
-    </>
-  );
-}
-
-function TimezoneModal({ visible, current, onClose, onPick }) {
-  const [q, setQ] = useState("");
-  const zones = useMemo(() => allTimeZones(), []);
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    if (!needle) return zones;
-    return zones.filter((z) => z.toLowerCase().includes(needle));
-  }, [q, zones]);
-
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      onRequestClose={onClose}
-      presentationStyle="pageSheet"
-    >
-      <SafeAreaView className="flex-1 bg-base-100" edges={["top"]}>
-        <View className="px-4 py-3 flex-row items-center justify-between border-b border-base-200">
-          <Text className="font-reading text-xl text-base-content">
-            Time zone
-          </Text>
-          <Pressable onPress={onClose} hitSlop={10}>
-            <Text className="font-ui uppercase tracking-[0.14em] text-xs text-primary">
-              Done
-            </Text>
-          </Pressable>
-        </View>
-        <TextInput
-          value={q}
-          onChangeText={setQ}
-          placeholder="Search zones"
-          placeholderTextColor="rgba(26,26,32,0.35)"
-          autoCorrect={false}
-          autoCapitalize="none"
-          className="mx-4 my-3 bg-white px-3 py-2 font-ui text-base text-base-content"
-        />
-        <ScrollView keyboardShouldPersistTaps="handled">
-          {/* Follow-device option clears the stored zone. */}
-          <ZoneRow
-            label="Use device time zone"
-            active={!current}
-            onPress={() => onPick("")}
-          />
-          {filtered.map((z) => (
-            <ZoneRow
-              key={z}
-              label={prettyZone(z)}
-              active={current === z}
-              onPress={() => onPick(z)}
-            />
-          ))}
-          {zones.length === 0 ? (
-            <View className="items-center py-8">
-              <ActivityIndicator />
-            </View>
-          ) : null}
-        </ScrollView>
-      </SafeAreaView>
-    </Modal>
-  );
-}
-
-function ZoneRow({ label, active, onPress }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-      className={`px-4 py-3 border-b border-base-200 flex-row items-center justify-between ${
-        active ? "bg-base-200" : "bg-white"
-      }`}
-    >
-      <Text className="font-ui text-base text-base-content">{label}</Text>
-      {active ? <Text className="font-ui text-primary">✓</Text> : null}
     </Pressable>
   );
 }
