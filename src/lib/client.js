@@ -19,13 +19,17 @@ const serversSynced = new Set(); // account ids we've pulled the known-servers l
 // discovers more servers.
 async function syncKnownKowloonHosts(client, accountId) {
   if (serversSynced.has(accountId)) return;
+  // Mark immediately and NEVER retry from here. ensureClient runs on nearly every
+  // render (useActiveClient), so retrying on failure would flood /servers and get
+  // rate-limited, starving real requests like the feed. Best-effort, once.
   serversSynced.add(accountId);
   try {
     const res = await client.http.get("/servers");
     const items = res?.orderedItems || res?.items || [];
     for (const s of items) registerKowloonHost(s?.domain || s?.id);
   } catch {
-    serversSynced.delete(accountId); // let it retry next time
+    // best-effort; remote-page recognition just won't include newly-known hosts
+    // until next app launch.
   }
 }
 
