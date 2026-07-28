@@ -121,7 +121,6 @@ export function ReactButton({ client, post, onReacted, size = "md" }) {
   }
 
   const iconSize = size === "sm" ? 16 : 20;
-  const countSize = size === "sm" ? "text-[11px]" : "text-xs";
 
   return (
     <View>
@@ -150,15 +149,8 @@ export function ReactButton({ client, post, onReacted, size = "md" }) {
           ) : (
             <Smile size={iconSize} color="rgba(26,26,32,0.55)" strokeWidth={1.75} />
           )}
-          {count > 0 ? (
-            <Text
-              className={`font-ui ${countSize} ml-1.5 ${
-                myReact ? "text-primary" : "text-base-content/55"
-              }`}
-            >
-              {count}
-            </Text>
-          ) : null}
+          {/* Count lives in the react-summary row (feed) / ReactsBar (detail),
+              not on the button (#79). The button just shows the react icon. */}
         </Pressable>
 
         {open ? (

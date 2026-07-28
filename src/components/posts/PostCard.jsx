@@ -13,6 +13,7 @@ import { AudioAttachment } from "./AudioAttachment.jsx";
 import { VideoAttachment } from "./VideoAttachment.jsx";
 import { LocationLine } from "./LocationLine.jsx";
 import { PostActionBar } from "./PostActionBar.jsx";
+import { ReactSummaryRow } from "./ReactSummaryRow.jsx";
 import { HtmlContent } from "../HtmlContent.jsx";
 import { useImageViewer } from "../ImageViewerProvider.jsx";
 import { useActiveClient } from "../../lib/useActiveClient.js";
@@ -353,6 +354,9 @@ export function PostCard({ post, onDeleted }) {
             ) : null}
           </>
         )}
+
+        {/* Reaction summary — read-only emoji row + total, between body and bar (#79) */}
+        <ReactSummaryRow post={post} />
 
         {/* Action bar — reply / react / repost / share / bookmark / more */}
         <View className="mt-1">
