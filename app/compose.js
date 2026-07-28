@@ -140,6 +140,10 @@ export default function Compose() {
   const shareRef = useRef(params.fromShare ? consumePendingShare() : null);
   const shared = shareRef.current;
 
+  // The user's composing defaults. Used ONLY to fill a value that a render-time
+  // param (repost / share intake) hasn't already dictated.
+  const prefs = client?.auth?.getUser?.()?.prefs || {};
+
   const [type, setType] = useState(
     shared?.kind === "files"
       ? "Media"
@@ -147,6 +151,8 @@ export default function Compose() {
       ? "Note"
       : typeof params.type === "string" && COMPOSABLE_TYPES.includes(params.type)
       ? params.type
+      : COMPOSABLE_TYPES.includes(prefs.defaultPostType)
+      ? prefs.defaultPostType
       : "Note"
   );
   const [title, setTitle] = useState(
@@ -179,13 +185,24 @@ export default function Compose() {
   // as `constrain` so this Link post can't be widened past it (#47).
   const constrainAudience =
     typeof params.constrain === "string" && params.constrain ? params.constrain : null;
-  const [audience, setAudience] = useState(
+  // A render-time audience (repost constraint or explicit ?to=) wins over the
+  // pref default; only its absence falls back to prefs.defaultTo.
+  const audienceFromParam =
     constrainAudience ||
-      (typeof params.to === "string" && params.to ? params.to : "@public")
+    (typeof params.to === "string" && params.to ? params.to : null);
+  const [audience, setAudience] = useState(
+    audienceFromParam || prefs.defaultTo || "@public"
   );
-  // Reply/react scope — both track the post audience until narrowed by hand.
-  const [canReply, setCanReply] = useState(audience);
-  const [canReact, setCanReact] = useState(audience);
+  // Reply/react scope — track the post audience until narrowed by hand. When the
+  // audience came from the user's pref (not a param), seed these from their
+  // defaultcanReply/defaultcanReact prefs too; when it came from a repost/share
+  // param, track that audience so we never end up broader than the post itself.
+  const [canReply, setCanReply] = useState(
+    audienceFromParam ? audience : prefs.defaultcanReply || audience
+  );
+  const [canReact, setCanReact] = useState(
+    audienceFromParam ? audience : prefs.defaultcanReact || audience
+  );
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState(null);
 
