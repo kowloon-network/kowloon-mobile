@@ -10,6 +10,24 @@ import { makeAccountStorage } from "./storage.js";
 import { registerKowloonHost } from "./parseKowloonUrl.js";
 
 const clients = new Map();
+const serversSynced = new Set(); // account ids we've pulled the known-servers list for
+
+// Learn the network's OTHER known Kowloon servers (from our server's
+// FederatedServer cache) so remote page links — whose slugs aren't self-
+// identifying — route in-app instead of the browser. Fire-and-forget, once per
+// account. /servers is a public discovery endpoint. Grows as the network
+// discovers more servers.
+async function syncKnownKowloonHosts(client, accountId) {
+  if (serversSynced.has(accountId)) return;
+  serversSynced.add(accountId);
+  try {
+    const res = await client.http.get("/servers");
+    const items = res?.orderedItems || res?.items || [];
+    for (const s of items) registerKowloonHost(s?.domain || s?.id);
+  } catch {
+    serversSynced.delete(accountId); // let it retry next time
+  }
+}
 
 // Get or create the client for a given account. The account argument must
 // have at least `{ id, baseUrl }`.
@@ -19,12 +37,17 @@ export function ensureClient(account) {
   // identifying) route in-app. Cheap + idempotent; runs even for cached clients.
   registerKowloonHost(account.server);
   registerKowloonHost(account.baseUrl);
-  if (clients.has(account.id)) return clients.get(account.id);
-  const client = new KowloonClient({
-    baseUrl: account.baseUrl,
-    storage: makeAccountStorage(account.id),
-  });
-  clients.set(account.id, client);
+  let client = clients.get(account.id);
+  if (!client) {
+    client = new KowloonClient({
+      baseUrl: account.baseUrl,
+      storage: makeAccountStorage(account.id),
+    });
+    clients.set(account.id, client);
+  }
+  // Fire-and-forget; guarded to actually fetch only once on success, and to
+  // retry on a later call if the first fired before the token was in storage.
+  syncKnownKowloonHosts(client, account.id);
   return client;
 }
 

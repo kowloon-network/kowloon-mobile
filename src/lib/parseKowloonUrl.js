@@ -63,10 +63,14 @@ export function parseKowloonUrl(href) {
   if ((m = p.match(/^\/circles\/(circle:[^/?#]+@[^/?#]+)/))) return make("circle", m[1]);
   if ((m = p.match(/^\/users\/(@[^/?#]+@[^/?#]+)/)))         return make("user", m[1]);
 
-  // Pages use slugs — only Kowloon when we recognize the host.
+  // Pages use slugs — only Kowloon when we recognize the host. Carry the host
+  // through as `domain` so the viewer can ask our server to hydrate a remote
+  // page from that origin (local pages: our server sees its own domain and just
+  // does a local lookup).
   if ((m = p.match(/^\/pages\/([^/?#]+)/)) && kowloonHosts.has(host)) {
     const slug = m[1];
-    return { type: "page", id: slug, slug, route: routeFor("page", slug) };
+    const route = `/pages/${encodeURIComponent(slug)}?domain=${encodeURIComponent(host)}`;
+    return { type: "page", id: slug, slug, domain: host, route };
   }
 
   return null;

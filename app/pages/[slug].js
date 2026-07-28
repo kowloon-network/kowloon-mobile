@@ -43,7 +43,7 @@ function resolvePageImage(img, client) {
 
 export default function PageDetail() {
   const router = useRouter();
-  const { slug } = useLocalSearchParams();
+  const { slug, domain } = useLocalSearchParams();
   const client = useActiveClient();
   const { resolved } = useTypography();
 
@@ -59,6 +59,8 @@ export default function PageDetail() {
     try {
       const res = await client.feeds.getPage({
         pageId: decodeURIComponent(String(slug)),
+        // Present for remote pages — server-hydrates from that origin.
+        domain: domain ? String(domain) : undefined,
       });
       setPage(res?.item || res?.page || res || null);
     } catch (e) {
@@ -66,7 +68,7 @@ export default function PageDetail() {
     } finally {
       setLoading(false);
     }
-  }, [client, slug]);
+  }, [client, slug, domain]);
 
   useEffect(() => {
     load();
