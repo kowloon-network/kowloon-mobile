@@ -21,6 +21,7 @@ import { VideoAttachment } from "./VideoAttachment.jsx";
 import { LocationLine } from "./LocationLine.jsx";
 import { HtmlContent } from "../HtmlContent.jsx";
 import { useImageViewer } from "../ImageViewerProvider.jsx";
+import { imageDisplayRatio } from "../../lib/imageRatio.js";
 
 // An attachment may arrive as a rich { url, mediaType, name } object (enriched
 // feeds) or as a bare URL string (feeds that don't enrich, or empty mediaType
@@ -112,7 +113,8 @@ function ImageGrid({ images }) {
       <Pressable onPress={() => viewer?.open(items, 0)}>
         <Image
           source={{ uri: attUrl(images[0]) }}
-          className="w-full h-80 mb-3 bg-base-200"
+          className="w-full mb-3 bg-base-200"
+          style={{ aspectRatio: imageDisplayRatio(images[0]) }}
           resizeMode="cover"
         />
       </Pressable>

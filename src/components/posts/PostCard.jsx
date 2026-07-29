@@ -14,6 +14,7 @@ import { VideoAttachment } from "./VideoAttachment.jsx";
 import { LocationLine } from "./LocationLine.jsx";
 import { PostActionBar } from "./PostActionBar.jsx";
 import { ReactSummaryRow } from "./ReactSummaryRow.jsx";
+import { imageDisplayRatio } from "../../lib/imageRatio.js";
 import { HtmlContent } from "../HtmlContent.jsx";
 import { useImageViewer } from "../ImageViewerProvider.jsx";
 import { useActiveClient } from "../../lib/useActiveClient.js";
@@ -206,7 +207,7 @@ export function PostCard({ post, onDeleted }) {
                         <Image
                           source={{ uri: attUrl(imgs[0]) }}
                           className="w-full mb-2 bg-base-200"
-                          style={{ aspectRatio: 4 / 5 }}
+                          style={{ aspectRatio: imageDisplayRatio(imgs[0]) }}
                           resizeMode="cover"
                         />
                       </Pressable>
