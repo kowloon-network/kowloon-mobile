@@ -7,7 +7,7 @@
 // paginated list. Matching is whole-word (Mongo $text) for now — prefix /
 // wildcard search is a later enhancement.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSelector } from "react-redux";
 import {
@@ -75,6 +75,9 @@ export default function Search() {
 
   // "All" tab: a few of each type. Type tabs: a paginated flat list.
   const [sections, setSections] = useState({ users: [], posts: [], groups: [], bookmarks: [] });
+  // Partial cached-server matches (any known server whose domain/name contains
+  // the query) — distinct from the exact @domain live lookup below.
+  const [serverMatches, setServerMatches] = useState([]);
   const [list, setList] = useState([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -120,6 +123,7 @@ export default function Search() {
     if (!client) return;
     if (debounced.length < MIN_QUERY) {
       setSections({ users: [], posts: [], groups: [], bookmarks: [] });
+      setServerMatches([]);
       setList([]);
       setTotal(0);
       setError(null);
@@ -134,11 +138,12 @@ export default function Search() {
     (async () => {
       try {
         if (tab === "all") {
-          const [u, p, g, b] = await Promise.all([
+          const [u, p, g, b, s] = await Promise.all([
             searchByType(client, "users", debounced, 1),
             searchByType(client, "posts", debounced, 1),
             searchByType(client, "groups", debounced, 1),
             searchByType(client, "bookmarks", debounced, 1),
+            client.search.searchServers({ query: debounced, page: 1 }),
           ]);
           if (cancelled) return;
           setSections({
@@ -147,6 +152,7 @@ export default function Search() {
             groups: itemsOf(g),
             bookmarks: itemsOf(b),
           });
+          setServerMatches(itemsOf(s));
         } else {
           const res = await searchByType(client, tab, debounced, 1);
           if (cancelled) return;
@@ -227,8 +233,26 @@ export default function Search() {
     [account?.baseUrl, account?.server]
   );
 
+  // Servers shown on the "All" tab: the exact @domain live lookup first, then
+  // any partial cached-server matches, deduped by domain.
+  const serverList = useMemo(() => {
+    const out = [];
+    const seen = new Set();
+    if (serverResult?.domain) {
+      out.push(serverResult);
+      seen.add(serverResult.domain.toLowerCase());
+    }
+    for (const s of serverMatches) {
+      const d = (s?.domain || "").toLowerCase();
+      if (!d || seen.has(d)) continue;
+      seen.add(d);
+      out.push(s);
+    }
+    return out;
+  }, [serverResult, serverMatches]);
+
   const allEmpty =
-    !serverResult &&
+    serverList.length === 0 &&
     sections.users.length === 0 &&
     sections.posts.length === 0 &&
     sections.groups.length === 0 &&
@@ -303,24 +327,29 @@ export default function Search() {
           <NoResults query={debounced} />
         ) : (
           <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-            {/* Server lookup result — shown when query is @domain */}
-            {(serverResult || serverLoading) ? (
+            {/* Servers — exact @domain lookup plus any partial cached matches */}
+            {(serverList.length > 0 || serverLoading) ? (
               <View>
-                <SectionHeader title="Server" showSeeAll={false} />
-                {serverLoading ? (
+                <SectionHeader
+                  title={serverList.length > 1 ? "Servers" : "Server"}
+                  showSeeAll={false}
+                />
+                {serverLoading && serverList.length === 0 ? (
                   <View className="px-5 py-4">
                     <ActivityIndicator />
                   </View>
-                ) : serverResult ? (
-                  <ServerResultCard
-                    server={serverResult}
-                    baseUrl={account?.baseUrl}
-                    onPress={() => {
-                      const d = serverResult?.domain;
-                      if (d) router.push(`/server/${encodeURIComponent(d)}`);
-                    }}
-                  />
-                ) : null}
+                ) : (
+                  serverList.map((s) => (
+                    <ServerResultCard
+                      key={s.domain}
+                      server={s}
+                      baseUrl={account?.baseUrl}
+                      onPress={() => {
+                        if (s?.domain) router.push(`/server/${encodeURIComponent(s.domain)}`);
+                      }}
+                    />
+                  ))
+                )}
               </View>
             ) : null}
             {TABS.filter((t) => t.key !== "all").map((t) => {
