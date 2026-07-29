@@ -66,6 +66,19 @@ function hostOf(url) {
     .replace(/\/.*$/, "");
 }
 
+// "Continue reading…" excerpt hint. The server emits `post.summary` only when it
+// truncated the body (>2 paragraphs or a very long paragraph — see Post.js
+// generateSummary), so its presence is the signal that the card is an excerpt.
+// Shown for every truncatable type (Note/Article/Event and now Link/Media).
+function ContinueReading({ show }) {
+  if (!show) return null;
+  return (
+    <Text className="font-ui italic text-base-content/45 mt-2 text-right">
+      Continue reading…
+    </Text>
+  );
+}
+
 export function PostCard({ post, onDeleted }) {
   const router = useRouter();
   const viewer = useImageViewer();
@@ -188,6 +201,7 @@ export function PostCard({ post, onDeleted }) {
                   fontSize={resolved.fontSize}
                   lineHeight={resolved.lineHeight}
                 />
+                <ContinueReading show={!!post?.summary} />
               </View>
             ) : null}
             {Array.isArray(post.attachments) && post.attachments.length > 0 ? (
@@ -288,12 +302,15 @@ export function PostCard({ post, onDeleted }) {
               </Text>
             ) : null}
             {previewHtml ? (
-              <HtmlContent
-                html={previewHtml}
-                fonts={contentFonts}
-                fontSize={resolved.fontSize}
-                lineHeight={resolved.lineHeight}
-              />
+              <>
+                <HtmlContent
+                  html={previewHtml}
+                  fonts={contentFonts}
+                  fontSize={resolved.fontSize}
+                  lineHeight={resolved.lineHeight}
+                />
+                <ContinueReading show={!!post?.summary} />
+              </>
             ) : null}
           </>
         ) : (
@@ -334,15 +351,7 @@ export function PostCard({ post, onDeleted }) {
               </Text>
             ) : null}
 
-            {/* Server only emits `summary` when the body needed truncating
-                (>2 paragraphs or any paragraph >1000 chars — see Post.js
-                `generateSummary`). When it's present, signal that the card
-                is showing an excerpt. */}
-            {post?.summary ? (
-              <Text className="font-ui italic text-base-content/45 mt-2 text-right">
-                Continue reading…
-              </Text>
-            ) : null}
+            <ContinueReading show={!!post?.summary} />
 
             {image ? (
               <Pressable onPress={() => viewer?.open([image], 0)}>
