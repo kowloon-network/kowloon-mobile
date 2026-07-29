@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Modal,
   Pressable,
@@ -23,6 +24,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import * as FileSystem from "expo-file-system/legacy";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -55,6 +57,19 @@ import { parseKowloonUrl } from "../src/lib/parseKowloonUrl.js";
 import { pmToMarkdown } from "../src/lib/pmToMarkdown.js";
 import { uploadFile } from "../src/lib/uploadFile.js";
 import { COMPOSABLE_TYPES, POST_TYPES } from "../src/lib/postTypes.js";
+
+// Bytes for a picked asset — ImagePicker gives fileSize, DocumentPicker gives
+// size; fall back to a filesystem stat when neither is present.
+async function assetSizeBytes(a) {
+  const claimed = a?.fileSize ?? a?.size;
+  if (typeof claimed === "number" && claimed > 0) return claimed;
+  try {
+    const info = await FileSystem.getInfoAsync(a?.uri, { size: true });
+    return info?.size || 0;
+  } catch {
+    return 0;
+  }
+}
 
 // The default editor toolbar minus the task-list (checkbox) button — matched by
 // its checkList image so it survives item-order changes across versions.
@@ -206,6 +221,50 @@ export default function Compose() {
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState(null);
 
+  // This server's upload ceiling, from its public `maxUploadSize` setting (MB).
+  // Per-server; used to reject oversized picks up front instead of a doomed
+  // multi-minute upload. Default until the server profile loads.
+  const [maxUploadBytes, setMaxUploadBytes] = useState(100 * 1024 * 1024);
+  useEffect(() => {
+    let cancelled = false;
+    client?.feeds
+      ?.getServerInfo?.()
+      .then((info) => {
+        const mb = Number(info?.settings?.maxUploadSize);
+        if (!cancelled && mb > 0) setMaxUploadBytes(mb * 1024 * 1024);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [client]);
+
+  // Drop picks over the limit and tell the user clearly (Alert — never lost
+  // off-screen). Returns the accepted assets.
+  async function keepUnderLimit(assets) {
+    const accepted = [];
+    const rejected = [];
+    for (const a of assets) {
+      const size = await assetSizeBytes(a);
+      if (size > maxUploadBytes) rejected.push({ a, size });
+      else accepted.push(a);
+    }
+    if (rejected.length) {
+      const mb = (b) => Math.max(1, Math.round(b / (1024 * 1024)));
+      const limitMb = Math.round(maxUploadBytes / (1024 * 1024));
+      Alert.alert(
+        rejected.length > 1 ? "Some files are too large" : "File too large",
+        rejected
+          .map(
+            (r) => `${r.a.fileName || r.a.name || "This file"} is ${mb(r.size)} MB.`
+          )
+          .join("\n") +
+          `\n\nThis server allows up to ${limitMb} MB. Trim the clip or lower its capture quality and try again.`
+      );
+    }
+    return accepted;
+  }
+
   // Article featuredImage — local URI from the picker, uploaded at submit.
   const [featuredImage, setFeaturedImage] = useState(null); // { uri, name, mimeType } | null
 
@@ -286,7 +345,9 @@ export default function Compose() {
         quality: 1,
       });
       if (result.canceled || !result.assets?.length) return;
-      const next = result.assets.map((a) => {
+      const assets = await keepUnderLimit(result.assets);
+      if (!assets.length) return;
+      const next = assets.map((a) => {
         const isVideo = a.type === "video";
         return {
           uri: a.uri,
@@ -332,7 +393,9 @@ export default function Compose() {
         copyToCacheDirectory: true,
       });
       if (result.canceled || !result.assets?.length) return;
-      const next = result.assets.map((a) => ({
+      const assets = await keepUnderLimit(result.assets);
+      if (!assets.length) return;
+      const next = assets.map((a) => ({
         uri: a.uri,
         name: a.name || `audio-${Date.now()}.mp3`,
         title: "",
