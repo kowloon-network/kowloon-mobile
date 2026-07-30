@@ -44,44 +44,46 @@ function MiniButton({ label, onPress, filled, disabled, icon }) {
   );
 }
 
+const POST_H = 200; // uniform post-card height across the row
 function PostCard({ item, baseUrl, onPress }) {
   const img = resolveImageUrl(item.featuredImage, baseUrl);
   const author = item.actor || {};
-  const text = item.title || item.summary || "";
+  const title = item.title || null;
+  const preview = item.preview || item.summary || "";
+  const overlayText = title || preview;
   if (img) {
     return (
       <Pressable
         onPress={onPress}
         android_ripple={{ color: "rgba(0,0,0,0.06)" }}
-        style={{ width: POST_W }}
-        className="  bg-base-300 mr-3"
+        style={{ width: POST_W, height: POST_H }}
+        className="bg-base-300 mr-3"
       >
-        <View style={{ width: "100%", height: 168 }}>
-          <Image source={{ uri: img }} style={{ width: "100%", height: 168 }} resizeMode="cover" />
-          {/* Bottom scrim for legibility */}
-          <View className="absolute left-0 right-0 bottom-0 h-24 bg-black/45" />
-          <View className="absolute left-0 right-0 bottom-0 p-3">
-            <Text className="font-ui text-sm font-bold text-white leading-snug" numberOfLines={2}>
-              {text}
+        <Image source={{ uri: img }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+        {/* Bottom scrim for legibility */}
+        <View className="absolute left-0 right-0 bottom-0 h-28 bg-black/45" />
+        <View className="absolute left-0 right-0 bottom-0 p-3">
+          <Text className="font-ui text-sm font-bold text-white leading-snug" numberOfLines={2}>
+            {overlayText}
+          </Text>
+          <View className="flex-row items-center mt-2">
+            <Avatar actor={author} size={20} baseUrl={baseUrl} />
+            <Text className="font-ui text-[11px] text-white/90 ml-2" numberOfLines={1}>
+              {author.name || author.id}
             </Text>
-            <View className="flex-row items-center mt-2">
-              <Avatar actor={author} size={20} baseUrl={baseUrl} />
-              <Text className="font-ui text-[11px] text-white/90 ml-2" numberOfLines={1}>
-                {author.name || author.id}
-              </Text>
-            </View>
           </View>
         </View>
       </Pressable>
     );
   }
-  // Text fallback
+  // Text card — Notes have no title, so lead with the body preview. Content
+  // fills the middle; the author is pinned to the bottom.
   return (
     <Pressable
       onPress={onPress}
       android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-      style={{ width: CARD_W }}
-      className="  bg-base-200 p-3 mr-3"
+      style={{ width: CARD_W, height: POST_H }}
+      className="bg-base-200 p-3 mr-3"
     >
       <View className="flex-row items-center mb-2">
         <Newspaper size={12} color="rgba(26,26,32,0.5)" strokeWidth={1.75} />
@@ -89,10 +91,24 @@ function PostCard({ item, baseUrl, onPress }) {
           {item.type || "Post"}
         </Text>
       </View>
-      <Text className="font-ui text-sm font-bold text-base-content leading-snug" numberOfLines={4}>
-        {text}
-      </Text>
-      <View className="flex-row items-center mt-3">
+      <View className="flex-1">
+        {title ? (
+          <Text className="font-ui text-sm font-bold text-base-content leading-snug" numberOfLines={2}>
+            {title}
+          </Text>
+        ) : null}
+        {preview ? (
+          <Text
+            className="font-ui text-[13px] text-base-content/75 leading-relaxed mt-1"
+            numberOfLines={title ? 3 : 6}
+          >
+            {preview}
+          </Text>
+        ) : !title ? (
+          <Text className="font-ui text-sm text-base-content/40 italic">No preview.</Text>
+        ) : null}
+      </View>
+      <View className="flex-row items-center mt-2">
         <Avatar actor={author} size={20} baseUrl={baseUrl} />
         <Text className="font-ui text-[11px] text-base-content/60 ml-2" numberOfLines={1}>
           {author.name || author.id}
