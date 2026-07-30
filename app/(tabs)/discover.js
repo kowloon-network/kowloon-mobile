@@ -1,15 +1,19 @@
-// Discover — the server's curated shelves plus people search.
+// Discover — the server's curated shelves plus people search, over a blurred,
+// darkened version of the server hero image (the `discoverBackground` setting,
+// generated server-side; Klein-blue fallback when a server has no hero).
+// Featured content sits in translucent black panels with white text.
 //
 // Shelves come from GET /recommendations (server-curated sections of Posts,
 // Circles, Groups, Bookmarks). The search box finds people to add to circles.
-// Reached from the feed view-selector's "Discover..." footer and the menu.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   View,
@@ -20,9 +24,11 @@ import { Avatar } from "../../src/components/posts/Avatar.jsx";
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { RecShelf } from "../../src/components/discover/RecShelf.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
+import { resolveImageUrl } from "../../src/lib/resolveImageUrl.js";
 import { rootStorage } from "../../src/lib/storage.js";
 
 const BANNER_KEY = "kowloon_discover_welcomed";
+const KLEIN = "#002FA7";
 
 function UserRow({ user, router }) {
   const actor = {
@@ -31,16 +37,16 @@ function UserRow({ user, router }) {
   };
   return (
     <Pressable
-      className="flex-row items-center py-3   gap-3"
+      className="flex-row items-center py-3 gap-3"
       onPress={() => router.push(`/user/${encodeURIComponent(user.id)}`)}
-      android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+      android_ripple={{ color: "rgba(255,255,255,0.08)" }}
     >
       <Avatar actor={actor} size={36} baseUrl={user.baseUrl} />
       <View className="flex-1 min-w-0">
-        <Text className="font-ui text-sm font-semibold text-base-content" numberOfLines={1}>
+        <Text className="font-ui text-sm font-semibold text-white" numberOfLines={1}>
           {actor.name}
         </Text>
-        <Text className="font-ui text-xs text-base-content/50" numberOfLines={1}>
+        <Text className="font-ui text-xs text-white/55" numberOfLines={1}>
           {user.id}
         </Text>
       </View>
@@ -60,6 +66,7 @@ export default function Discover() {
   const [error, setError] = useState(null);
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [bgUrl, setBgUrl] = useState(null);
 
   const debounceRef = useRef(null);
 
@@ -68,6 +75,23 @@ export default function Discover() {
       if (val === "1") setBanner(true);
     });
   }, []);
+
+  // Server hero -> blurred/darkened Discover background.
+  useEffect(() => {
+    if (!client) return;
+    let cancelled = false;
+    client.feeds
+      .getServerInfo()
+      .then((info) => {
+        if (cancelled) return;
+        const bg = info?.settings?.discoverBackground || info?.discoverBackground;
+        if (bg) setBgUrl(resolveImageUrl(bg, baseUrl));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [client, baseUrl]);
 
   function dismissBanner() {
     setBanner(false);
@@ -112,86 +136,97 @@ export default function Discover() {
   const searching = query.trim().length >= 2;
 
   return (
-    <SafeAreaView className="flex-1 bg-base-100" edges={["left", "right"]}>
-      <AppHeader title="Discover" />
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 48 }}
-        keyboardShouldPersistTaps="handled"
+    <View className="flex-1" style={{ backgroundColor: KLEIN }}>
+      {/* Blurred, darkened hero background (baked server-side). */}
+      {bgUrl ? (
+        <Image source={{ uri: bgUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      ) : null}
+
+      <SafeAreaView
+        className="flex-1"
+        edges={["left", "right"]}
+        style={{ backgroundColor: "transparent" }}
       >
-        {banner ? (
-          <View className="bg-secondary px-5 py-5  ">
-            <Text className="font-display text-2xl text-secondary-content mb-1">
-              Welcome to Kowloon.
-            </Text>
-            <Text className="font-ui text-sm text-secondary-content/80 leading-relaxed mb-3">
-              Explore what the server recommends below, or search for people to
-              add to your circles.
-            </Text>
-            <Pressable onPress={dismissBanner} hitSlop={12}>
-              <Text className="font-ui text-xs uppercase tracking-widest text-secondary-content/60">
-                Got it — dismiss
+        <AppHeader title="Discover" />
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 48 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {banner ? (
+            <View className="mx-4 mt-4 bg-black/50 px-5 py-5">
+              <Text className="font-display text-2xl text-white mb-1">
+                Welcome to Kowloon.
               </Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {/* People search */}
-        <View className="px-5 pt-4">
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search for people..."
-            placeholderTextColor="rgba(26,26,32,0.35)"
-            autoCorrect={false}
-            autoCapitalize="none"
-            spellCheck={false}
-            className="  bg-field px-3 h-11 font-ui text-sm text-base-content"
-          />
-        </View>
-
-        {searching ? (
-          <View className="px-5 pt-5">
-            <Text className="font-ui text-[10px] uppercase tracking-widest text-base-content/40 mb-2">
-              People
-            </Text>
-            {usersLoading ? (
-              <ActivityIndicator className="py-4" />
-            ) : users.length > 0 ? (
-              users.map((u) => <UserRow key={u.id} user={u} router={router} />)
-            ) : (
-              <Text className="font-ui text-sm text-base-content/40 py-3">
-                No people found for "{query.trim()}".
+              <Text className="font-ui text-sm text-white/80 leading-relaxed mb-3">
+                Explore what the server recommends below, or search for people to
+                add to your circles.
               </Text>
-            )}
-          </View>
-        ) : (
-          <View className="pt-6">
-            {loading ? (
-              <View className="py-16 items-center">
-                <ActivityIndicator />
-              </View>
-            ) : error ? (
-              <View className="px-6 py-16 items-center">
-                <Text className="font-ui text-sm text-error text-center">{error}</Text>
-              </View>
-            ) : sections.length === 0 ? (
-              <View className="px-6 py-16 items-center">
-                <Text className="font-ui text-base text-base-content/60 text-center mb-1">
-                  Nothing recommended yet.
+              <Pressable onPress={dismissBanner} hitSlop={12}>
+                <Text className="font-ui text-xs uppercase tracking-widest text-white/60">
+                  Got it — dismiss
                 </Text>
-                <Text className="font-ui text-sm text-base-content/45 text-center leading-6">
-                  When the server curates Circles, Groups, and posts worth your
-                  time, they'll appear here.
-                </Text>
-              </View>
-            ) : (
-              sections.map((s) => (
-                <RecShelf key={s.id} section={s} baseUrl={baseUrl} />
-              ))
-            )}
+              </Pressable>
+            </View>
+          ) : null}
+
+          {/* People search */}
+          <View className="px-4 pt-4">
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search for people..."
+              placeholderTextColor="rgba(255,255,255,0.5)"
+              autoCorrect={false}
+              autoCapitalize="none"
+              spellCheck={false}
+              className="bg-black/30 px-3 h-11 font-ui text-sm text-white"
+            />
           </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+
+          {searching ? (
+            <View className="mx-4 mt-4 bg-black/50 px-4 py-3">
+              <Text className="font-ui text-[10px] uppercase tracking-widest text-white/50 mb-2">
+                People
+              </Text>
+              {usersLoading ? (
+                <ActivityIndicator className="py-4" color="#fff" />
+              ) : users.length > 0 ? (
+                users.map((u) => <UserRow key={u.id} user={u} router={router} />)
+              ) : (
+                <Text className="font-ui text-sm text-white/50 py-3">
+                  No people found for "{query.trim()}".
+                </Text>
+              )}
+            </View>
+          ) : (
+            <View className="pt-5">
+              {loading ? (
+                <View className="py-16 items-center">
+                  <ActivityIndicator color="#fff" />
+                </View>
+              ) : error ? (
+                <View className="mx-4 bg-black/50 px-6 py-16 items-center">
+                  <Text className="font-ui text-sm text-white text-center">{error}</Text>
+                </View>
+              ) : sections.length === 0 ? (
+                <View className="mx-4 bg-black/50 px-6 py-16 items-center">
+                  <Text className="font-ui text-base text-white text-center mb-1">
+                    Nothing recommended yet.
+                  </Text>
+                  <Text className="font-ui text-sm text-white/60 text-center leading-6">
+                    When the server curates Circles, Groups, and posts worth your
+                    time, they'll appear here.
+                  </Text>
+                </View>
+              ) : (
+                sections.map((s) => (
+                  <RecShelf key={s.id} section={s} baseUrl={baseUrl} onDark />
+                ))
+              )}
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
