@@ -21,10 +21,12 @@ import { PREFS, PREF_GROUPS, getPrefValue } from "@kowloon/client";
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { AudienceSelector } from "../../src/components/posts/AudienceSelector.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
+import { useIsAdmin } from "../../src/lib/useIsAdmin.js";
 
 export default function PreferencesScreen() {
   const client = useActiveClient();
   const router = useRouter();
+  const isAdmin = useIsAdmin();
   const [prefs, setPrefs] = useState(() => ({
     ...(client?.auth?.getUser?.()?.prefs || {}),
   }));
@@ -81,6 +83,7 @@ export default function PreferencesScreen() {
                     entry={entry}
                     value={getPrefValue(prefs, entry)}
                     onChange={(v) => writePref(entry.key, v)}
+                    isAdmin={isAdmin}
                   />
                 ))}
               </View>
@@ -109,7 +112,7 @@ export default function PreferencesScreen() {
   );
 }
 
-function PrefControl({ entry, value, onChange }) {
+function PrefControl({ entry, value, onChange, isAdmin }) {
   switch (entry.type) {
     case "toggle":
       return (
@@ -117,11 +120,13 @@ function PrefControl({ entry, value, onChange }) {
           <Switch value={!!value} onValueChange={onChange} />
         </RowH>
       );
-    case "select":
+    case "select": {
+      // Hide admin-only options from non-admins (e.g. the Admin home screen).
+      const options = entry.options.filter((o) => !o.adminOnly || isAdmin);
       return (
         <RowV entry={entry}>
           <View className="flex-row flex-wrap">
-            {entry.options.map((o) => (
+            {options.map((o) => (
               <Pill
                 key={o.value}
                 label={o.label}
@@ -132,6 +137,7 @@ function PrefControl({ entry, value, onChange }) {
           </View>
         </RowV>
       );
+    }
     case "multiselect": {
       const arr = Array.isArray(value) ? value : [];
       return (
