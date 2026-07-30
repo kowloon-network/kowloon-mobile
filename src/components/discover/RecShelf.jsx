@@ -6,10 +6,11 @@
 
 import { FlatList, Text, View } from "react-native";
 
-import { RecCard } from "./RecCard.jsx";
+import { RecCard, MediaCard } from "./RecCard.jsx";
 
 export function RecShelf({ section, baseUrl, onDark }) {
   if (!section?.items?.length) return null;
+  const isMedia = section.contentType === "media";
   return (
     <View className={onDark ? "mx-4 mb-4 bg-black/45 pt-4 pb-3" : "mb-7"}>
       <View className={onDark ? "px-4 mb-3" : "px-5 mb-3"}>
@@ -34,7 +35,13 @@ export function RecShelf({ section, baseUrl, onDark }) {
       <FlatList
         data={section.items}
         keyExtractor={(it, i) => `${it.id}:${i}`}
-        renderItem={({ item }) => <RecCard item={item} baseUrl={baseUrl} />}
+        renderItem={({ item }) =>
+          isMedia ? (
+            <MediaCard item={item} baseUrl={baseUrl} />
+          ) : (
+            <RecCard item={item} baseUrl={baseUrl} />
+          )
+        }
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: onDark ? 16 : 20 }}

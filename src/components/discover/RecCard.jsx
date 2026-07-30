@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Alert, Image, Linking, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSelector } from "react-redux";
-import { Bookmark as BookmarkIcon, Copy, ExternalLink, Newspaper, Users } from "lucide-react-native";
+import { Bookmark as BookmarkIcon, Copy, ExternalLink, Globe, Newspaper, Play, Users } from "lucide-react-native";
 
 import { Avatar } from "../posts/Avatar.jsx";
 import { CircleAvatar } from "../circles/CircleAvatar.jsx";
@@ -226,6 +226,85 @@ function LinkCard({ item, baseUrl, icon, onPress }) {
   );
 }
 
+// Compact media thumbnail for the Media row — each image/video links to its
+// original post. Video posts get a play badge (we can't cheaply poster-frame a
+// video, so we show the thumbnail image when present, else a dark tile).
+const MEDIA_W = 150;
+export function MediaCard({ item, baseUrl }) {
+  const router = useRouter();
+  const img = resolveImageUrl(item.mediaImage || item.featuredImage, baseUrl);
+  const isVideo = /video/i.test(item.type || "") || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(item.mediaImage || "");
+  return (
+    <Pressable
+      onPress={() => router.push(`/post/${encodeURIComponent(item.id)}`)}
+      android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+      style={{ width: MEDIA_W, height: MEDIA_W }}
+      className="mr-2 bg-base-300"
+    >
+      {img ? (
+        <Image source={{ uri: img }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+      ) : (
+        <View className="flex-1 items-center justify-center">
+          <Newspaper size={22} color="rgba(26,26,32,0.35)" strokeWidth={1.5} />
+        </View>
+      )}
+      {isVideo ? (
+        <View
+          className="absolute items-center justify-center bg-black/45"
+          style={{ width: 34, height: 34, borderRadius: 17, right: 8, bottom: 8 }}
+        >
+          <Play size={16} color="#fff" fill="#fff" strokeWidth={0} />
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function ServerCard({ item, baseUrl, onPress }) {
+  const [iconFailed, setIconFailed] = useState(false);
+  const icon = resolveImageUrl(item.icon, baseUrl);
+  return (
+    <Pressable
+      onPress={onPress}
+      android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+      style={{ width: CARD_W }}
+      className="bg-base-100 p-3 mr-3"
+    >
+      <View className="flex-row items-center">
+        {icon && !iconFailed ? (
+          <Image
+            source={{ uri: icon }}
+            style={{ width: 40, height: 40 }}
+            className="bg-base-200"
+            onError={() => setIconFailed(true)}
+          />
+        ) : (
+          <View style={{ width: 40, height: 40 }} className="bg-secondary items-center justify-center">
+            <Globe size={20} color="rgba(255,244,224,0.75)" strokeWidth={1.75} />
+          </View>
+        )}
+        <View className="flex-1 ml-3 min-w-0">
+          <Text className="font-ui text-sm font-bold text-base-content" numberOfLines={1}>
+            {item.name}
+          </Text>
+          <Text className="font-ui text-[10px] uppercase tracking-[0.14em] text-base-content/45 mt-0.5" numberOfLines={1}>
+            {item.domain}
+            {typeof item.userCount === "number" ? `  ·  ${item.userCount.toLocaleString()} users` : ""}
+          </Text>
+        </View>
+      </View>
+      {item.description ? (
+        <Text className="font-ui text-xs text-base-content/70 leading-relaxed mt-2" numberOfLines={2}>
+          {item.description}
+        </Text>
+      ) : null}
+      <View className="flex-row mt-3" style={{ gap: 8 }}>
+        <MiniButton label="Visit" onPress={onPress} icon={<Globe size={11} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />} />
+      </View>
+    </Pressable>
+  );
+}
+
 export function RecCard({ item, baseUrl }) {
   const router = useRouter();
   const enc = (id) => encodeURIComponent(id);
@@ -272,6 +351,14 @@ export function RecCard({ item, baseUrl }) {
           baseUrl={baseUrl}
           icon={<ExternalLink size={12} color="rgba(26,26,32,0.5)" strokeWidth={1.75} />}
           onPress={() => item.url && Linking.openURL(item.url).catch(() => {})}
+        />
+      );
+    case "Server":
+      return (
+        <ServerCard
+          item={item}
+          baseUrl={baseUrl}
+          onPress={() => router.push(`/server/${enc(item.domain)}`)}
         />
       );
     default:
