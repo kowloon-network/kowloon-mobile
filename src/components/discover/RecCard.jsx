@@ -249,6 +249,7 @@ const MEDIA_W = 150;
 export function MediaCard({ item, baseUrl }) {
   const router = useRouter();
   const img = resolveImageUrl(item.mediaImage || item.featuredImage, baseUrl);
+  const author = item.actor || {};
   const isVideo = /video/i.test(item.type || "") || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(item.mediaImage || "");
   return (
     <Pressable
@@ -264,14 +265,23 @@ export function MediaCard({ item, baseUrl }) {
           <Newspaper size={22} color="rgba(26,26,32,0.35)" strokeWidth={1.5} />
         </View>
       )}
+      {/* Video play badge — top corner, clear of the author row. */}
       {isVideo ? (
         <View
           className="absolute items-center justify-center bg-black/45"
-          style={{ width: 34, height: 34, borderRadius: 17, right: 8, bottom: 8 }}
+          style={{ width: 30, height: 30, borderRadius: 15, right: 6, top: 6 }}
         >
-          <Play size={16} color="#fff" fill="#fff" strokeWidth={0} />
+          <Play size={14} color="#fff" fill="#fff" strokeWidth={0} />
         </View>
       ) : null}
+      {/* Owner avatar + display name over a bottom scrim. */}
+      <View className="absolute left-0 right-0 bottom-0 h-9 bg-black/50" />
+      <View className="absolute left-0 right-0 bottom-0 px-2 py-1.5 flex-row items-center">
+        <Avatar actor={author} size={16} baseUrl={baseUrl} />
+        <Text className="font-ui text-[10px] text-white ml-1.5 flex-1" numberOfLines={1}>
+          {author.name || author.id}
+        </Text>
+      </View>
     </Pressable>
   );
 }
