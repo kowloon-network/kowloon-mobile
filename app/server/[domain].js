@@ -18,10 +18,12 @@ import { selectActiveAccount } from "../../src/state/accountsSlice.js";
 
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { PostCard } from "../../src/components/posts/PostCard.jsx";
+import { RecShelf } from "../../src/components/discover/RecShelf.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { resolveImageUrl } from "../../src/lib/resolveImageUrl.js";
 
 const TABS = [
+  { key: "discover", label: "Discover" },
   { key: "posts",   label: "Posts"   },
   { key: "circles", label: "Circles" },
   { key: "groups",  label: "Groups"  },
@@ -195,7 +197,11 @@ export default function ServerProfile() {
   const [profileError, setProfileError] = useState(null);
   const [heroFailed, setHeroFailed] = useState(false);
 
-  const [tab, setTab] = useState("posts");
+  const [tab, setTab] = useState("discover");
+
+  const [recSections, setRecSections] = useState(null);
+  const [recLoading, setRecLoading] = useState(false);
+  const [recError, setRecError] = useState(null);
 
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
@@ -267,6 +273,30 @@ export default function ServerProfile() {
     [domain]
   );
 
+  // The remote server's own Discover (curated + heuristic), fetched from its
+  // public /recommendations — the same shelves a non-member sees there.
+  const loadDiscover = useCallback(async () => {
+    if (!domain) return;
+    setRecLoading(true);
+    setRecError(null);
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(`https://${domain}/recommendations`, {
+        headers: { Accept: "application/json" },
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timer));
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setRecSections(data.sections ?? []);
+    } catch (e) {
+      setRecError(e?.message || "Couldn't load this server's Discover.");
+      setRecSections([]);
+    } finally {
+      setRecLoading(false);
+    }
+  }, [domain]);
+
   const openPicker = useCallback(async () => {
     if (!client || !account?.id) return;
     setShowPicker(true);
@@ -306,12 +336,16 @@ export default function ServerProfile() {
     if (tab === "posts" && posts.length === 0 && !postsLoading) {
       loadPosts({ page: 1 });
     }
-  }, [tab, loadPosts]);
+    if (tab === "discover" && recSections === null && !recLoading) {
+      loadDiscover();
+    }
+  }, [tab, loadPosts, loadDiscover]);
 
   const onRefresh = useCallback(() => {
     loadServer({ isRefresh: true });
     if (tab === "posts") loadPosts({ page: 1 });
-  }, [loadServer, loadPosts, tab]);
+    if (tab === "discover") loadDiscover();
+  }, [loadServer, loadPosts, loadDiscover, tab]);
 
   if (loading && !server) {
     return (
@@ -476,6 +510,36 @@ export default function ServerProfile() {
                   </View>
                 ) : null}
               </>
+            )
+          ) : null}
+
+          {/* ── Discover (the remote server's own curated + heuristic shelves) ── */}
+          {tab === "discover" ? (
+            recLoading ? (
+              <View className="py-16 items-center">
+                <ActivityIndicator />
+              </View>
+            ) : recError ? (
+              <View className="px-6 py-16 items-center">
+                <Text className="font-ui text-base text-error text-center mb-4">{recError}</Text>
+                <Pressable
+                  onPress={loadDiscover}
+                  className="  px-5 py-2.5"
+                  android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+                >
+                  <Text className="font-ui uppercase tracking-[0.16em] text-xs text-base-content">
+                    Retry
+                  </Text>
+                </Pressable>
+              </View>
+            ) : !recSections || recSections.length === 0 ? (
+              <EmptyTab message="This server hasn't featured anything to discover yet." />
+            ) : (
+              <View className="pt-2">
+                {recSections.map((s) => (
+                  <RecShelf key={s.id} section={s} baseUrl={baseUrl} />
+                ))}
+              </View>
             )
           ) : null}
 
