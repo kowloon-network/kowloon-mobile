@@ -6,11 +6,12 @@
 // next/ff + close) and the play-now/add-to-queue prompt. Consume via
 // useAudioBar(): { requestTrack, current, ... }.
 
-import { createContext, useContext, useEffect, useReducer, useRef } from "react";
-import { Modal, Pressable, Text, View } from "react-native";
+import { createContext, useContext, useEffect, useReducer, useRef, useState } from "react";
+import { Animated, Modal, Pressable, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from "expo-audio";
 import {
+  ChevronRight,
   FastForward,
   Music,
   Pause,
@@ -27,12 +28,112 @@ export function useAudioBar() {
 }
 
 const SEEK = 15; // seconds for rw/ff
-const TAB_CLEARANCE = 60; // float above the bottom tab bar
+
+const HANDLE_W = 40;
+
+// Right-edge slide-out player: a small audio tab clings to the right edge; tap
+// it and the full player slides out. Auto-expands when a new track loads.
+function AudioBar({ api }) {
+  const { current, playing, position, duration, queue, index, toggle, prev, next, seekBy, stop } = api;
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const panelW = Math.min(340, width - 16);
+  const [expanded, setExpanded] = useState(true);
+  const tx = useRef(new Animated.Value(0)).current;
+  const trackId = current?.id || null;
+
+  useEffect(() => {
+    if (trackId) setExpanded(true);
+  }, [trackId]);
+
+  useEffect(() => {
+    Animated.timing(tx, {
+      toValue: expanded ? 0 : panelW - HANDLE_W,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+  }, [expanded, panelW, tx]);
+
+  if (!current) return null;
+
+  const canPrev = index > 0 || position > 3;
+  const canNext = index + 1 < queue.length;
+  const top = Math.max(insets.top + 20, height * 0.38);
+  const pct = duration ? Math.min(100, (position / duration) * 100) : 0;
+
+  return (
+    <Animated.View
+      style={{
+        position: "absolute",
+        right: 0,
+        top,
+        width: panelW,
+        flexDirection: "row",
+        transform: [{ translateX: tx }],
+        elevation: 8,
+        shadowColor: "#000",
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        shadowOffset: { width: -2, height: 2 },
+      }}
+    >
+      {/* Handle — the always-visible tab on the right edge. */}
+      <Pressable
+        onPress={() => setExpanded((e) => !e)}
+        style={{ width: HANDLE_W }}
+        className="bg-secondary items-center justify-center"
+        android_ripple={{ color: "rgba(255,255,255,0.12)" }}
+      >
+        {expanded ? (
+          <ChevronRight size={20} color="#FAF4E8" strokeWidth={2} />
+        ) : (
+          <Music size={20} color="#FAF4E8" strokeWidth={1.75} />
+        )}
+      </Pressable>
+
+      {/* Player */}
+      <View className="flex-1 bg-secondary px-3 pt-2 pb-2">
+        <View className="flex-row items-center">
+          <Text className="font-ui text-xs text-secondary-content flex-1" numberOfLines={1}>
+            {current.title || "Audio"}
+            {queue.length > 1 ? `  ·  ${index + 1}/${queue.length}` : ""}
+          </Text>
+          <Pressable onPress={stop} hitSlop={10} className="ml-2">
+            <X size={18} color="rgba(255,244,224,0.85)" strokeWidth={2} />
+          </Pressable>
+        </View>
+        <View className="flex-row items-center justify-center mt-1.5" style={{ gap: 18 }}>
+          <Pressable onPress={() => seekBy(-SEEK)} hitSlop={8}>
+            <Rewind size={18} color="rgba(255,244,224,0.85)" strokeWidth={1.75} />
+          </Pressable>
+          <Pressable onPress={prev} hitSlop={8} disabled={!canPrev}>
+            <SkipBack size={20} color={canPrev ? "#FAF4E8" : "rgba(255,244,224,0.35)"} strokeWidth={1.75} />
+          </Pressable>
+          <Pressable onPress={toggle} hitSlop={10}>
+            {playing ? (
+              <Pause size={26} color="#FAF4E8" fill="#FAF4E8" strokeWidth={0} />
+            ) : (
+              <Play size={26} color="#FAF4E8" fill="#FAF4E8" strokeWidth={0} />
+            )}
+          </Pressable>
+          <Pressable onPress={next} hitSlop={8} disabled={!canNext}>
+            <SkipForward size={20} color={canNext ? "#FAF4E8" : "rgba(255,244,224,0.35)"} strokeWidth={1.75} />
+          </Pressable>
+          <Pressable onPress={() => seekBy(SEEK)} hitSlop={8}>
+            <FastForward size={18} color="rgba(255,244,224,0.85)" strokeWidth={1.75} />
+          </Pressable>
+        </View>
+        <View className="h-0.5 bg-black/25 mt-2">
+          <View className="h-0.5 bg-primary" style={{ width: `${pct}%` }} />
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
 
 export function AudioPlayerProvider({ children }) {
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
-  const insets = useSafeAreaInsets();
 
   // Queue + index are authoritative in refs (no stale closures in callbacks);
   // a version counter forces re-render for the bar.
@@ -139,61 +240,15 @@ export function AudioPlayerProvider({ children }) {
   };
 
   const prompt = promptRef.current;
-  const canPrev = indexRef.current > 0 || position > 3;
-  const canNext = indexRef.current + 1 < queueRef.current.length;
 
   return (
     <Ctx.Provider value={api}>
       {children}
 
-      {/* Floating player bar */}
-      {current ? (
-        <View
-          style={{ position: "absolute", left: 12, right: 12, bottom: insets.bottom + TAB_CLEARANCE }}
-          className="bg-secondary px-3 pt-2 pb-2"
-        >
-          <View className="flex-row items-center">
-            <Music size={16} color="rgba(255,244,224,0.9)" strokeWidth={1.75} />
-            <Text className="font-ui text-xs text-secondary-content flex-1 ml-2" numberOfLines={1}>
-              {current.title || "Audio"}
-              {queueRef.current.length > 1 ? `  ·  ${indexRef.current + 1}/${queueRef.current.length}` : ""}
-            </Text>
-            <Pressable onPress={stop} hitSlop={10} className="ml-2">
-              <X size={18} color="rgba(255,244,224,0.85)" strokeWidth={2} />
-            </Pressable>
-          </View>
+      {/* Right-edge slide-out player */}
+      <AudioBar api={api} />
 
-          <View className="flex-row items-center justify-center mt-1" style={{ gap: 22 }}>
-            <Pressable onPress={() => seekBy(-SEEK)} hitSlop={8}>
-              <Rewind size={18} color="rgba(255,244,224,0.85)" strokeWidth={1.75} />
-            </Pressable>
-            <Pressable onPress={prev} hitSlop={8} disabled={!canPrev}>
-              <SkipBack size={20} color={canPrev ? "#FAF4E8" : "rgba(255,244,224,0.35)"} strokeWidth={1.75} />
-            </Pressable>
-            <Pressable onPress={toggle} hitSlop={10}>
-              {playing ? (
-                <Pause size={26} color="#FAF4E8" fill="#FAF4E8" strokeWidth={0} />
-              ) : (
-                <Play size={26} color="#FAF4E8" fill="#FAF4E8" strokeWidth={0} />
-              )}
-            </Pressable>
-            <Pressable onPress={next} hitSlop={8} disabled={!canNext}>
-              <SkipForward size={20} color={canNext ? "#FAF4E8" : "rgba(255,244,224,0.35)"} strokeWidth={1.75} />
-            </Pressable>
-            <Pressable onPress={() => seekBy(SEEK)} hitSlop={8}>
-              <FastForward size={18} color="rgba(255,244,224,0.85)" strokeWidth={1.75} />
-            </Pressable>
-          </View>
 
-          {/* Progress */}
-          <View className="h-0.5 bg-black/25 mt-2">
-            <View
-              className="h-0.5 bg-primary"
-              style={{ width: `${duration ? Math.min(100, (position / duration) * 100) : 0}%` }}
-            />
-          </View>
-        </View>
-      ) : null}
 
       {/* Play now / Add to queue prompt */}
       <Modal visible={!!prompt} transparent animationType="fade" onRequestClose={() => { promptRef.current = null; bump(); }}>
