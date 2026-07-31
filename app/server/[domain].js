@@ -35,47 +35,68 @@ const TABS = [
 
 const POSTS_PER_PAGE = 20;
 
-// Horizontal strip of the server's Discover media — all of it, 4 across, flush
-// with the hero and gapless. Each thumbnail links to its original post.
-function MediaStrip({ items, baseUrl }) {
+// "Popular Media" — a headline plus a horizontally-scrollable strip of the
+// server's Discover media (4 across, gapless), ending in a "Discover More" tile
+// that jumps to the Discover tab. Each thumbnail opens its original post.
+function MediaStrip({ items, baseUrl, onDiscoverMore }) {
   const size = Dimensions.get("window").width / 4;
   if (!items?.length) return null;
   return (
-    <FlatList
-      data={items}
-      keyExtractor={(it, i) => `${it.id}:${i}`}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      renderItem={({ item }) => {
-        const img = resolveImageUrl(item.mediaImage || item.featuredImage, baseUrl);
-        const isVideo =
-          /video/i.test(item.type || "") ||
-          /\.(mp4|mov|webm|m4v)(\?|$)/i.test(item.mediaImage || "");
-        return (
-          <Pressable
-            onPress={() => router.push(`/post/${encodeURIComponent(item.id)}`)}
-            style={{ width: size, height: size }}
-            className="bg-base-300"
-          >
-            {img ? (
-              <Image source={{ uri: img }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-            ) : (
-              <View className="flex-1 items-center justify-center">
-                <Newspaper size={20} color="rgba(26,26,32,0.3)" strokeWidth={1.5} />
-              </View>
-            )}
-            {isVideo ? (
-              <View
-                className="absolute items-center justify-center bg-black/45"
-                style={{ width: 26, height: 26, borderRadius: 13, right: 5, top: 5 }}
-              >
-                <Play size={12} color="#fff" fill="#fff" strokeWidth={0} />
-              </View>
-            ) : null}
-          </Pressable>
-        );
-      }}
-    />
+    <View className="pb-1">
+      <Text className="font-ui uppercase tracking-[0.16em] text-xs text-base-content/55 px-5 pt-1 pb-2">
+        Popular Media
+      </Text>
+      <FlatList
+        data={items}
+        keyExtractor={(it, i) => `${it.id}:${i}`}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        renderItem={({ item }) => {
+          const img = resolveImageUrl(item.mediaImage || item.featuredImage, baseUrl);
+          const isVideo =
+            /video/i.test(item.type || "") ||
+            /\.(mp4|mov|webm|m4v)(\?|$)/i.test(item.mediaImage || "");
+          return (
+            <Pressable
+              onPress={() => router.push(`/post/${encodeURIComponent(item.id)}`)}
+              style={{ width: size, height: size }}
+              className="bg-base-300"
+            >
+              {img ? (
+                <Image source={{ uri: img }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+              ) : (
+                <View className="flex-1 items-center justify-center">
+                  <Newspaper size={20} color="rgba(26,26,32,0.3)" strokeWidth={1.5} />
+                </View>
+              )}
+              {isVideo ? (
+                <View
+                  className="absolute items-center justify-center bg-black/45"
+                  style={{ width: 26, height: 26, borderRadius: 13, right: 5, top: 5 }}
+                >
+                  <Play size={12} color="#fff" fill="#fff" strokeWidth={0} />
+                </View>
+              ) : null}
+            </Pressable>
+          );
+        }}
+        ListFooterComponent={
+          onDiscoverMore ? (
+            <Pressable
+              onPress={onDiscoverMore}
+              style={{ width: size, height: size }}
+              className="bg-secondary items-center justify-center px-2"
+              android_ripple={{ color: "rgba(255,255,255,0.12)" }}
+            >
+              <ChevronRight size={22} color="rgba(255,244,224,0.95)" strokeWidth={2} />
+              <Text className="font-ui uppercase tracking-[0.12em] text-[9px] text-secondary-content text-center mt-1" numberOfLines={2}>
+                Discover More
+              </Text>
+            </Pressable>
+          ) : null
+        }
+      />
+    </View>
   );
 }
 
@@ -430,7 +451,7 @@ export default function ServerProfile() {
   const heroSrc = resolveImageUrl(server?.image, baseUrl);
   const iconSrc = resolveImageUrl(server?.icon, baseUrl);
   const hasHero = heroSrc && !heroFailed;
-  const mediaItems = recSections?.find((s) => s.contentType === "media")?.items ?? [];
+  const mediaItems = recSections?.find((s) => s.contentType === "media")?.items?.slice(0, 20) ?? [];
   const circles = server?.cachedCircles ?? [];
   const groups  = server?.cachedGroups  ?? [];
   const pages   = server?.cachedPages   ?? [];
@@ -461,9 +482,6 @@ export default function ServerProfile() {
             )}
           </View>
         )}
-
-        {/* Media strip — the server's Discover media, flush under the hero. */}
-        <MediaStrip items={mediaItems} baseUrl={baseUrl} />
 
         {/* Masthead */}
         <View className="px-5 pt-4 pb-3">
@@ -517,6 +535,13 @@ export default function ServerProfile() {
             </Text>
           </Pressable>
         </View>
+
+        {/* Popular Media strip — between the masthead and the tabs. */}
+        <MediaStrip
+          items={mediaItems}
+          baseUrl={baseUrl}
+          onDiscoverMore={() => setTab("discover")}
+        />
 
         {/* Tab bar */}
         <TabBar tab={tab} onSelect={setTab} />
