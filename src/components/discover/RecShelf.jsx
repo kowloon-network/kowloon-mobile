@@ -6,7 +6,8 @@
 
 import { FlatList, Text, View } from "react-native";
 
-import { RecCard, MediaCard } from "./RecCard.jsx";
+import { RecCard } from "./RecCard.jsx";
+import { DiscoverMediaTile } from "./DiscoverMediaTile.jsx";
 
 export function RecShelf({ section, baseUrl, onDark }) {
   if (!section?.items?.length) return null;
@@ -37,7 +38,7 @@ export function RecShelf({ section, baseUrl, onDark }) {
         keyExtractor={(it, i) => `${it.id}:${i}`}
         renderItem={({ item }) =>
           isMedia ? (
-            <MediaCard item={item} baseUrl={baseUrl} />
+            <DiscoverMediaTile item={item} size={150} baseUrl={baseUrl} showAuthor marginRight={8} />
           ) : (
             <RecCard item={item} baseUrl={baseUrl} />
           )

@@ -22,6 +22,7 @@ import { selectActiveAccount } from "../../src/state/accountsSlice.js";
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { PostCard } from "../../src/components/posts/PostCard.jsx";
 import { RecShelf } from "../../src/components/discover/RecShelf.jsx";
+import { DiscoverMediaTile } from "../../src/components/discover/DiscoverMediaTile.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { resolveImageUrl } from "../../src/lib/resolveImageUrl.js";
 
@@ -51,35 +52,9 @@ function MediaStrip({ items, baseUrl, onDiscoverMore }) {
         keyExtractor={(it, i) => `${it.id}:${i}`}
         horizontal
         showsHorizontalScrollIndicator={false}
-        renderItem={({ item }) => {
-          const img = resolveImageUrl(item.mediaImage || item.featuredImage, baseUrl);
-          const isVideo =
-            /video/i.test(item.type || "") ||
-            /\.(mp4|mov|webm|m4v)(\?|$)/i.test(item.mediaImage || "");
-          return (
-            <Pressable
-              onPress={() => router.push(`/post/${encodeURIComponent(item.id)}`)}
-              style={{ width: size, height: size }}
-              className="bg-base-300"
-            >
-              {img ? (
-                <Image source={{ uri: img }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-              ) : (
-                <View className="flex-1 items-center justify-center">
-                  <Newspaper size={20} color="rgba(26,26,32,0.3)" strokeWidth={1.5} />
-                </View>
-              )}
-              {isVideo ? (
-                <View
-                  className="absolute items-center justify-center bg-black/45"
-                  style={{ width: 26, height: 26, borderRadius: 13, right: 5, top: 5 }}
-                >
-                  <Play size={12} color="#fff" fill="#fff" strokeWidth={0} />
-                </View>
-              ) : null}
-            </Pressable>
-          );
-        }}
+        renderItem={({ item }) => (
+          <DiscoverMediaTile item={item} size={size} baseUrl={baseUrl} />
+        )}
         ListFooterComponent={
           onDiscoverMore ? (
             <Pressable
