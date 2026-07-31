@@ -67,45 +67,53 @@ export function ShareIntentRouter() {
   const navReady = !!navState?.key;
   const lastKey = useRef(null);
 
-  // Handle a pending share from anywhere (any screen) — the fix for #81 is that
-  // this no longer depends on a boolean that could stick; it keys off content
-  // and always routes a fresh share regardless of the current route.
-  useEffect(() => {
-    if (!navReady || !hasShareIntent || !shareIntent) return;
-    const key = shareKey(shareIntent);
-    if (!key || key === lastKey.current) return;
-    const target = targetFor(shareIntent);
-    lastKey.current = key;
-    if (!target) {
-      resetShareIntent();
-      return;
+  // Latest values behind a ref so the (stable) AppState listener never sees
+  // stale data and doesn't need to re-subscribe.
+  const dataRef = useRef(null);
+  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, navReady };
+
+  // Single, fully crash-guarded handler. EVERY step that can throw is wrapped —
+  // an uncaught throw in the deferred nav was crashing the app on share (#81).
+  // Content-keyed dedupe means both triggers (context effect + AppState) can
+  // call it and only the first routes a given share.
+  const handleShare = useRef(null);
+  handleShare.current = () => {
+    try {
+      const d = dataRef.current || {};
+      if (!d.navReady || !d.hasShareIntent || !d.shareIntent) return;
+      let key = "";
+      try { key = shareKey(d.shareIntent); } catch { key = ""; }
+      if (!key || key === lastKey.current) return;
+      lastKey.current = key;
+      let target = null;
+      try { target = targetFor(d.shareIntent); } catch { target = null; }
+      if (!target) {
+        try { d.resetShareIntent?.(); } catch {}
+        return;
+      }
+      setTimeout(() => {
+        try { router.navigate(target); } catch {}
+        try { d.resetShareIntent?.(); } catch {}
+      }, 0);
+    } catch {
+      /* never let a share crash the app */
     }
-    const t = setTimeout(() => {
-      router.navigate(target);
-      resetShareIntent();
-    }, 0);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  };
+
+  // Fires whenever the share context changes (warm share on any screen) or the
+  // navigator becomes ready (cold start).
+  useEffect(() => {
+    handleShare.current?.();
   }, [navReady, hasShareIntent, shareIntent]);
 
-  // Warm shares can arrive as the app returns to the foreground without the
-  // context effect re-firing on some devices/routes; re-poke it on 'active'.
+  // Belt-and-suspenders: some devices deliver a warm share as the app returns
+  // to the foreground without the context effect re-firing.
   useEffect(() => {
     const sub = AppState.addEventListener("change", (s) => {
-      if (s !== "active" || !hasShareIntent || !shareIntent || !navReady) return;
-      const key = shareKey(shareIntent);
-      if (!key || key === lastKey.current) return;
-      const target = targetFor(shareIntent);
-      lastKey.current = key;
-      if (!target) return resetShareIntent();
-      setTimeout(() => {
-        router.navigate(target);
-        resetShareIntent();
-      }, 0);
+      if (s === "active") handleShare.current?.();
     });
     return () => sub.remove();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasShareIntent, shareIntent, navReady]);
+  }, []);
 
   return null;
 }
