@@ -37,7 +37,8 @@ const SEEK = 15; // seconds for rw/ff
 const HANDLE_W = 40;
 
 // Right-edge slide-out player: a small audio tab clings to the right edge; tap
-// it and the full player slides out. Auto-expands when a new track loads.
+// it and the full player slides out. Starts minimized (a fresh session always
+// resets to the tab); the user's expand/collapse choice persists within a session.
 function AudioBar({ api }) {
   const { current, playing, position, duration, queue, index, toggle, prev, next, seekBy, stop } = api;
   const insets = useSafeAreaInsets();
@@ -46,6 +47,17 @@ function AudioBar({ api }) {
   // Start minimized to the edge tab — less jarring than popping open.
   const [expanded, setExpanded] = useState(false);
   const tx = useRef(new Animated.Value(panelW - HANDLE_W)).current;
+  const hasCurrent = !!current;
+  const hadCurrentRef = useRef(false);
+
+  // Collapse whenever a fresh session starts (a track appears after the bar was
+  // empty) — otherwise `expanded` persists from before you hit X and the next
+  // clip pops the player open instead of staying a tab. Within a session
+  // (next/prev/queue), the user's expand/collapse choice is preserved.
+  useEffect(() => {
+    if (hasCurrent && !hadCurrentRef.current) setExpanded(false);
+    hadCurrentRef.current = hasCurrent;
+  }, [hasCurrent]);
 
   useEffect(() => {
     Animated.timing(tx, {
