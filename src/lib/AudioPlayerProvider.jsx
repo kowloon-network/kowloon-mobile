@@ -135,6 +135,7 @@ function AudioBar({ api }) {
 export function AudioPlayerProvider({ children }) {
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
+  const insets = useSafeAreaInsets();
 
   // Queue + index are authoritative in refs (no stale closures in callbacks);
   // a version counter forces re-render for the bar.
@@ -267,7 +268,11 @@ export function AudioPlayerProvider({ children }) {
       {/* Play now / Add to queue prompt */}
       <Modal visible={!!prompt} transparent animationType="fade" onRequestClose={() => { promptRef.current = null; bump(); }}>
         <Pressable className="flex-1 bg-black/60 justify-end" onPress={() => { promptRef.current = null; bump(); }}>
-          <Pressable className="bg-base-100 px-5 pt-4 pb-8" onPress={() => {}}>
+          <Pressable
+            className="bg-base-100 px-5 pt-4"
+            style={{ paddingBottom: insets.bottom + 20 }}
+            onPress={() => {}}
+          >
             <Text className="font-ui text-sm text-base-content/60 mb-1">Something's already playing</Text>
             <Text className="font-ui text-base text-base-content font-bold mb-4" numberOfLines={2}>
               {prompt?.track?.title || "Audio"}
