@@ -27,7 +27,7 @@ export function SegmentedControl({ options, value, onChange }) {
               style={{ backgroundColor: active ? "#5588B1" : "#FFFFFF" }}
             >
               <Text
-                className="font-ui text-xs uppercase tracking-[0.12em]"
+                className={`font-ui text-xs uppercase tracking-[0.12em] ${active ? "font-bold" : ""}`}
                 style={{ color: active ? "#F4F5F7" : "#1A1A20" }}
               >
                 {opt.label}

@@ -209,7 +209,7 @@ function TabButton({ label, active, onPress }) {
     >
       <Text
         className={`font-ui uppercase tracking-[0.16em] text-[11px] ${
-          active ? "text-base-content" : "text-base-content/50"
+          active ? "text-base-content font-bold" : "text-base-content/50"
         }`}
       >
         {label}

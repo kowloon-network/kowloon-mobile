@@ -34,7 +34,7 @@ export function PostTypeSelector({ value, onChange }) {
             />
             <Text
               className={`font-ui text-[10px] uppercase tracking-[0.08em] mt-1 ${
-                active ? "text-base-content" : "text-base-content/40"
+                active ? "text-base-content font-bold" : "text-base-content/40"
               }`}
             >
               {POST_TYPES[type].label}

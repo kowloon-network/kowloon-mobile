@@ -147,7 +147,7 @@ export default function Notifications() {
                   style={{ backgroundColor: active ? "#5588B1" : "#F4F4F4" }}
                 >
                   <Text
-                    className="font-ui uppercase tracking-[0.14em] text-[11px]"
+                    className={`font-ui uppercase tracking-[0.14em] text-[11px] ${active ? "font-bold" : ""}`}
                     style={{ color: active ? "#F4F5F7" : "rgba(26,26,32,0.7)" }}
                   >
                     {item.label}
