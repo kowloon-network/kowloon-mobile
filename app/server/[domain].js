@@ -3,6 +3,8 @@ import { useFocusEffect, useLocalSearchParams, router } from "expo-router";
 import { useSelector } from "react-redux";
 import {
   ActivityIndicator,
+  Dimensions,
+  FlatList,
   Image,
   Linking,
   Modal,
@@ -14,7 +16,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Check, ChevronRight, Globe, MapPin, PlusCircle, Users, X } from "lucide-react-native";
+import { Check, ChevronRight, Globe, MapPin, Newspaper, Play, PlusCircle, Users, X } from "lucide-react-native";
 import { selectActiveAccount } from "../../src/state/accountsSlice.js";
 
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
@@ -24,14 +26,58 @@ import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { resolveImageUrl } from "../../src/lib/resolveImageUrl.js";
 
 const TABS = [
-  { key: "discover", label: "Discover" },
-  { key: "posts",   label: "Posts"   },
-  { key: "circles", label: "Circles" },
-  { key: "groups",  label: "Groups"  },
-  { key: "pages",   label: "Pages"   },
+  { key: "posts",    label: "Public Posts" },
+  { key: "circles",  label: "Circles"      },
+  { key: "groups",   label: "Groups"       },
+  { key: "pages",    label: "Pages"        },
+  { key: "discover", label: "Discover"     },
 ];
 
 const POSTS_PER_PAGE = 20;
+
+// Horizontal strip of the server's Discover media — all of it, 4 across, flush
+// with the hero and gapless. Each thumbnail links to its original post.
+function MediaStrip({ items, baseUrl }) {
+  const size = Dimensions.get("window").width / 4;
+  if (!items?.length) return null;
+  return (
+    <FlatList
+      data={items}
+      keyExtractor={(it, i) => `${it.id}:${i}`}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      renderItem={({ item }) => {
+        const img = resolveImageUrl(item.mediaImage || item.featuredImage, baseUrl);
+        const isVideo =
+          /video/i.test(item.type || "") ||
+          /\.(mp4|mov|webm|m4v)(\?|$)/i.test(item.mediaImage || "");
+        return (
+          <Pressable
+            onPress={() => router.push(`/post/${encodeURIComponent(item.id)}`)}
+            style={{ width: size, height: size }}
+            className="bg-base-300"
+          >
+            {img ? (
+              <Image source={{ uri: img }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+            ) : (
+              <View className="flex-1 items-center justify-center">
+                <Newspaper size={20} color="rgba(26,26,32,0.3)" strokeWidth={1.5} />
+              </View>
+            )}
+            {isVideo ? (
+              <View
+                className="absolute items-center justify-center bg-black/45"
+                style={{ width: 26, height: 26, borderRadius: 13, right: 5, top: 5 }}
+              >
+                <Play size={12} color="#fff" fill="#fff" strokeWidth={0} />
+              </View>
+            ) : null}
+          </Pressable>
+        );
+      }}
+    />
+  );
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -198,7 +244,7 @@ export default function ServerProfile() {
   const [profileError, setProfileError] = useState(null);
   const [heroFailed, setHeroFailed] = useState(false);
 
-  const [tab, setTab] = useState("discover");
+  const [tab, setTab] = useState("posts");
 
   const [recSections, setRecSections] = useState(null);
   const [recLoading, setRecLoading] = useState(false);
@@ -339,10 +385,13 @@ export default function ServerProfile() {
     if (tab === "posts" && posts.length === 0 && !postsLoading) {
       loadPosts({ page: 1 });
     }
-    if (tab === "discover" && recSections === null && !recLoading) {
-      loadDiscover();
-    }
-  }, [tab, loadPosts, loadDiscover]);
+  }, [tab, loadPosts]);
+
+  // Recommendations power both the header media strip (always visible) and the
+  // Discover tab, so load them once the server page mounts.
+  useEffect(() => {
+    if (domain && recSections === null && !recLoading) loadDiscover();
+  }, [domain, loadDiscover]);
 
   const onRefresh = useCallback(() => {
     loadServer({ isRefresh: true });
@@ -381,6 +430,7 @@ export default function ServerProfile() {
   const heroSrc = resolveImageUrl(server?.image, baseUrl);
   const iconSrc = resolveImageUrl(server?.icon, baseUrl);
   const hasHero = heroSrc && !heroFailed;
+  const mediaItems = recSections?.find((s) => s.contentType === "media")?.items ?? [];
   const circles = server?.cachedCircles ?? [];
   const groups  = server?.cachedGroups  ?? [];
   const pages   = server?.cachedPages   ?? [];
@@ -411,6 +461,9 @@ export default function ServerProfile() {
             )}
           </View>
         )}
+
+        {/* Media strip — the server's Discover media, flush under the hero. */}
+        <MediaStrip items={mediaItems} baseUrl={baseUrl} />
 
         {/* Masthead */}
         <View className="px-5 pt-4 pb-3">
