@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect, useLocalSearchParams, router } from "expo-router";
 import { useSelector } from "react-redux";
 import {
@@ -118,23 +118,47 @@ function stripHtml(str) {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function TabBar({ tab, onSelect }) {
+  const scrollRef = useRef(null);
+  const layouts = useRef({}); // key -> { x, width }
+  const scrollX = useRef(0);
+  const viewportW = useRef(0);
+
+  // When the selected tab changes, scroll it fully into view if it's clipped.
+  useEffect(() => {
+    const l = layouts.current[tab];
+    if (!l || !scrollRef.current) return;
+    const PAD = 16;
+    const vw = viewportW.current || Dimensions.get("window").width;
+    const left = l.x;
+    const right = l.x + l.width;
+    let target = null;
+    if (left < scrollX.current + PAD) target = Math.max(0, left - PAD);
+    else if (right > scrollX.current + vw - PAD) target = right - vw + PAD;
+    if (target != null) scrollRef.current.scrollTo({ x: target, animated: true });
+  }, [tab]);
+
   return (
     <ScrollView
+      ref={scrollRef}
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{ paddingHorizontal: 12 }}
+      onLayout={(e) => { viewportW.current = e.nativeEvent.layout.width; }}
+      onScroll={(e) => { scrollX.current = e.nativeEvent.contentOffset.x; }}
+      scrollEventThrottle={16}
       className=" "
     >
       {TABS.map((t) => (
         <Pressable
           key={t.key}
           onPress={() => onSelect(t.key)}
+          onLayout={(e) => { layouts.current[t.key] = e.nativeEvent.layout; }}
           android_ripple={{ color: "rgba(0,0,0,0.05)" }}
           className={`px-4 py-3 ${tab === t.key ? "  -mb-[2px]" : ""}`}
         >
           <Text
             className={`font-ui uppercase tracking-[0.16em] text-[11px] ${
-              tab === t.key ? "text-base-content" : "text-base-content/50"
+              tab === t.key ? "text-base-content font-bold" : "text-base-content/50"
             }`}
           >
             {t.label}
