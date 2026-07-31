@@ -25,6 +25,7 @@ import { UnreadCountProvider } from "../src/lib/UnreadCountContext.js";
 import { PushProvider } from "../src/lib/PushProvider.jsx";
 import { ShareIntentRouter } from "../src/components/ShareIntentRouter.jsx";
 import { ImageViewerProvider } from "../src/components/ImageViewerProvider.jsx";
+import { AudioPlayerProvider } from "../src/lib/AudioPlayerProvider.jsx";
 
 // Hold the native splash screen until fonts are ready — no flash of fallback
 // text. preventAutoHideAsync can reject during fast-refresh; ignore that.
@@ -62,15 +63,17 @@ export default function RootLayout() {
               <UnreadCountProvider>
                 <ImageViewerProvider>
                   <PushProvider>
-                    <StatusBar style="auto" />
-                    <HydrationBoot />
-                    <ShareIntentRouter />
-                    <Stack
-                      screenOptions={{
-                        headerShown: false,
-                        contentStyle: { backgroundColor: "#FFFFFF" },
-                      }}
-                    />
+                    <AudioPlayerProvider>
+                      <StatusBar style="auto" />
+                      <HydrationBoot />
+                      <ShareIntentRouter />
+                      <Stack
+                        screenOptions={{
+                          headerShown: false,
+                          contentStyle: { backgroundColor: "#FFFFFF" },
+                        }}
+                      />
+                    </AudioPlayerProvider>
                   </PushProvider>
                 </ImageViewerProvider>
               </UnreadCountProvider>
