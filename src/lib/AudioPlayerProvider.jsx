@@ -38,13 +38,9 @@ function AudioBar({ api }) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const panelW = Math.min(340, width - 16);
-  const [expanded, setExpanded] = useState(true);
-  const tx = useRef(new Animated.Value(0)).current;
-  const trackId = current?.id || null;
-
-  useEffect(() => {
-    if (trackId) setExpanded(true);
-  }, [trackId]);
+  // Start minimized to the edge tab — less jarring than popping open.
+  const [expanded, setExpanded] = useState(false);
+  const tx = useRef(new Animated.Value(panelW - HANDLE_W)).current;
 
   useEffect(() => {
     Animated.timing(tx, {
