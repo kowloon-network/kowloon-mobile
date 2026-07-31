@@ -9,7 +9,12 @@
 import { createContext, useContext, useEffect, useReducer, useRef, useState } from "react";
 import { Animated, Modal, Pressable, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from "expo-audio";
+import {
+  useAudioPlayer,
+  useAudioPlayerStatus,
+  setAudioModeAsync,
+  requestNotificationPermissionsAsync,
+} from "expo-audio";
 import {
   ChevronRight,
   FastForward,
@@ -139,13 +144,23 @@ export function AudioPlayerProvider({ children }) {
   const [, bump] = useReducer((x) => x + 1, 0);
 
   useEffect(() => {
-    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
+    // Keep playing when backgrounded / screen locked, with lock-screen controls.
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: "doNotMix",
+    }).catch(() => {});
+    // Android 13+ needs notification permission for the media notification.
+    requestNotificationPermissionsAsync?.().catch(() => {});
   }, []);
 
   function loadAndPlay(track) {
     try {
       player.replace({ uri: track.url });
       player.play();
+      // Lock-screen / notification now-playing + controls (drives the Android
+      // foreground service that keeps playback alive in the background).
+      player.setActiveForLockScreen?.(true, { title: track.title || "Audio", artist: "Kowloon" });
     } catch {}
   }
 
@@ -225,7 +240,10 @@ export function AudioPlayerProvider({ children }) {
     player.seekTo(t).catch(() => {});
   }
   function stop() {
-    try { player.pause(); } catch {}
+    try {
+      player.pause();
+      player.clearLockScreenControls?.();
+    } catch {}
     setState([], -1);
   }
 
