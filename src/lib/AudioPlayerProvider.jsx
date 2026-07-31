@@ -81,7 +81,7 @@ function AudioBar({ api }) {
       <Pressable
         onPress={() => setExpanded((e) => !e)}
         style={{ width: HANDLE_W }}
-        className="bg-secondary items-center justify-center"
+        className="bg-post-media items-center justify-center"
         android_ripple={{ color: "rgba(255,255,255,0.12)" }}
       >
         {expanded ? (
@@ -92,7 +92,7 @@ function AudioBar({ api }) {
       </Pressable>
 
       {/* Player */}
-      <View className="flex-1 bg-secondary px-3 pt-2 pb-2">
+      <View className="flex-1 bg-post-media px-3 pt-2 pb-2">
         <View className="flex-row items-center">
           <Text className="font-ui text-xs text-secondary-content flex-1" numberOfLines={1}>
             {current.title || "Audio"}
