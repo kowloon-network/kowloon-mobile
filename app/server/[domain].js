@@ -9,6 +9,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -202,6 +203,7 @@ export default function ServerProfile() {
   const [recSections, setRecSections] = useState(null);
   const [recLoading, setRecLoading] = useState(false);
   const [recError, setRecError] = useState(null);
+  const [recBg, setRecBg] = useState(null);
 
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
@@ -289,6 +291,7 @@ export default function ServerProfile() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setRecSections(data.sections ?? []);
+      setRecBg(data.background ? resolveImageUrl(data.background, `https://${domain}`) : null);
     } catch (e) {
       setRecError(e?.message || "Couldn't load this server's Discover.");
       setRecSections([]);
@@ -513,34 +516,45 @@ export default function ServerProfile() {
             )
           ) : null}
 
-          {/* ── Discover (the remote server's own curated + heuristic shelves) ── */}
+          {/* ── Discover — the remote server's own curated + heuristic shelves,
+                over ITS blurred hero background (differentiates their Discover
+                from yours). ── */}
           {tab === "discover" ? (
-            recLoading ? (
-              <View className="py-16 items-center">
-                <ActivityIndicator />
-              </View>
-            ) : recError ? (
-              <View className="px-6 py-16 items-center">
-                <Text className="font-ui text-base text-error text-center mb-4">{recError}</Text>
-                <Pressable
-                  onPress={loadDiscover}
-                  className="  px-5 py-2.5"
-                  android_ripple={{ color: "rgba(0,0,0,0.06)" }}
-                >
-                  <Text className="font-ui uppercase tracking-[0.16em] text-xs text-base-content">
-                    Retry
+            <View style={{ position: "relative", minHeight: 520 }} className="bg-[#002FA7]">
+              {recBg ? (
+                <Image source={{ uri: recBg }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+              ) : null}
+              {recLoading ? (
+                <View className="py-16 items-center">
+                  <ActivityIndicator color="#fff" />
+                </View>
+              ) : recError ? (
+                <View className="px-6 py-16 items-center">
+                  <Text className="font-ui text-base text-white text-center mb-4">{recError}</Text>
+                  <Pressable
+                    onPress={loadDiscover}
+                    className="bg-black/40 px-5 py-2.5"
+                    android_ripple={{ color: "rgba(255,255,255,0.1)" }}
+                  >
+                    <Text className="font-ui uppercase tracking-[0.16em] text-xs text-white">
+                      Retry
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : !recSections || recSections.length === 0 ? (
+                <View className="mx-4 my-4 bg-black/50 px-6 py-16 items-center">
+                  <Text className="font-ui text-base text-white/80 text-center">
+                    This server hasn't featured anything to discover yet.
                   </Text>
-                </Pressable>
-              </View>
-            ) : !recSections || recSections.length === 0 ? (
-              <EmptyTab message="This server hasn't featured anything to discover yet." />
-            ) : (
-              <View className="pt-2">
-                {recSections.map((s) => (
-                  <RecShelf key={s.id} section={s} baseUrl={baseUrl} />
-                ))}
-              </View>
-            )
+                </View>
+              ) : (
+                <View className="pt-3 pb-4">
+                  {recSections.map((s) => (
+                    <RecShelf key={s.id} section={s} baseUrl={baseUrl} onDark />
+                  ))}
+                </View>
+              )}
+            </View>
           ) : null}
 
           {/* ── Circles ── */}
