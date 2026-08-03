@@ -11,11 +11,13 @@ import { Avatar } from "./Avatar.jsx";
 
 export function ReplyComposer({
   postId,
+  inReplyTo,
   client,
   currentUser,
   canReply,
   onSubmitted,
   autoFocus = false,
+  placeholder = "Write a reply…",
 }) {
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -55,12 +57,18 @@ export function ReplyComposer({
     try {
       const res = await client.activities.reply({
         postId,
+        ...(inReplyTo ? { inReplyTo } : {}),
         content: text,
         dedupeKey: dedupeRef.current.key,
       });
       setText("");
       dedupeRef.current = null;
-      onSubmitted?.({ duplicated: !!res?.duplicated, result: res, content: text });
+      onSubmitted?.({
+        duplicated: !!res?.duplicated,
+        result: res,
+        content: text,
+        inReplyTo,
+      });
     } catch (e) {
       setError(e?.message || "Couldn't post reply.");
     } finally {
@@ -79,7 +87,7 @@ export function ReplyComposer({
           value={text}
           onChangeText={setText}
           multiline
-          placeholder="Write a reply…"
+          placeholder={placeholder}
           placeholderTextColor="rgba(26,26,32,0.35)"
           className="  bg-white px-3 py-2.5 font-ui text-[15px] text-base-content min-h-20"
         />

@@ -3,7 +3,7 @@
 // Fetches the post and its replies, applies the user's reading typography to
 // the body, and exposes the React + Reply actions inline.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -38,6 +38,38 @@ const TYPE_ACCENT = {
   Event: "text-post-event",
 };
 
+// Chronological sort key — the flat reply objects carry both createdAt and
+// publishedAt; prefer createdAt (write order) and fall back to publishedAt.
+function replyTime(r) {
+  return new Date(r?.createdAt || r?.publishedAt || 0).getTime();
+}
+
+// Build the shallow (2-level, Facebook-style) reply tree from the flat list the
+// server returns. FIRST-LEVEL replies have `parent === rootId` (the post).
+// SECOND-LEVEL replies have `parent === <a first-level reply id>`. Each level is
+// sorted oldest-first. Depth is capped at 2 by the server, so we never recurse.
+function buildReplyTree(replies, rootId) {
+  const childrenByParent = new Map();
+  const firstLevel = [];
+  for (const r of replies || []) {
+    // A reply whose parent is another reply (not the root post) is second-level.
+    if (r?.parent && r.parent !== rootId) {
+      const arr = childrenByParent.get(r.parent) || [];
+      arr.push(r);
+      childrenByParent.set(r.parent, arr);
+    } else {
+      firstLevel.push(r);
+    }
+  }
+  firstLevel.sort((a, b) => replyTime(a) - replyTime(b));
+  return firstLevel.map((r) => ({
+    ...r,
+    children: (childrenByParent.get(r.id) || []).sort(
+      (a, b) => replyTime(a) - replyTime(b)
+    ),
+  }));
+}
+
 export default function PostDetail() {
   const router = useRouter();
   const { id, focusReply } = useLocalSearchParams();
@@ -52,6 +84,9 @@ export default function PostDetail() {
   const [replies, setReplies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Which first-level reply currently has its inline threaded composer open
+  // (only one at a time). null = none.
+  const [openReplyId, setOpenReplyId] = useState(null);
   const currentUser = client?.auth?.getUser?.() || null;
 
   const scrollRef = useRef(null);
@@ -123,6 +158,67 @@ export default function PostDetail() {
       // keep the existing replies on a transient error
     }
   }, [client, id]);
+
+  // The root id every reply's `parent`/`target` points at. Prefer the post's own
+  // canonical id; fall back to the route param before the post has loaded.
+  const postRootId = post?.id || String(id);
+  const replyTree = useMemo(
+    () => buildReplyTree(replies, postRootId),
+    [replies, postRootId]
+  );
+
+  // The reduced author shape the composer/optimistic reply need.
+  const composerUser = currentUser
+    ? {
+        id: currentUser.id,
+        name: currentUser.profile?.name,
+        icon: currentUser.profile?.icon,
+      }
+    : null;
+
+  const updateReplyInList = useCallback(
+    (next) =>
+      setReplies((arr) => arr.map((r) => (r.id === next.id ? next : r))),
+    []
+  );
+  const removeReplyFromList = useCallback(
+    (rid) => setReplies((arr) => arr.filter((r) => r.id !== rid)),
+    []
+  );
+
+  // Optimistically insert a just-posted reply so it appears instantly, then
+  // reconcile with the server (the read path lags the write — see #66). `parent`
+  // is the post id for a top-level reply, or the first-level reply id for a
+  // threaded one; `target` is always the root post so it slots into the tree.
+  const insertOptimisticReply = useCallback(
+    ({ content, parent }) => {
+      const now = new Date().toISOString();
+      const optimistic = {
+        id: `pending-${Date.now()}`,
+        __optimistic: true,
+        actorId: currentUser?.id,
+        actor: {
+          id: currentUser?.id,
+          name: currentUser?.profile?.name,
+          icon: currentUser?.profile?.icon,
+        },
+        source: { content },
+        body: "",
+        parent,
+        target: postRootId,
+        createdAt: now,
+        publishedAt: now,
+      };
+      setReplies((arr) => [...arr, optimistic]);
+      setTimeout(
+        () => scrollRef.current?.scrollToEnd({ animated: true }),
+        120
+      );
+      setTimeout(() => reconcileReplies(), 800);
+      setTimeout(() => reconcileReplies(), 2500);
+    },
+    [currentUser, postRootId, reconcileReplies]
+  );
 
   const actor = post?.actor || {};
   const type = post?.type || "Note";
@@ -226,22 +322,47 @@ export default function PostDetail() {
               </View>
             </View>
 
-            {/* Replies */}
+            {/* Replies — a shallow 2-level thread (Facebook-style). */}
             <View className="px-5 pt-2">
-              {replies.length > 0
-                ? replies.map((reply) => (
+              {replyTree.length > 0
+                ? replyTree.map((reply) => (
                     <Reply
                       key={reply.id}
                       reply={reply}
                       client={client}
                       currentUserId={currentUser?.id}
-                      onUpdated={(next) =>
-                        setReplies((arr) =>
-                          arr.map((r) => (r.id === next.id ? next : r))
+                      onUpdated={updateReplyInList}
+                      onDeleted={removeReplyFromList}
+                      showReply={!!currentUser && post.canReply !== "@none"}
+                      replyCount={reply.replyCount || reply.children.length}
+                      onReplyPress={() =>
+                        setOpenReplyId((cur) =>
+                          cur === reply.id ? null : reply.id
                         )
                       }
-                      onDeleted={(rid) =>
-                        setReplies((arr) => arr.filter((r) => r.id !== rid))
+                      childReplies={reply.children}
+                      childComposer={
+                        openReplyId === reply.id ? (
+                          <ReplyComposer
+                            postId={String(id)}
+                            inReplyTo={reply.id}
+                            client={client}
+                            currentUser={composerUser}
+                            canReply={post.canReply}
+                            autoFocus
+                            placeholder={`Reply to ${
+                              reply.actor?.name || "this reply"
+                            }…`}
+                            onSubmitted={({ duplicated, content }) => {
+                              setOpenReplyId(null);
+                              if (duplicated) return;
+                              insertOptimisticReply({
+                                content,
+                                parent: reply.id,
+                              });
+                            }}
+                          />
+                        ) : null
                       }
                     />
                   ))
@@ -254,43 +375,13 @@ export default function PostDetail() {
               <ReplyComposer
                 postId={String(id)}
                 client={client}
-                currentUser={
-                  currentUser
-                    ? {
-                        id: currentUser.id,
-                        name: currentUser.profile?.name,
-                        icon: currentUser.profile?.icon,
-                      }
-                    : null
-                }
+                currentUser={composerUser}
                 canReply={post.canReply}
                 autoFocus={shouldFocusReply && !loading && !!post}
                 onSubmitted={({ duplicated, content }) => {
                   if (duplicated) return;
-                  // Show the reply instantly (optimistic), then reconcile with
-                  // the server a beat later — the read path lags the write, so a
-                  // plain refetch returned before the reply was queryable (#66).
-                  const optimistic = {
-                    id: `pending-${Date.now()}`,
-                    __optimistic: true,
-                    actorId: currentUser?.id,
-                    actor: {
-                      id: currentUser?.id,
-                      name: currentUser?.profile?.name,
-                      icon: currentUser?.profile?.icon,
-                    },
-                    source: { content },
-                    body: "",
-                    publishedAt: new Date().toISOString(),
-                  };
-                  setReplies((arr) => [...arr, optimistic]);
-                  setTimeout(
-                    () => scrollRef.current?.scrollToEnd({ animated: true }),
-                    120
-                  );
-                  // Reconcile a couple of times to absorb the read-lag window.
-                  setTimeout(() => reconcileReplies(), 800);
-                  setTimeout(() => reconcileReplies(), 2500);
+                  // Top-level reply — parent is the post itself.
+                  insertOptimisticReply({ content, parent: postRootId });
                 }}
               />
             </View>

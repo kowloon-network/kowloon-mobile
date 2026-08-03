@@ -12,7 +12,18 @@ import { HtmlContent } from "../HtmlContent.jsx";
 import { ReactButton } from "./ReactButton.jsx";
 import { timeAgo } from "../../lib/timeAgo.js";
 
-export function Reply({ reply, client, currentUserId, onUpdated, onDeleted }) {
+export function Reply({
+  reply,
+  client,
+  currentUserId,
+  onUpdated,
+  onDeleted,
+  showReply = false,
+  onReplyPress,
+  replyCount = 0,
+  childReplies = [],
+  childComposer = null,
+}) {
   const actor = reply?.actor || {};
   const html = reply?.body || reply?.source?.content || "";
   const isAuthor = !!currentUserId && reply?.actorId === currentUserId;
@@ -72,7 +83,8 @@ export function Reply({ reply, client, currentUserId, onUpdated, onDeleted }) {
   }
 
   return (
-    <View className="flex-row py-4  ">
+    <View>
+      <View className="flex-row py-4  ">
       <View className="shrink-0 mr-3">
         <Avatar actor={actor} size={32} baseUrl={client?.http?.baseUrl} />
       </View>
@@ -139,6 +151,22 @@ export function Reply({ reply, client, currentUserId, onUpdated, onDeleted }) {
                 <ReactButton client={client} post={reply} size="sm" />
               </View>
             ) : null}
+            {showReply && currentUserId ? (
+              <Pressable
+                onPress={() => onReplyPress?.(reply)}
+                hitSlop={6}
+                className="mr-4"
+              >
+                <Text className="font-ui uppercase tracking-[0.16em] text-[10px] text-base-content/45">
+                  Reply
+                </Text>
+              </Pressable>
+            ) : null}
+            {showReply && replyCount > 0 ? (
+              <Text className="font-ui text-[10px] text-base-content/35 mr-4">
+                {replyCount} {replyCount === 1 ? "reply" : "replies"}
+              </Text>
+            ) : null}
             {isAuthor ? (
               <>
                 <Pressable
@@ -168,6 +196,25 @@ export function Reply({ reply, client, currentUserId, onUpdated, onDeleted }) {
           <Text className="font-ui text-[11px] text-error mt-1">{error}</Text>
         ) : null}
       </View>
+      </View>
+
+      {/* Second-level thread — indented, capped at this depth (no reply
+          affordance on children). */}
+      {childReplies.length > 0 || childComposer ? (
+        <View className="ml-11 pl-3 border-l border-base-content/10">
+          {childReplies.map((child) => (
+            <Reply
+              key={child.id}
+              reply={child}
+              client={client}
+              currentUserId={currentUserId}
+              onUpdated={onUpdated}
+              onDeleted={onDeleted}
+            />
+          ))}
+          {childComposer}
+        </View>
+      ) : null}
     </View>
   );
 }
