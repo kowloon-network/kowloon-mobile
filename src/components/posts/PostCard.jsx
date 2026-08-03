@@ -193,19 +193,9 @@ export function PostCard({ post, onDeleted }) {
               </Text>
             ) : null}
             <LocationLine location={post?.location} />
-            {previewHtml ? (
-              <View className="mb-3">
-                <HtmlContent
-                  html={previewHtml}
-                  fonts={contentFonts}
-                  fontSize={resolved.fontSize}
-                  lineHeight={resolved.lineHeight}
-                />
-                <ContinueReading show={!!post?.summary} />
-              </View>
-            ) : null}
+            {/* Media above the body — always, like the web card. */}
             {Array.isArray(post.attachments) && post.attachments.length > 0 ? (
-              <View>
+              <View className="mb-3">
                 {/* Images: 2-column grid. Single image stays full width; an
                     odd-count final image spans both columns so the bottom
                     edge stays flush. */}
@@ -273,6 +263,17 @@ export function PostCard({ post, onDeleted }) {
                 />
               </Pressable>
             ) : null}
+            {previewHtml ? (
+              <View>
+                <HtmlContent
+                  html={previewHtml}
+                  fonts={contentFonts}
+                  fontSize={resolved.fontSize}
+                  lineHeight={resolved.lineHeight}
+                />
+                <ContinueReading show={!!post?.summary} />
+              </View>
+            ) : null}
           </>
         ) : post?.type === "Link" ? (
           /* Image-first link card: image on top, then the link title, then
@@ -328,6 +329,17 @@ export function PostCard({ post, onDeleted }) {
                 line under the title; Events get the prominent treatment. */}
             <LocationLine location={post?.location} prominent={post?.type === "Event"} />
 
+            {/* Featured/hero image above the body — always, like the web. */}
+            {image ? (
+              <Pressable onPress={() => viewer?.open([image], 0)} className="mb-3 mt-1">
+                <Image
+                  source={{ uri: image }}
+                  className="w-full h-48   bg-base-200"
+                  resizeMode="cover"
+                />
+              </Pressable>
+            ) : null}
+
             {linkHost ? (
               <Text className={`font-ui text-xs mb-1.5 ${meta.accent}`}>
                 {linkHost}
@@ -352,16 +364,6 @@ export function PostCard({ post, onDeleted }) {
             ) : null}
 
             <ContinueReading show={!!post?.summary} />
-
-            {image ? (
-              <Pressable onPress={() => viewer?.open([image], 0)}>
-                <Image
-                  source={{ uri: image }}
-                  className="w-full h-48 mt-3   bg-base-200"
-                  resizeMode="cover"
-                />
-              </Pressable>
-            ) : null}
           </>
         )}
 
