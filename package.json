@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "distribute:android": "node scripts/distribute-android.mjs",
     "postinstall": "patch-package",
-    "eas-build-pre-install": "test -d ../client || git clone --depth 1 https://github.com/jzellis/kowloon-client.git ../client",
+    "eas-build-pre-install": "test -d ../client || git clone --depth 1 https://github.com/kowloon-network/kowloon-client.git ../client",
     "eas-build-on-success": "node scripts/eas-distribute-onsuccess.mjs"
   },
   "dependencies": {
