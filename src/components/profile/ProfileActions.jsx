@@ -42,19 +42,27 @@ export function ProfileActions({ client, account, targetId, name }) {
     if (circles.length > 0) return;
     setPickerLoading(true);
     try {
-      const res = await client.feeds.getUserCircles({ userId: account.id });
+      // `contains` asks the server which of these circles already hold this
+      // person, so the ✓ reflects real membership instead of resetting each
+      // time the picker opens.
+      const res = await client.feeds.getUserCircles({
+        userId: account.id,
+        contains: targetId,
+        limit: 100,
+      });
       // Only user-created circles are valid add targets (not System circles).
-      setCircles(
-        (res?.orderedItems ?? res?.items ?? []).filter(
-          (c) => c?.id && c?.name && c?.type !== "System"
-        )
+      const list = (res?.orderedItems ?? res?.items ?? []).filter(
+        (c) => c?.id && c?.name && c?.type !== "System"
       );
+      setCircles(list);
+      const already = list.filter((c) => c.contains).map((c) => c.id);
+      if (already.length) setAddedTo((prev) => new Set([...prev, ...already]));
     } catch {
       // fail silently — show the empty state in the modal
     } finally {
       setPickerLoading(false);
     }
-  }, [client, account?.id, circles.length]);
+  }, [client, account?.id, circles.length, targetId]);
 
   const addToCircle = useCallback(
     async (circleId) => {
