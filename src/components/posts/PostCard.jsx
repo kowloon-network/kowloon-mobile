@@ -7,8 +7,10 @@
 import { Linking, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
+import { resolveEmbed } from "@kowloon/client";
 import { SmartImage as Image } from "../ui/SmartImage.jsx";
 import { Avatar } from "./Avatar.jsx";
+import { EmbedPlayer } from "./EmbedPlayer.jsx";
 import { AudioAttachment } from "./AudioAttachment.jsx";
 import { VideoAttachment } from "./VideoAttachment.jsx";
 import { LocationLine } from "./LocationLine.jsx";
@@ -122,6 +124,9 @@ export function PostCard({ post, onDeleted }) {
   // not the Kowloon canonical post URL (post.url) — those are always our own
   // domain.
   const linkHost = post?.type === "Link" ? hostOf(post?.href) : "";
+  // Rich-media embed (YouTube, …) derived from the link URL via the shared
+  // recognizer — inline-capable providers get a player in the image slot.
+  const embed = post?.type === "Link" && post?.href ? resolveEmbed(post.href) : null;
 
   function open() {
     router.push(`/post/${encodeURIComponent(post.id)}`);
@@ -280,7 +285,9 @@ export function PostCard({ post, onDeleted }) {
              the description. Image and title open the external URL; tapping
              elsewhere on the card still opens the post detail. */
           <>
-            {image ? (
+            {embed?.mode === "inline" ? (
+              <EmbedPlayer embed={embed} poster={image} />
+            ) : image ? (
               <Pressable onPress={openExternal} className="mb-3">
                 <Image
                   source={{ uri: image }}
