@@ -89,7 +89,8 @@ export function AudienceSelector({
       .then((res) => {
         const items = res?.orderedItems || res?.items || [];
         if (!cancelled) {
-          setCircles(orderUserCircles(items, account?.id));
+          const pinned = client?.auth?.getUser?.()?.prefs?.pinnedCircles || [];
+          setCircles(orderUserCircles(items, account?.id, pinned));
         }
       })
       .catch(() => {});

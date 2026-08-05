@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ban, BellOff, Check, MoreHorizontal, X } from "lucide-react-native";
+import { sortByPins } from "@kowloon/client";
 
 export function ProfileActions({ client, account, targetId, name }) {
   const displayName = name || targetId || "this user";
@@ -50,11 +51,13 @@ export function ProfileActions({ client, account, targetId, name }) {
         contains: targetId,
         limit: 100,
       });
-      // Only user-created circles are valid add targets (not System circles).
+      // Only user-created circles are valid add targets (not System circles);
+      // ordered by the user's feed-selector pins so this list matches everywhere.
       const list = (res?.orderedItems ?? res?.items ?? []).filter(
         (c) => c?.id && c?.name && c?.type !== "System"
       );
-      setCircles(list);
+      const pinned = client?.auth?.getUser?.()?.prefs?.pinnedCircles || [];
+      setCircles(sortByPins(list, pinned));
       const already = list.filter((c) => c.contains).map((c) => c.id);
       if (already.length) setAddedTo((prev) => new Set([...prev, ...already]));
     } catch {

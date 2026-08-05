@@ -7,10 +7,18 @@
 // how it stays private yet still appears in this list. So we identify it by its
 // self-address (to === the user's own id), falling back to the name, rather
 // than by type. `selfId` is the active account's id (e.g. @user@domain).
-export function orderUserCircles(items, selfId) {
+import { sortByPins } from "@kowloon/client";
+
+export function orderUserCircles(items, selfId, pinnedCircles) {
   const usable = (Array.isArray(items) ? items : []).filter(
     (c) => c?.id && c?.name && c?.type !== "System"
   );
+  // Honor the user's explicit pin order first (Following is pinned by default),
+  // so every circle list respects the same ordering as the feed selector.
+  if (Array.isArray(pinnedCircles) && pinnedCircles.length) {
+    return sortByPins(usable, pinnedCircles);
+  }
+  // Fallback for accounts with no pins yet: Following first.
   const idx = usable.findIndex(
     (c) =>
       (selfId && c.to === selfId) ||

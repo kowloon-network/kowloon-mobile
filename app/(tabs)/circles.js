@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Plus } from "lucide-react-native";
+import { sortByPins } from "@kowloon/client";
 
 import { CircleCard } from "../../src/components/circles/CircleCard.jsx";
 import { AppHeader, HeaderButton } from "../../src/components/nav/AppHeader.jsx";
@@ -55,8 +56,10 @@ export default function Circles() {
         const res = await client.feeds.getUserCircles({ userId: account.id });
         const items = res?.orderedItems || res?.items || [];
         // Hide system circles (Following, Groups, Blocked, Muted) — those are
-        // managed implicitly, not curated by hand.
-        setMine(items.filter((c) => c?.type !== "System"));
+        // managed implicitly, not curated by hand. Order by the user's pins so
+        // this matches the feed selector and everywhere else circles are listed.
+        const pinned = client?.auth?.getUser?.()?.prefs?.pinnedCircles || [];
+        setMine(sortByPins(items.filter((c) => c?.type !== "System"), pinned));
       } catch (e) {
         setMineError(e?.message || "Couldn't load your circles.");
       } finally {
