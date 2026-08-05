@@ -581,8 +581,10 @@ export default function Compose() {
 
   async function handlePost() {
     setError(null);
-    if (type === "Article" && !title.trim()) {
-      setError("Articles need a title.");
+    // Titles are mandatory only for Events and Links; Notes, Articles, and
+    // Media may go untitled.
+    if ((type === "Event" || type === "Link") && !title.trim()) {
+      setError(type === "Event" ? "Events need a title." : "Links need a title.");
       return;
     }
     if (type === "Link") {
