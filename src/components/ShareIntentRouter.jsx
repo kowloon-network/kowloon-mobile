@@ -87,15 +87,14 @@ export function ShareIntentRouter() {
   dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, navReady, hydrated };
 
   const lastConsumedRef = useRef(null); // persisted key of the last delivered share
-  const loadedRef = useRef(false); // dedupe marker loaded from storage yet?
-  const retryRef = useRef({ key: "", count: 0 });
+  const deliveringRef = useRef(false); // a navigate is scheduled/in-flight
   const clearTimerRef = useRef(null); // pending clean-launch marker clear
 
   const handleShare = useRef(null);
   handleShare.current = () => {
     try {
       const d = dataRef.current || {};
-      if (!d.navReady || !loadedRef.current) return;
+      if (!d.navReady) return;
 
       // Clean launch (no share present): after a short settle delay, clear the
       // dedupe marker so re-sharing the same URL later works. The delay guards
@@ -134,41 +133,40 @@ export function ShareIntentRouter() {
       // that bounces to /welcome. The effect re-runs when hydration completes.
       if (!d.hydrated) return;
 
+      // One delivery scheduled/in-flight at a time.
+      if (deliveringRef.current) return;
+
       let target = null;
       try { target = targetFor(d.shareIntent); } catch { target = null; }
       if (!target) { try { d.resetShareIntent?.(); } catch {} return; }
 
-      // Deliver. Only consume/reset on a SUCCESSFUL navigate; otherwise retry a
-      // few times, then wait for the next trigger — never reset a share we
-      // failed to route.
-      let ok = false;
-      try { router.navigate(target); ok = true; } catch { ok = false; }
-      if (ok) {
-        lastConsumedRef.current = key;
-        setLastConsumedShare(key);
-        retryRef.current = { key: "", count: 0 };
-        try { d.resetShareIntent?.(); } catch {}
-      } else {
-        if (retryRef.current.key !== key) retryRef.current = { key, count: 0 };
-        if (retryRef.current.count < 8) {
-          retryRef.current.count += 1;
-          setTimeout(() => handleShare.current?.(), 150);
+      // DEFER the navigate to the next tick. A synchronous navigate right as the
+      // navigator mounts on a cold-start share silently no-ops (no throw), which
+      // then consumed the share and did nothing — the regression. Consume/reset
+      // ONLY after the navigate actually runs; if it throws, clear the in-flight
+      // flag and let the next trigger retry (never reset a share we didn't route).
+      deliveringRef.current = true;
+      setTimeout(() => {
+        let ok = false;
+        try { router.navigate(target); ok = true; } catch { ok = false; }
+        if (ok) {
+          lastConsumedRef.current = key;
+          setLastConsumedShare(key);
+          try { d.resetShareIntent?.(); } catch {}
         }
-      }
+        deliveringRef.current = false;
+      }, 0);
     } catch {
       /* never let a share crash the app */
     }
   };
 
-  // Load the persisted dedupe marker once, then run the handler in case a share
-  // is already waiting.
+  // Load the persisted replay marker — NON-blocking (a share never waits on it).
+  // Don't clobber a marker a delivery may have already set while we were loading.
   useEffect(() => {
     let cancelled = false;
     getLastConsumedShare().then((k) => {
-      if (cancelled) return;
-      lastConsumedRef.current = k;
-      loadedRef.current = true;
-      handleShare.current?.();
+      if (!cancelled && lastConsumedRef.current == null) lastConsumedRef.current = k;
     });
     return () => { cancelled = true; };
   }, []);
