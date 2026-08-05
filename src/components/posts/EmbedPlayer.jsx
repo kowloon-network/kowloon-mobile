@@ -17,15 +17,19 @@ export function EmbedPlayer({ embed, poster }) {
 
   const ratio = embed.aspectRatio || 16 / 9;
   const thumb = embed.thumbnail || poster;
-  const src = embed.embedUrl + (embed.embedUrl.includes("?") ? "&" : "?") + "autoplay=1";
   const allow = embed.allow || "autoplay; encrypted-media; picture-in-picture; fullscreen";
 
-  // Wrap the iframe in a document with a real baseUrl instead of navigating the
-  // WebView straight to the embed URL. Loaded as a top-level page, YouTube's
-  // embed gets no referrer/origin and shows "Video player configuration error"
-  // (Error 153); giving the host document an origin fixes it — the same origin
-  // the web frontend's iframe already has.
-  const html = `<!DOCTYPE html><html><head>` +
+  // Mirror the web frontend's working setup: a plain iframe in a document with a
+  // real origin (baseUrl). The extra piece a WebView needs is the User-Agent —
+  // Android System WebView's default UA carries a "wv" token that YouTube treats
+  // as an unsupported context and answers with "video unavailable" (Error 152).
+  // Overriding to a normal Chrome UA makes it behave like the browser embed.
+  const src = embed.embedUrl + (embed.embedUrl.includes("?") ? "&" : "?") + "autoplay=1";
+  const baseUrl = (embed.embedUrl.match(/^https?:\/\/[^/]+/) || ["https://www.youtube.com"])[0];
+  const userAgent =
+    "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36";
+  const html =
+    `<!DOCTYPE html><html><head>` +
     `<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">` +
     `<style>html,body{margin:0;padding:0;background:#000;height:100%;overflow:hidden}` +
     `iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}</style></head>` +
@@ -38,7 +42,8 @@ export function EmbedPlayer({ embed, poster }) {
     >
       {playing ? (
         <WebView
-          source={{ html, baseUrl: "https://www.youtube.com" }}
+          source={{ html, baseUrl }}
+          userAgent={userAgent}
           originWhitelist={["*"]}
           style={{ flex: 1, backgroundColor: "#000000" }}
           allowsInlineMediaPlayback
