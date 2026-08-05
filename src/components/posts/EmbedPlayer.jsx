@@ -10,6 +10,7 @@ import { useState } from "react";
 import { View, Pressable, Image } from "react-native";
 import { WebView } from "react-native-webview";
 import { Play } from "lucide-react-native";
+import { EMBED_WEBVIEW_USER_AGENT } from "@kowloon/client";
 
 export function EmbedPlayer({ embed, poster }) {
   const [playing, setPlaying] = useState(false);
@@ -26,8 +27,6 @@ export function EmbedPlayer({ embed, poster }) {
   // Overriding to a normal Chrome UA makes it behave like the browser embed.
   const src = embed.embedUrl + (embed.embedUrl.includes("?") ? "&" : "?") + "autoplay=1";
   const baseUrl = (embed.embedUrl.match(/^https?:\/\/[^/]+/) || ["https://www.youtube.com"])[0];
-  const userAgent =
-    "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36";
   const html =
     `<!DOCTYPE html><html><head>` +
     `<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">` +
@@ -43,7 +42,7 @@ export function EmbedPlayer({ embed, poster }) {
       {playing ? (
         <WebView
           source={{ html, baseUrl }}
-          userAgent={userAgent}
+          userAgent={EMBED_WEBVIEW_USER_AGENT}
           originWhitelist={["*"]}
           style={{ flex: 1, backgroundColor: "#000000" }}
           allowsInlineMediaPlayback
