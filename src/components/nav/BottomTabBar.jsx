@@ -16,7 +16,7 @@ import { useUnreadCount } from "../../lib/UnreadCountContext.js";
 // Route name (file name under app/(tabs)) -> label + icon. Routes without an
 // entry here (e.g. "search") stay mounted but are hidden from the bar.
 const META = {
-  feed: { label: "Feed", Icon: Home },
+  feed: { label: "Feeds", Icon: Home },
   circles: { label: "Circles", Icon: Hexagon },
   groups: { label: "Groups", Icon: Users },
   discover: { label: "Discover", Icon: Compass },

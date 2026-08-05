@@ -44,7 +44,7 @@ export function FeedDefaultsMenu({
           <Pressable
             onPress={() => {}}
             style={{ position: "absolute", top: pos.top, right: pos.right, width: DROPDOWN_WIDTH }}
-            className="bg-base-100  "
+            className="bg-base-100 border border-base-300"
           >
             <Text className="font-ui uppercase tracking-[0.16em] text-[10px] text-base-content/40 px-4 pt-3 pb-1">
               Set as default
