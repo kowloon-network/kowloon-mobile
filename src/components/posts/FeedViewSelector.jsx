@@ -22,7 +22,8 @@ import {
 import { useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Compass } from "lucide-react-native";
+import { Compass, Pin } from "lucide-react-native";
+import { sortByPins, togglePin } from "@kowloon/client";
 
 import { useActiveClient } from "../../lib/useActiveClient.js";
 import { useJoinedGroups } from "../../lib/useJoinedGroups.js";
@@ -57,6 +58,39 @@ export function FeedViewSelector({ value, onChange, subject }) {
   const { groups, refresh: refreshGroups } = useJoinedGroups();
   const baseUrl = client?.http?.baseUrl;
   const [serverIcon, setServerIcon] = useState(null);
+  // Feed-selector pins (Kowloon IDs) from the account's server prefs. Loaded
+  // from the client's auth user; toggled optimistically, then persisted.
+  const [pinnedCircles, setPinnedCircles] = useState([]);
+  const [pinnedGroups, setPinnedGroups] = useState([]);
+
+  useEffect(() => {
+    if (!client) return;
+    let cancelled = false;
+    (async () => {
+      let user = client.auth?.getUser?.();
+      if (!user) {
+        try { user = await client.init(); } catch { user = null; }
+      }
+      if (cancelled) return;
+      setPinnedCircles(user?.prefs?.pinnedCircles || []);
+      setPinnedGroups(user?.prefs?.pinnedGroups || []);
+    })();
+    return () => { cancelled = true; };
+  }, [client, account?.id]);
+
+  function handleTogglePin(kind, id) {
+    if (kind === "circle") {
+      const prev = pinnedCircles;
+      const next = togglePin(prev, id);
+      setPinnedCircles(next);
+      client?.activities?.setPins?.({ circles: next }).catch(() => setPinnedCircles(prev));
+    } else {
+      const prev = pinnedGroups;
+      const next = togglePin(prev, id);
+      setPinnedGroups(next);
+      client?.activities?.setPins?.({ groups: next }).catch(() => setPinnedGroups(prev));
+    }
+  }
 
   const serverViews = useMemo(
     () => [
@@ -176,12 +210,14 @@ export function FeedViewSelector({ value, onChange, subject }) {
   // Show the search box whenever there's anything to search (was >5, which hid
   // it for anyone with a handful of circles/groups).
   const showSearch = circles.length + groups.length > 0;
-  const filteredCircles = q
-    ? circles.filter((c) => c.name?.toLowerCase().includes(q))
-    : circles;
-  const filteredGroups = q
-    ? groups.filter((g) => g.name?.toLowerCase().includes(q))
-    : groups;
+  const filteredCircles = sortByPins(
+    q ? circles.filter((c) => c.name?.toLowerCase().includes(q)) : circles,
+    pinnedCircles
+  );
+  const filteredGroups = sortByPins(
+    q ? groups.filter((g) => g.name?.toLowerCase().includes(q)) : groups,
+    pinnedGroups
+  );
   const noMatches =
     q && filteredCircles.length === 0 && filteredGroups.length === 0;
 
@@ -315,6 +351,8 @@ export function FeedViewSelector({ value, onChange, subject }) {
                       summary={c.summary}
                       selected={value === c.id}
                       onPress={() => select(c.id)}
+                      pinned={pinnedCircles.includes(c.id)}
+                      onTogglePin={() => handleTogglePin("circle", c.id)}
                       icon={
                         <HexAvatar uri={resolveImageUrl(c.icon, baseUrl)} size={22} />
                       }
@@ -342,6 +380,8 @@ export function FeedViewSelector({ value, onChange, subject }) {
                       label={g.name}
                       selected={value === g.id}
                       onPress={() => select(g.id)}
+                      pinned={pinnedGroups.includes(g.id)}
+                      onTogglePin={() => handleTogglePin("group", g.id)}
                       icon={
                         <HexAvatar uri={resolveImageUrl(g.icon, baseUrl)} size={22} />
                       }
@@ -377,32 +417,51 @@ export function FeedViewSelector({ value, onChange, subject }) {
   );
 }
 
-function Row({ label, summary, selected, onPress, icon }) {
+function Row({ label, summary, selected, onPress, icon, pinned, onTogglePin }) {
   return (
-    <Pressable
-      onPress={onPress}
-      android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-      className={`flex-row items-center px-4 py-3 ${selected ? "bg-secondary" : ""}`}
-    >
-      {icon ? <View className="mr-3">{icon}</View> : null}
-      <View className="flex-1 min-w-0">
-        <Text
-          className={`font-ui uppercase tracking-[0.14em] text-xs ${
-            selected ? "text-secondary-content" : "text-base-content"
-          }`}
-        >
-          {label}
-        </Text>
-        {summary ? (
+    <View className={`flex-row items-center ${selected ? "bg-secondary" : ""}`}>
+      <Pressable
+        onPress={onPress}
+        android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+        className="flex-row items-center flex-1 min-w-0 px-4 py-3"
+      >
+        {icon ? <View className="mr-3">{icon}</View> : null}
+        <View className="flex-1 min-w-0">
           <Text
-            className={`font-ui text-xs mt-0.5 ${
-              selected ? "text-secondary-content/70" : "text-base-content/45"
+            className={`font-ui uppercase tracking-[0.14em] text-xs ${
+              selected ? "text-secondary-content" : "text-base-content"
             }`}
           >
-            {summary}
+            {label}
           </Text>
-        ) : null}
-      </View>
-    </Pressable>
+          {summary ? (
+            <Text
+              className={`font-ui text-xs mt-0.5 ${
+                selected ? "text-secondary-content/70" : "text-base-content/45"
+              }`}
+              numberOfLines={1}
+            >
+              {summary}
+            </Text>
+          ) : null}
+        </View>
+      </Pressable>
+      {onTogglePin ? (
+        <Pressable
+          onPress={onTogglePin}
+          hitSlop={8}
+          android_ripple={{ color: "rgba(0,0,0,0.08)", borderless: true }}
+          className="px-4 py-3"
+          accessibilityLabel={pinned ? "Unpin" : "Pin to top"}
+        >
+          <Pin
+            size={15}
+            color={pinned ? "#5588B1" : "rgba(26,26,32,0.28)"}
+            fill={pinned ? "#5588B1" : "none"}
+            strokeWidth={1.75}
+          />
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
