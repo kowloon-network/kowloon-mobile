@@ -10,10 +10,15 @@
 // never statically import it: in Expo Go this is a pure no-op and the 60s
 // foreground poll still delivers notifications. In a real dev/prod build we
 // dynamically import expo-notifications (and push.js, which also imports it).
+//
+// Tap routing waits for the navigator. This provider WRAPS the <Stack>, so on a
+// cold-start tap the deep-link fired before the navigator mounted, router.push
+// threw, and the app just opened on the default screen. We hold the target
+// route until the root navigation state has a key, then navigate.
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
-import { router } from "expo-router";
+import { router, useRootNavigationState } from "expo-router";
 import Constants from "expo-constants";
 
 import { selectActiveAccount } from "../state/accountsSlice.js";
@@ -26,20 +31,46 @@ const IS_EXPO_GO =
   Constants.executionEnvironment === "storeClient" ||
   Constants.appOwnership === "expo";
 
-function routeFromResponse(response) {
-  const data = response?.notification?.request?.content?.data;
-  if (!data) return;
-  const path = notificationRoute(data) || "/notifications";
-  try {
-    router.push(path);
-  } catch {
-    // navigation not ready yet (cold start) — non-fatal
-  }
-}
-
 export function PushProvider({ children }) {
   const account = useSelector(selectActiveAccount);
   const client = useActiveClient();
+  const navState = useRootNavigationState();
+  const navReady = !!navState?.key;
+
+  // Latest nav readiness + a route waiting on the navigator, behind refs so the
+  // (once-registered) notification listener always sees current values.
+  const navReadyRef = useRef(navReady);
+  navReadyRef.current = navReady;
+  const pendingRouteRef = useRef(null);
+
+  // Navigate, deferring a tick so a just-foregrounded app finishes its commit.
+  const navigate = (path) => {
+    if (!path) return;
+    setTimeout(() => {
+      try {
+        router.push(path);
+      } catch {
+        /* navigator vanished — non-fatal */
+      }
+    }, 0);
+  };
+
+  const handleResponse = (response) => {
+    const data = response?.notification?.request?.content?.data;
+    if (!data) return;
+    const path = notificationRoute(data) || "/notifications";
+    if (navReadyRef.current) navigate(path);
+    else pendingRouteRef.current = path; // flush once the navigator is ready
+  };
+
+  // Flush a held cold-start route the moment the navigator mounts.
+  useEffect(() => {
+    if (navReady && pendingRouteRef.current) {
+      const path = pendingRouteRef.current;
+      pendingRouteRef.current = null;
+      navigate(path);
+    }
+  }, [navReady]);
 
   // Tap routing: warm taps via the listener, cold-start taps via the last response.
   useEffect(() => {
@@ -57,10 +88,10 @@ export function PushProvider({ children }) {
           shouldShowList: true,
         }),
       });
-      sub = Notifications.addNotificationResponseReceivedListener(routeFromResponse);
+      sub = Notifications.addNotificationResponseReceivedListener(handleResponse);
       Notifications.getLastNotificationResponseAsync()
         .then((resp) => {
-          if (resp) routeFromResponse(resp);
+          if (resp) handleResponse(resp);
         })
         .catch(() => {});
     })();
@@ -68,6 +99,7 @@ export function PushProvider({ children }) {
       cancelled = true;
       sub?.remove();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Register the active account's device token with its server.
