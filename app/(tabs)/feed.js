@@ -24,6 +24,7 @@ import { FeedHeader } from "../../src/components/posts/FeedHeader.jsx";
 import { UserMenu } from "../../src/components/UserMenu.jsx";
 import { LeftDrawer } from "../../src/components/drawer/LeftDrawer.jsx";
 import { ComposeFab } from "../../src/components/nav/ComposeFab.jsx";
+import { FeedDiscoverRow } from "../../src/components/discover/FeedDiscoverRow.jsx";
 import { Globe, Search } from "lucide-react-native";
 import { useFeed } from "../../src/lib/useFeed.js";
 import { consumeFeedRefresh } from "../../src/lib/feedRefreshSignal.js";
@@ -335,6 +336,9 @@ export default function Feed() {
           <PostCard post={item} onDeleted={() => removePost(item.id)} />
         )}
         ItemSeparatorComponent={() => <View className="h-3" />}
+        ListHeaderComponent={
+          viewKey === "all" && activeTypes.length === 0 ? <FeedDiscoverRow /> : null
+        }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={refresh} />
         }
