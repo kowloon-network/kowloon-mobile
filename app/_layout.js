@@ -26,6 +26,8 @@ import { PushProvider } from "../src/lib/PushProvider.jsx";
 import { ShareIntentRouter } from "../src/components/ShareIntentRouter.jsx";
 import { ImageViewerProvider } from "../src/components/ImageViewerProvider.jsx";
 import { AudioPlayerProvider } from "../src/lib/AudioPlayerProvider.jsx";
+import { ThemeProvider } from "../src/lib/ThemeContext.jsx";
+import { useColorScheme } from "nativewind";
 
 // Hold the native splash screen until fonts are ready — no flash of fallback
 // text. preventAutoHideAsync can reject during fast-refresh; ignore that.
@@ -41,6 +43,8 @@ function HydrationBoot() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(FONT_ASSETS);
+  const { colorScheme: scheme } = useColorScheme();
+  const isDark = scheme === "dark";
 
   useEffect(() => {
     // Hide the splash once fonts resolve. On a font *error* we still proceed —
@@ -55,32 +59,36 @@ export default function RootLayout() {
   }
 
   return (
-    <ShareIntentProvider options={{ resetOnBackground: false }}>
-      <Provider store={store}>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <SafeAreaProvider>
-            <TypographyProvider>
-              <UnreadCountProvider>
-                <ImageViewerProvider>
-                  <PushProvider>
-                    <AudioPlayerProvider>
-                      <StatusBar style="auto" />
-                      <HydrationBoot />
-                      <ShareIntentRouter />
-                      <Stack
-                        screenOptions={{
-                          headerShown: false,
-                          contentStyle: { backgroundColor: "#FFFFFF" },
-                        }}
-                      />
-                    </AudioPlayerProvider>
-                  </PushProvider>
-                </ImageViewerProvider>
-              </UnreadCountProvider>
-            </TypographyProvider>
-          </SafeAreaProvider>
-        </GestureHandlerRootView>
-      </Provider>
-    </ShareIntentProvider>
+    <ThemeProvider>
+      <ShareIntentProvider options={{ resetOnBackground: false }}>
+        <Provider store={store}>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <SafeAreaProvider>
+              <TypographyProvider>
+                <UnreadCountProvider>
+                  <ImageViewerProvider>
+                    <PushProvider>
+                      <AudioPlayerProvider>
+                        <StatusBar style={isDark ? "light" : "dark"} />
+                        <HydrationBoot />
+                        <ShareIntentRouter />
+                        <Stack
+                          screenOptions={{
+                            headerShown: false,
+                            contentStyle: {
+                              backgroundColor: isDark ? "#15161A" : "#FFFFFF",
+                            },
+                          }}
+                        />
+                      </AudioPlayerProvider>
+                    </PushProvider>
+                  </ImageViewerProvider>
+                </UnreadCountProvider>
+              </TypographyProvider>
+            </SafeAreaProvider>
+          </GestureHandlerRootView>
+        </Provider>
+      </ShareIntentProvider>
+    </ThemeProvider>
   );
 }

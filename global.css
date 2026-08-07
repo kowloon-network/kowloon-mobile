@@ -1,3 +1,27 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Theme tokens (#33). Surface + text + field colors are variables so the whole
+   app swaps light/dark from one place. Values are space-separated RGB triplets
+   so Tailwind's `<alpha-value>` opacity modifiers (e.g. text-base-content/45)
+   keep working. Brand accents (primary, header, post types) live in
+   tailwind.config.js and stay constant across modes. */
+@layer base {
+  :root {
+    --color-base-100: 255 255 255; /* app background (white) */
+    --color-base-200: 244 244 244; /* card / sheet surface */
+    --color-base-300: 231 231 231; /* hairline / placeholder */
+    --color-base-content: 26 26 32; /* primary text */
+    --color-field: 252 251 247; /* input surface */
+  }
+
+  /* First-draft editorial dark palette — warm near-black ink, not pure black. */
+  .dark:root {
+    --color-base-100: 21 22 26; /* #15161A */
+    --color-base-200: 30 32 39; /* #1E2027 raised surface */
+    --color-base-300: 46 49 58; /* #2E313A hairline / placeholder */
+    --color-base-content: 233 233 236; /* #E9E9EC near-white text */
+    --color-field: 30 32 39; /* #1E2027 input surface */
+  }
+}

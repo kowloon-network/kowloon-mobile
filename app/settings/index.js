@@ -11,6 +11,8 @@ import { Avatar } from "../../src/components/posts/Avatar.jsx";
 import { Button } from "../../src/components/ui/Button.jsx";
 import { Eyebrow, Heading } from "../../src/components/ui/Heading.jsx";
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
+import { SegmentedControl } from "../../src/components/ui/SegmentedControl.jsx";
+import { useTheme } from "../../src/lib/ThemeContext.jsx";
 import {
   selectAccounts,
   selectActiveId,
@@ -110,6 +112,7 @@ function AccountRow({ account, isActive, onSwitch, onSignOut }) {
 export default function Settings() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const { pref: themePref, setPref: setThemePref } = useTheme();
   const activeId = useSelector(selectActiveId);
   const accounts = useSelector(selectAccounts);
 
@@ -175,6 +178,23 @@ export default function Settings() {
             hint="Reading font, size, spacing, margins"
             onPress={() => router.push("/settings/typography")}
           />
+        </View>
+
+        {/* ── Appearance (app-level, per device) ── */}
+        <View className="px-6 mt-2">
+          <SectionLabel>Appearance</SectionLabel>
+          <View className="bg-base-100 px-4 py-4 mb-3">
+            <Text className="font-ui text-base text-base-content mb-3">Theme</Text>
+            <SegmentedControl
+              options={[
+                { value: "light", label: "Light" },
+                { value: "dark", label: "Dark" },
+                { value: "system", label: "Auto" },
+              ]}
+              value={themePref}
+              onChange={setThemePref}
+            />
+          </View>
         </View>
 
         <View className="px-6 mt-4">

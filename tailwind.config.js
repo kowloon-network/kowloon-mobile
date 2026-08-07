@@ -6,16 +6,19 @@ module.exports = {
     "./components/**/*.{js,jsx}",
   ],
   presets: [require("nativewind/preset")],
+  darkMode: "class", // toggled via colorScheme.set() from the theme pref (#33)
   theme: {
     extend: {
       colors: {
         // Editorial palette — mirrors frontend's kowloon theme.
-        // Hex approximations of the OKLCH source values in frontend/src/index.css
+        // Surface + text + field tokens are variable-driven (see global.css) so
+        // they swap for light/dark automatically. Brand accents below stay
+        // constant across modes.
         base: {
-          100: "#FFFFFF", // white app background (was warm paper; experiment 2026-07)
-          200: "#F4F4F4", // neutral light surface (cards / sheets)
-          300: "#E7E7E7", // neutral hairline / placeholder fill
-          content: "#1A1A20",
+          100: "rgb(var(--color-base-100) / <alpha-value>)", // app background
+          200: "rgb(var(--color-base-200) / <alpha-value>)", // card / sheet surface
+          300: "rgb(var(--color-base-300) / <alpha-value>)", // hairline / placeholder
+          content: "rgb(var(--color-base-content) / <alpha-value>)",
         },
         primary: {
           DEFAULT: "#5588B1", // desaturated steel blue
@@ -58,8 +61,8 @@ module.exports = {
           DEFAULT: "#002FA7",
           content: "#FFFFFF",
         },
-        // Near-white surface for text inputs / editors
-        field: "#FCFBF7",
+        // Text input / editor surface (variable-driven; see global.css)
+        field: "rgb(var(--color-field) / <alpha-value>)",
       },
       fontFamily: {
         // Static chrome fonts — bundled via expo-font (see src/lib/typography.js).
