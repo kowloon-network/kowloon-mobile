@@ -78,6 +78,11 @@ export default function CircleDetail() {
 
   const ownerId = circle?.actorId || circle?.actor?.id;
   const isOwner = !!account?.id && ownerId === account.id;
+  // System-managed circles (Blocked/Muted/Groups) shouldn't get the friendly
+  // "find people to add" nudge — it makes no sense on a block list.
+  const isSystemManaged =
+    circle?.type === "System" &&
+    ["Blocked", "Muted", "Groups"].includes(circle?.name);
   const owner = circle?.actor || (ownerId ? { id: ownerId } : null);
   const members = Array.isArray(circle?.members)
     ? circle.members.map(memberView)
@@ -406,11 +411,40 @@ export default function CircleDetail() {
               </Text>
 
               {members.length === 0 ? (
-                <Text className="font-ui text-sm text-base-content/55 leading-6">
-                  {isOwner
-                    ? "No members yet. Edit the circle to add people."
-                    : "This circle's members are private to its owner."}
-                </Text>
+                isOwner && !isSystemManaged ? (
+                  <View>
+                    <Text className="font-ui text-sm text-base-content/80 leading-6 mb-3">
+                      Add people or communities to your Circles to follow them.
+                    </Text>
+                    <Text className="font-ui text-sm text-base-content/70 leading-6">
+                      Looking for people and communities to add? Start with your{" "}
+                      <Text
+                        className="text-primary font-bold"
+                        onPress={() => router.push("/(tabs)/feed?view=all")}
+                      >
+                        Community Posts
+                      </Text>{" "}
+                      or{" "}
+                      <Text
+                        className="text-primary font-bold"
+                        onPress={() => router.push("/discover")}
+                      >
+                        Discover
+                      </Text>{" "}
+                      new and cool stuff!
+                    </Text>
+                    <Text className="font-ui text-xs text-base-content/50 leading-5 mt-3">
+                      Tip: You can add any Kowloon user or even a community to any
+                      of your Circles.
+                    </Text>
+                  </View>
+                ) : (
+                  <Text className="font-ui text-sm text-base-content/55 leading-6">
+                    {isOwner
+                      ? "No members yet."
+                      : "This circle's members are private to its owner."}
+                  </Text>
+                )
               ) : (
                 members.map((m) => (
                   <View
