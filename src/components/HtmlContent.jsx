@@ -10,6 +10,7 @@
 
 import { useMemo } from "react";
 import { Linking, useWindowDimensions } from "react-native";
+import { useColorScheme } from "nativewind";
 import { router } from "expo-router";
 import RenderHtml from "react-native-render-html";
 
@@ -25,11 +26,21 @@ function handleLinkPress(_event, href) {
 
 const RENDERERS_PROPS = { a: { onPress: handleLinkPress } };
 
-const INK = "#1A1A20";
-const MUTED = "rgba(26,26,32,0.62)";
-const PRIMARY = "#5588B1";
-const RULE = "#DDD0B5";
-const CODE_BG = "#EFE6D4";
+const PRIMARY = "#5588B1"; // link / blockquote accent — legible on both themes
+// Reading colors swap with the color scheme (#33) so body text stays legible in
+// dark mode. ink = body text, muted = blockquote, rule = hr, codeBg = code/pre.
+const LIGHT = {
+  ink: "#1A1A20",
+  muted: "rgba(26,26,32,0.62)",
+  rule: "#DDD0B5",
+  codeBg: "#EFE6D4",
+};
+const DARK = {
+  ink: "#E9E9EC",
+  muted: "rgba(233,233,236,0.62)",
+  rule: "rgba(233,233,236,0.18)",
+  codeBg: "#2E313A",
+};
 
 const DEFAULT_FONTS = {
   regular: fontName("inter", "regular"),
@@ -37,9 +48,9 @@ const DEFAULT_FONTS = {
   italic: fontName("inter", "italic"),
 };
 
-function buildTagStyles(fonts, fontSize, lineHeight) {
+function buildTagStyles(fonts, fontSize, lineHeight, c) {
   return {
-    body: { color: INK },
+    body: { color: c.ink },
     // lineHeight must live on the tag styles — react-native-render-html doesn't
     // reliably cascade baseStyle.lineHeight into paragraph text, so the reading
     // line-spacing preference was being ignored (lines rendered tight).
@@ -75,7 +86,7 @@ function buildTagStyles(fonts, fontSize, lineHeight) {
       paddingLeft: 14,
       marginLeft: 0,
       marginVertical: fontSize * 0.5,
-      color: MUTED,
+      color: c.muted,
       fontFamily: fonts.italic,
     },
     ul: { marginTop: 0, marginBottom: fontSize * 1.2 },
@@ -83,18 +94,18 @@ function buildTagStyles(fonts, fontSize, lineHeight) {
     li: { marginBottom: fontSize * 0.2, lineHeight },
     code: {
       fontFamily: "monospace",
-      backgroundColor: CODE_BG,
+      backgroundColor: c.codeBg,
       fontSize: Math.round(fontSize * 0.9),
     },
     pre: {
       fontFamily: "monospace",
-      backgroundColor: CODE_BG,
+      backgroundColor: c.codeBg,
       padding: 12,
       marginVertical: fontSize * 0.5,
       fontSize: Math.round(fontSize * 0.9),
     },
     hr: {
-      backgroundColor: RULE,
+      backgroundColor: c.rule,
       height: 2,
       marginVertical: fontSize * 0.8,
     },
@@ -106,10 +117,13 @@ export function HtmlContent({
   fonts = DEFAULT_FONTS,
   fontSize = 15,
   lineHeight,
-  color = INK,
+  color,
   selectable = false,
 }) {
   const { width } = useWindowDimensions();
+  const { colorScheme } = useColorScheme();
+  const c = colorScheme === "dark" ? DARK : LIGHT;
+  const textColor = color ?? c.ink;
 
   const effectiveLineHeight = lineHeight || Math.round(fontSize * 1.75);
 
@@ -118,14 +132,14 @@ export function HtmlContent({
       fontFamily: fonts.regular,
       fontSize,
       lineHeight: effectiveLineHeight,
-      color,
+      color: textColor,
     }),
-    [fonts.regular, fontSize, effectiveLineHeight, color]
+    [fonts.regular, fontSize, effectiveLineHeight, textColor]
   );
 
   const tagsStyles = useMemo(
-    () => buildTagStyles(fonts, fontSize, effectiveLineHeight),
-    [fonts, fontSize, effectiveLineHeight]
+    () => buildTagStyles(fonts, fontSize, effectiveLineHeight, c),
+    [fonts, fontSize, effectiveLineHeight, c]
   );
 
   const systemFonts = useMemo(
