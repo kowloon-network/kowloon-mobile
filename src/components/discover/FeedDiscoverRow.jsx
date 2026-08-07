@@ -177,7 +177,7 @@ function SquareCard({ item, baseUrl, router }) {
   }
 }
 
-export function FeedDiscoverRow() {
+export function FeedDiscoverRow({ refreshKey = 0 }) {
   const client = useActiveClient();
   const baseUrl = client?.http?.baseUrl;
   const router = useRouter();
@@ -211,7 +211,7 @@ export function FeedDiscoverRow() {
     return () => {
       cancelled = true;
     };
-  }, [client]);
+  }, [client, refreshKey]);
 
   if (items.length === 0) return null;
 

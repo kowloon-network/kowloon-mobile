@@ -53,6 +53,7 @@ export default function Feed() {
   const params = useLocalSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [discoverTick, setDiscoverTick] = useState(0);
   const [serverIcon, setServerIcon] = useState(null);
   // Override the persisted view once when arriving via /feed?view=<key>
   // (e.g. tapping "View posts" on a circle or group detail screen).
@@ -337,10 +338,18 @@ export default function Feed() {
         )}
         ItemSeparatorComponent={() => <View className="h-3" />}
         ListHeaderComponent={
-          viewKey === "all" && activeTypes.length === 0 ? <FeedDiscoverRow /> : null
+          viewKey === "all" && activeTypes.length === 0 ? (
+            <FeedDiscoverRow refreshKey={discoverTick} />
+          ) : null
         }
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={refresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setDiscoverTick((t) => t + 1);
+              refresh();
+            }}
+          />
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.6}
