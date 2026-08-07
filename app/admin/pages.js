@@ -17,6 +17,7 @@ import { ChevronRight, FileText, Folder } from "lucide-react-native";
 
 import { AppHeader, HeaderButton } from "../../src/components/nav/AppHeader.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
+import { useInk } from "../../src/lib/useInk.js";
 
 const TABS = [
   { key: "active", label: "Active" },
@@ -26,6 +27,7 @@ const TABS = [
 export default function AdminPages() {
   const router = useRouter();
   const client = useActiveClient();
+  const ink = useInk();
 
   const [tab, setTab] = useState("active");
   const [items, setItems] = useState([]);
@@ -153,9 +155,9 @@ export default function AdminPages() {
               >
                 <View className="mr-3">
                   {isFolder ? (
-                    <Folder size={18} color="rgba(26,26,32,0.6)" strokeWidth={1.75} />
+                    <Folder size={18} color={ink(0.6)} strokeWidth={1.75} />
                   ) : (
-                    <FileText size={18} color="rgba(26,26,32,0.6)" strokeWidth={1.75} />
+                    <FileText size={18} color={ink(0.6)} strokeWidth={1.75} />
                   )}
                 </View>
                 <View className="flex-1 min-w-0">
@@ -183,7 +185,7 @@ export default function AdminPages() {
                     )}
                   </Pressable>
                 ) : (
-                  <ChevronRight size={18} color="rgba(26,26,32,0.35)" strokeWidth={1.75} />
+                  <ChevronRight size={18} color={ink(0.35)} strokeWidth={1.75} />
                 )}
               </Pressable>
             );

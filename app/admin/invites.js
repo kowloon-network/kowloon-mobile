@@ -20,6 +20,7 @@ import { Copy, Share2, QrCode, X } from "lucide-react-native";
 
 import { AppHeader, HeaderButton } from "../../src/components/nav/AppHeader.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
+import { useInk } from "../../src/lib/useInk.js";
 
 // expo-clipboard needs a native module; guard so a stripped build won't crash.
 let Clipboard;
@@ -44,6 +45,7 @@ const inputCls =
   "bg-white border border-base-300 px-3 py-2.5 font-ui text-base text-base-content";
 
 function CreateModal({ visible, client, onClose, onCreated }) {
+  const ink = useInk();
   const [type, setType] = useState("open"); // open | individual
   const [email, setEmail] = useState("");
   const [maxRedemptions, setMaxRedemptions] = useState("");
@@ -130,7 +132,7 @@ function CreateModal({ visible, client, onClose, onCreated }) {
                   value={email}
                   onChangeText={setEmail}
                   placeholder="person@example.com"
-                  placeholderTextColor="rgba(26,26,32,0.35)"
+                  placeholderTextColor={ink(0.35)}
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="email-address"
@@ -143,7 +145,7 @@ function CreateModal({ visible, client, onClose, onCreated }) {
                   value={maxRedemptions}
                   onChangeText={setMaxRedemptions}
                   placeholder="Unlimited"
-                  placeholderTextColor="rgba(26,26,32,0.35)"
+                  placeholderTextColor={ink(0.35)}
                   keyboardType="number-pad"
                   className={inputCls}
                 />
@@ -155,7 +157,7 @@ function CreateModal({ visible, client, onClose, onCreated }) {
                 value={note}
                 onChangeText={setNote}
                 placeholder="Who or what this invite is for"
-                placeholderTextColor="rgba(26,26,32,0.35)"
+                placeholderTextColor={ink(0.35)}
                 className={inputCls}
               />
             </Field>
@@ -191,6 +193,7 @@ function CreateModal({ visible, client, onClose, onCreated }) {
 }
 
 function InviteCard({ invite, onDeactivate }) {
+  const ink = useInk();
   const [showQr, setShowQr] = useState(false);
   const url = invite.url || invite.code;
   const active = invite.active !== false && !invite.usedAt;
@@ -247,16 +250,16 @@ function InviteCard({ invite, onDeactivate }) {
 
       <View className="flex-row items-center mt-3" style={{ gap: 8 }}>
         <Pressable onPress={copy} className="flex-row items-center bg-base-200 px-3 py-2" android_ripple={{ color: "rgba(0,0,0,0.08)" }}>
-          <Copy size={12} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />
+          <Copy size={12} color={ink(0.7)} strokeWidth={1.75} />
           <Text className="font-ui uppercase tracking-[0.12em] text-[10px] text-base-content ml-1.5">Copy</Text>
         </Pressable>
         <Pressable onPress={share} className="flex-row items-center bg-base-200 px-3 py-2" android_ripple={{ color: "rgba(0,0,0,0.08)" }}>
-          <Share2 size={12} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />
+          <Share2 size={12} color={ink(0.7)} strokeWidth={1.75} />
           <Text className="font-ui uppercase tracking-[0.12em] text-[10px] text-base-content ml-1.5">Share</Text>
         </Pressable>
         {invite.qrCode ? (
           <Pressable onPress={() => setShowQr((v) => !v)} className="flex-row items-center bg-base-200 px-3 py-2" android_ripple={{ color: "rgba(0,0,0,0.08)" }}>
-            <QrCode size={12} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />
+            <QrCode size={12} color={ink(0.7)} strokeWidth={1.75} />
             <Text className="font-ui uppercase tracking-[0.12em] text-[10px] text-base-content ml-1.5">
               {showQr ? "Hide QR" : "QR"}
             </Text>

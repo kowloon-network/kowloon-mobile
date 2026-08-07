@@ -27,6 +27,7 @@ import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { Button } from "../../src/components/ui/Button.jsx";
 import { LocationField } from "../../src/components/posts/LocationField.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
+import { useInk } from "../../src/lib/useInk.js";
 import {
   selectActiveAccount,
   updateAccountAndPersist,
@@ -53,6 +54,7 @@ export default function ProfileSettings() {
   const dispatch = useDispatch();
   const client = useActiveClient();
   const account = useSelector(selectActiveAccount);
+  const ink = useInk();
 
   const profile = account?.profile || {};
 
@@ -294,7 +296,7 @@ export default function ProfileSettings() {
                 value={displayName}
                 onChangeText={setDisplayName}
                 placeholder="Your name"
-                placeholderTextColor="rgba(26,26,32,0.35)"
+                placeholderTextColor={ink(0.35)}
                 autoCorrect={false}
               />
             </Field>
@@ -306,7 +308,7 @@ export default function ProfileSettings() {
                 value={bio}
                 onChangeText={setBio}
                 placeholder="A little about yourself…"
-                placeholderTextColor="rgba(26,26,32,0.35)"
+                placeholderTextColor={ink(0.35)}
                 multiline
                 numberOfLines={3}
                 style={{ minHeight: 80, textAlignVertical: "top" }}
@@ -320,7 +322,7 @@ export default function ProfileSettings() {
                 value={pronouns}
                 onChangeText={setPronouns}
                 placeholder="e.g. they/them"
-                placeholderTextColor="rgba(26,26,32,0.35)"
+                placeholderTextColor={ink(0.35)}
                 autoCorrect={false}
               />
             </Field>
@@ -358,7 +360,7 @@ export default function ProfileSettings() {
                     onChangeText={setUrlInput}
                     onSubmitEditing={addUrl}
                     placeholder="https://example.com"
-                    placeholderTextColor="rgba(26,26,32,0.35)"
+                    placeholderTextColor={ink(0.35)}
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="url"

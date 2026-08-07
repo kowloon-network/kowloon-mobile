@@ -23,6 +23,7 @@ import { FolderPlus, X } from "lucide-react-native";
 import { AudienceSelector } from "../posts/AudienceSelector.jsx";
 import { useKeyboardInset } from "../../lib/useKeyboardInset.js";
 import { resolveImageUrl } from "../../lib/resolveImageUrl.js";
+import { useInk } from "../../lib/useInk.js";
 
 function FieldLabel({ children }) {
   return (
@@ -42,6 +43,7 @@ export function BookmarkComposer({
 }) {
   const baseUrl = client?.http?.baseUrl;
   const { keyboardInset } = useKeyboardInset();
+  const ink = useInk();
 
   const [href, setHref] = useState("");
   const [title, setTitle] = useState("");
@@ -258,7 +260,7 @@ export function BookmarkComposer({
                 onBlur={fetchPreview}
                 editable={!hrefLocked}
                 placeholder="https://…"
-                placeholderTextColor="rgba(26,26,32,0.35)"
+                placeholderTextColor={ink(0.35)}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
@@ -297,7 +299,7 @@ export function BookmarkComposer({
                 placeholder={
                   fetchingPreview ? "Fetching…" : "Bookmark title"
                 }
-                placeholderTextColor="rgba(26,26,32,0.35)"
+                placeholderTextColor={ink(0.35)}
                 className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
               />
             </View>
@@ -310,7 +312,7 @@ export function BookmarkComposer({
                 onChangeText={setNotes}
                 multiline
                 placeholder="Why are you saving this?"
-                placeholderTextColor="rgba(26,26,32,0.35)"
+                placeholderTextColor={ink(0.35)}
                 className="  bg-white px-3 py-2.5 font-ui text-base text-base-content min-h-20"
               />
             </View>
@@ -322,7 +324,7 @@ export function BookmarkComposer({
                 value={tags}
                 onChangeText={setTags}
                 placeholder="reading, design, reference"
-                placeholderTextColor="rgba(26,26,32,0.35)"
+                placeholderTextColor={ink(0.35)}
                 autoCapitalize="none"
                 className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
               />
@@ -357,7 +359,7 @@ export function BookmarkComposer({
                 >
                   <FolderPlus
                     size={13}
-                    color="rgba(26,26,32,0.55)"
+                    color={ink(0.55)}
                     strokeWidth={1.75}
                   />
                   <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content/55 ml-1.5">
@@ -372,7 +374,7 @@ export function BookmarkComposer({
                     value={newFolderName}
                     onChangeText={setNewFolderName}
                     placeholder="New folder name"
-                    placeholderTextColor="rgba(26,26,32,0.35)"
+                    placeholderTextColor={ink(0.35)}
                     autoFocus
                     className="flex-1   bg-white px-3 py-2 font-ui text-sm text-base-content mr-2"
                   />
@@ -442,6 +444,7 @@ export function BookmarkComposer({
 }
 
 function FolderChip({ label, selected, onPress }) {
+  const ink = useInk();
   return (
     <Pressable
       onPress={onPress}
@@ -455,7 +458,7 @@ function FolderChip({ label, selected, onPress }) {
       >
         <Text
           className="font-ui uppercase tracking-[0.14em] text-[11px]"
-          style={{ color: selected ? "#F4F5F7" : "rgba(26,26,32,0.7)" }}
+          style={{ color: selected ? "#F4F5F7" : ink(0.7) }}
           numberOfLines={1}
         >
           {label}

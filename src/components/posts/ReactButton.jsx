@@ -20,6 +20,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Smile } from "lucide-react-native";
 
+import { useInk } from "../../lib/useInk.js";
+
 const PICKER_CELL = 44;
 
 const DEFAULT_EMOJIS = [
@@ -53,6 +55,7 @@ async function getEmojis(client) {
 }
 
 export function ReactButton({ client, post, onReacted, size = "md" }) {
+  const ink = useInk();
   const [open, setOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [emojis, setEmojis] = useState(cachedEmojis ?? DEFAULT_EMOJIS);
@@ -147,7 +150,7 @@ export function ReactButton({ client, post, onReacted, size = "md" }) {
               {myReact}
             </Text>
           ) : (
-            <Smile size={iconSize} color="rgba(26,26,32,0.55)" strokeWidth={1.75} />
+            <Smile size={iconSize} color={ink(0.55)} strokeWidth={1.75} />
           )}
           {/* Count lives in the react-summary row (feed) / ReactsBar (detail),
               not on the button (#79). The button just shows the react icon. */}

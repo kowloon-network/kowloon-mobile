@@ -57,6 +57,7 @@ import { parseKowloonUrl } from "../src/lib/parseKowloonUrl.js";
 import { pmToMarkdown } from "../src/lib/pmToMarkdown.js";
 import { uploadFile } from "../src/lib/uploadFile.js";
 import { COMPOSABLE_TYPES, POST_TYPES } from "../src/lib/postTypes.js";
+import { useInk } from "../src/lib/useInk.js";
 
 // Bytes for a picked asset — ImagePicker gives fileSize, DocumentPicker gives
 // size; fall back to a filesystem stat when neither is present.
@@ -144,6 +145,7 @@ async function makeVideoThumb(uri) {
 export default function Compose() {
   const router = useRouter();
   const client = useActiveClient();
+  const ink = useInk();
   // Repost / share-as-Link prefill: the action bar's Repost button navigates
   // here with `?type=Link&href=...&title=...&featuredImage=...` so the user
   // can edit before posting.
@@ -777,7 +779,7 @@ export default function Compose() {
                   value={linkHref}
                   onChangeText={setLinkHref}
                   placeholder="https://example.com/article"
-                  placeholderTextColor="rgba(26,26,32,0.35)"
+                  placeholderTextColor={ink(0.35)}
                   autoCapitalize="none"
                   autoCorrect={false}
                   autoFocus
@@ -852,7 +854,7 @@ export default function Compose() {
                       ? "Optional title for this link"
                       : "Optional title"
                   }
-                  placeholderTextColor="rgba(26,26,32,0.35)"
+                  placeholderTextColor={ink(0.35)}
                   autoFocus={type !== "Link"}
                   className="  bg-white px-3 py-3 font-ui text-lg text-base-content"
                 />
@@ -1184,7 +1186,7 @@ export default function Compose() {
                       value={attachments[editingIndex].title}
                       onChangeText={(v) => updateAttachment(editingIndex, { title: v })}
                       placeholder="Optional title"
-                      placeholderTextColor="rgba(26,26,32,0.35)"
+                      placeholderTextColor={ink(0.35)}
                       className="bg-white border border-base-300 px-3 py-2.5 font-ui text-base text-base-content mb-4"
                     />
                     <Text className="font-ui uppercase tracking-[0.16em] text-[11px] text-base-content/55 mb-1.5">
@@ -1194,7 +1196,7 @@ export default function Compose() {
                       value={attachments[editingIndex].alt}
                       onChangeText={(v) => updateAttachment(editingIndex, { alt: v })}
                       placeholder="Describe this for screen readers"
-                      placeholderTextColor="rgba(26,26,32,0.35)"
+                      placeholderTextColor={ink(0.35)}
                       multiline
                       style={{ minHeight: 64 }}
                       className="bg-white border border-base-300 px-3 py-2.5 font-ui text-base text-base-content"

@@ -28,13 +28,12 @@ try {
   Clipboard = { setStringAsync: async () => {} };
 }
 import { FlagSheet } from "./FlagSheet.jsx";
+import { useInk } from "../../lib/useInk.js";
 
 const DROPDOWN_WIDTH = 210;
 const ICON_SIZE = 15;
 const STROKE = 1.75;
-const COLOR_DEFAULT = "rgba(26,26,32,0.85)";
 const COLOR_DANGER = "#CC272E";
-const COLOR_TRIGGER = "rgba(26,26,32,0.45)";
 
 function postUrl(client, post) {
   if (post?.url) return post.url;
@@ -46,6 +45,7 @@ function postUrl(client, post) {
 
 export function PostMoreMenu({ post, client, currentUser, onDeleted }) {
   const router = useRouter();
+  const ink = useInk();
   const triggerRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [dropPos, setDropPos] = useState({ top: 0, left: 0 });
@@ -276,7 +276,7 @@ export function PostMoreMenu({ post, client, currentUser, onDeleted }) {
         android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: true }}
         accessibilityLabel="More options"
       >
-        <MoreHorizontal size={20} color={COLOR_TRIGGER} strokeWidth={STROKE} />
+        <MoreHorizontal size={20} color={ink(0.45)} strokeWidth={STROKE} />
       </Pressable>
 
       <Modal
@@ -309,7 +309,7 @@ export function PostMoreMenu({ post, client, currentUser, onDeleted }) {
                 >
                   <item.Icon
                     size={ICON_SIZE}
-                    color={item.danger ? COLOR_DANGER : COLOR_DEFAULT}
+                    color={item.danger ? COLOR_DANGER : ink(0.85)}
                     strokeWidth={STROKE}
                   />
                   <Text

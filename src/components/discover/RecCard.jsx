@@ -18,6 +18,7 @@ import { useActiveClient } from "../../lib/useActiveClient.js";
 import { resolveImageUrl } from "../../lib/resolveImageUrl.js";
 import { saveCircle } from "../../lib/saveCircle.js";
 import { selectActiveAccount } from "../../state/accountsSlice.js";
+import { useInk } from "../../lib/useInk.js";
 
 const CARD_W = 244;
 const POST_W = 288;
@@ -46,6 +47,7 @@ function MiniButton({ label, onPress, filled, disabled, icon }) {
 
 const POST_H = 200; // uniform post-card height across the row
 function PostCard({ item, baseUrl, onPress }) {
+  const ink = useInk();
   const img = resolveImageUrl(item.featuredImage, baseUrl);
   const author = item.actor || {};
   const title = item.title || null;
@@ -86,7 +88,7 @@ function PostCard({ item, baseUrl, onPress }) {
       className="bg-base-200 p-3 mr-3"
     >
       <View className="flex-row items-center mb-2">
-        <Newspaper size={12} color="rgba(26,26,32,0.5)" strokeWidth={1.75} />
+        <Newspaper size={12} color={ink(0.5)} strokeWidth={1.75} />
         <Text className="font-ui uppercase tracking-[0.16em] text-[9px] text-base-content/45 ml-1.5">
           {item.type || "Post"}
         </Text>
@@ -179,6 +181,7 @@ function CircleCard({ item, baseUrl, onView }) {
 }
 
 function GroupCard({ item, baseUrl, onView, onPosts }) {
+  const ink = useInk();
   return (
     <View
       style={{ width: CARD_W }}
@@ -204,7 +207,7 @@ function GroupCard({ item, baseUrl, onView, onPosts }) {
       ) : null}
       <View className="flex-row mt-3" style={{ gap: 8 }}>
         <MiniButton label="View" onPress={onView} />
-        <MiniButton label="Posts" onPress={onPosts} icon={<Users size={11} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />} />
+        <MiniButton label="Posts" onPress={onPosts} icon={<Users size={11} color={ink(0.7)} strokeWidth={1.75} />} />
       </View>
     </View>
   );
@@ -248,6 +251,7 @@ function LinkCard({ item, baseUrl, icon, onPress }) {
 const MEDIA_W = 150;
 export function MediaCard({ item, baseUrl }) {
   const router = useRouter();
+  const ink = useInk();
   const img = resolveImageUrl(item.mediaImage || item.featuredImage, baseUrl);
   const author = item.actor || {};
   const isVideo = /video/i.test(item.type || "") || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(item.mediaImage || "");
@@ -262,7 +266,7 @@ export function MediaCard({ item, baseUrl }) {
         <Image source={{ uri: img }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
       ) : (
         <View className="flex-1 items-center justify-center">
-          <Newspaper size={22} color="rgba(26,26,32,0.35)" strokeWidth={1.5} />
+          <Newspaper size={22} color={ink(0.35)} strokeWidth={1.5} />
         </View>
       )}
       {/* Video play badge — top corner, clear of the author row. */}
@@ -287,6 +291,7 @@ export function MediaCard({ item, baseUrl }) {
 }
 
 function ServerCard({ item, baseUrl, onPress }) {
+  const ink = useInk();
   const [iconFailed, setIconFailed] = useState(false);
   const icon = resolveImageUrl(item.icon, baseUrl);
   return (
@@ -325,7 +330,7 @@ function ServerCard({ item, baseUrl, onPress }) {
         </Text>
       ) : null}
       <View className="flex-row mt-3" style={{ gap: 8 }}>
-        <MiniButton label="Visit" onPress={onPress} icon={<Globe size={11} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />} />
+        <MiniButton label="Visit" onPress={onPress} icon={<Globe size={11} color={ink(0.7)} strokeWidth={1.75} />} />
       </View>
     </Pressable>
   );
@@ -333,6 +338,7 @@ function ServerCard({ item, baseUrl, onPress }) {
 
 export function RecCard({ item, baseUrl }) {
   const router = useRouter();
+  const ink = useInk();
   const enc = (id) => encodeURIComponent(id);
 
   switch (item.refType) {
@@ -366,7 +372,7 @@ export function RecCard({ item, baseUrl }) {
         <LinkCard
           item={item}
           baseUrl={baseUrl}
-          icon={<BookmarkIcon size={12} color="rgba(26,26,32,0.5)" strokeWidth={1.75} />}
+          icon={<BookmarkIcon size={12} color={ink(0.5)} strokeWidth={1.75} />}
           onPress={() => item.href && Linking.openURL(item.href).catch(() => {})}
         />
       );
@@ -375,7 +381,7 @@ export function RecCard({ item, baseUrl }) {
         <LinkCard
           item={item}
           baseUrl={baseUrl}
-          icon={<ExternalLink size={12} color="rgba(26,26,32,0.5)" strokeWidth={1.75} />}
+          icon={<ExternalLink size={12} color={ink(0.5)} strokeWidth={1.75} />}
           onPress={() => item.url && Linking.openURL(item.url).catch(() => {})}
         />
       );

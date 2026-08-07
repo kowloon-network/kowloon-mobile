@@ -26,6 +26,7 @@ import {
 } from "@10play/tentap-editor";
 
 import { pmToMarkdown } from "../../lib/pmToMarkdown.js";
+import { useInk } from "../../lib/useInk.js";
 
 const TOOLBAR_ITEMS = DEFAULT_TOOLBAR_ITEMS.filter(
   (item) => item.image?.() !== Images.checkList
@@ -97,6 +98,7 @@ export function PageForm({
   const slugTouched = useRef(!!initialValues.slug);
   const editorRef = useRef(null);
   const insets = useSafeAreaInsets();
+  const ink = useInk();
 
   function onTitleChange(v) {
     setTitle(v);
@@ -134,7 +136,7 @@ export function PageForm({
               value={title}
               onChangeText={onTitleChange}
               placeholder="Page title"
-              placeholderTextColor="rgba(26,26,32,0.35)"
+              placeholderTextColor={ink(0.35)}
               className={inputCls}
             />
           </View>
@@ -148,7 +150,7 @@ export function PageForm({
                 setSlug(v);
               }}
               placeholder="page-url-slug"
-              placeholderTextColor="rgba(26,26,32,0.35)"
+              placeholderTextColor={ink(0.35)}
               autoCapitalize="none"
               autoCorrect={false}
               className={inputCls}
@@ -161,7 +163,7 @@ export function PageForm({
               value={summary}
               onChangeText={setSummary}
               placeholder="A short description"
-              placeholderTextColor="rgba(26,26,32,0.35)"
+              placeholderTextColor={ink(0.35)}
               className={inputCls}
             />
           </View>

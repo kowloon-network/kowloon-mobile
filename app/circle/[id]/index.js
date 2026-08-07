@@ -27,6 +27,7 @@ import { CopyCircleMenu } from "../../../src/components/circles/CopyCircleMenu.j
 import { useActiveClient } from "../../../src/lib/useActiveClient.js";
 import { circleVisibilityLabel } from "../../../src/lib/circles.js";
 import { selectActiveAccount } from "../../../src/state/accountsSlice.js";
+import { useInk } from "../../../src/lib/useInk.js";
 
 function memberView(m) {
   return {
@@ -42,6 +43,7 @@ export default function CircleDetail() {
   const client = useActiveClient();
   const account = useSelector(selectActiveAccount);
   const insets = useSafeAreaInsets();
+  const ink = useInk();
 
   const [circle, setCircle] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -292,7 +294,7 @@ export default function CircleDetail() {
                 >
                   <Newspaper
                     size={13}
-                    color="rgba(26,26,32,0.85)"
+                    color={ink(0.85)}
                     strokeWidth={1.75}
                   />
                   <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content ml-1.5">
@@ -312,7 +314,7 @@ export default function CircleDetail() {
                     >
                       <Pencil
                         size={13}
-                        color="rgba(26,26,32,0.85)"
+                        color={ink(0.85)}
                         strokeWidth={1.75}
                       />
                       <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content ml-1.5">
@@ -351,7 +353,7 @@ export default function CircleDetail() {
                   value={addQuery}
                   onChangeText={setAddQuery}
                   placeholder="Name, @handle, or @user@other.server"
-                  placeholderTextColor="rgba(26,26,32,0.35)"
+                  placeholderTextColor={ink(0.35)}
                   autoCapitalize="none"
                   autoCorrect={false}
                   className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
@@ -488,7 +490,7 @@ export default function CircleDetail() {
                         ) : (
                           <X
                             size={18}
-                            color="rgba(26,26,32,0.45)"
+                            color={ink(0.45)}
                             strokeWidth={1.75}
                           />
                         )}

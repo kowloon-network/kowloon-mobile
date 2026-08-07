@@ -36,6 +36,7 @@ import {
 import { useActiveClient } from "../../lib/useActiveClient.js";
 import { resolveImageUrl } from "../../lib/resolveImageUrl.js";
 import { useIsAdmin } from "../../lib/useIsAdmin.js";
+import { useInk } from "../../lib/useInk.js";
 import { selectActiveAccount } from "../../state/accountsSlice.js";
 
 const DRAWER_WIDTH_PCT = 0.85;
@@ -69,6 +70,7 @@ function ServerInfoSection({ client }) {
   const [info, setInfo] = useState(null);
   const [heroFailed, setHeroFailed] = useState(false);
   const baseUrl = client?.http?.baseUrl;
+  const ink = useInk();
 
   useEffect(() => {
     if (!client) return;
@@ -126,7 +128,7 @@ function ServerInfoSection({ client }) {
       ) : null}
       {location?.name ? (
         <View className="flex-row items-center">
-          <MapPin size={13} color="rgba(26,26,32,0.55)" strokeWidth={1.75} />
+          <MapPin size={13} color={ink(0.55)} strokeWidth={1.75} />
           <Text className="font-ui text-xs uppercase tracking-[0.16em] text-base-content/55 ml-1.5 flex-1">
             {location.name}
           </Text>
@@ -140,6 +142,7 @@ function ServerInfoSection({ client }) {
 
 function SearchBar({ onNavigate }) {
   const [query, setQuery] = useState("");
+  const ink = useInk();
 
   function handleSubmit() {
     const q = query.trim();
@@ -151,13 +154,13 @@ function SearchBar({ onNavigate }) {
   return (
     <View className="  pb-5 mb-5">
       <View className="flex-row items-center   bg-white px-3">
-        <Search size={15} color="rgba(26,26,32,0.4)" strokeWidth={1.75} />
+        <Search size={15} color={ink(0.4)} strokeWidth={1.75} />
         <TextInput
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={handleSubmit}
           placeholder="Search this server…"
-          placeholderTextColor="rgba(26,26,32,0.35)"
+          placeholderTextColor={ink(0.35)}
           returnKeyType="search"
           autoCapitalize="none"
           autoCorrect={false}
@@ -165,7 +168,7 @@ function SearchBar({ onNavigate }) {
         />
         {query.length > 0 ? (
           <Pressable onPress={() => setQuery("")} hitSlop={8}>
-            <X size={15} color="rgba(26,26,32,0.4)" strokeWidth={1.75} />
+            <X size={15} color={ink(0.4)} strokeWidth={1.75} />
           </Pressable>
         ) : null}
       </View>
@@ -180,6 +183,7 @@ function SearchBar({ onNavigate }) {
 function PagesMenuSection({ client, onNavigate }) {
   const [pages, setPages] = useState([]);
   const [expanded, setExpanded] = useState(new Set());
+  const ink = useInk();
 
   useEffect(() => {
     if (!client) return;
@@ -250,13 +254,13 @@ function PagesMenuSection({ client, onNavigate }) {
                   {isOpen ? (
                     <ChevronDown
                       size={14}
-                      color="rgba(26,26,32,0.55)"
+                      color={ink(0.55)}
                       strokeWidth={1.75}
                     />
                   ) : (
                     <ChevronRight
                       size={14}
-                      color="rgba(26,26,32,0.55)"
+                      color={ink(0.55)}
                       strokeWidth={1.75}
                     />
                   )}
@@ -455,6 +459,7 @@ export function LeftDrawer({ visible, onClose }) {
   const panelWidth = Math.round(screenWidth * DRAWER_WIDTH_PCT);
   const [serverIcon, setServerIcon] = useState(null);
   const isAdmin = useIsAdmin();
+  const ink = useInk();
 
   // Server icon for the header, matching the feed masthead.
   useEffect(() => {
@@ -511,7 +516,7 @@ export function LeftDrawer({ visible, onClose }) {
                   resizeMode="cover"
                 />
               ) : (
-                <Globe size={15} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />
+                <Globe size={15} color={ink(0.7)} strokeWidth={1.75} />
               )}
             </View>
             <Text
@@ -525,7 +530,7 @@ export function LeftDrawer({ visible, onClose }) {
               hitSlop={8}
               android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: true }}
             >
-              <X size={20} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />
+              <X size={20} color={ink(0.7)} strokeWidth={1.75} />
             </Pressable>
           </View>
 
@@ -540,7 +545,7 @@ export function LeftDrawer({ visible, onClose }) {
                 android_ripple={{ color: "rgba(0,0,0,0.05)" }}
                 className="flex-row items-center mt-4 pt-4 border-t border-base-200"
               >
-                <Shield size={18} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />
+                <Shield size={18} color={ink(0.7)} strokeWidth={1.75} />
                 <Text className="font-ui uppercase tracking-[0.16em] text-xs text-base-content ml-2.5">
                   Server Admin
                 </Text>

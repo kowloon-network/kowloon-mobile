@@ -32,6 +32,7 @@ import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { selectActiveAccount } from "../../src/state/accountsSlice.js";
 import { resolveImageUrl } from "../../src/lib/resolveImageUrl.js";
+import { useInk } from "../../src/lib/useInk.js";
 
 const MIN_QUERY = 2;
 const ALL_PREVIEW = 4; // results shown per type on the "All" tab
@@ -67,6 +68,7 @@ export default function Search() {
   const router = useRouter();
   const client = useActiveClient();
   const account = useSelector(selectActiveAccount);
+  const ink = useInk();
 
   const { q: initialQuery } = useLocalSearchParams();
   const [query, setQuery] = useState(initialQuery || "");
@@ -264,12 +266,12 @@ export default function Search() {
       {/* Search field */}
       <View className="px-5 pt-3 pb-3  ">
         <View className="flex-row items-center   bg-field px-3">
-          <SearchIcon size={16} color="rgba(26,26,32,0.45)" strokeWidth={2} />
+          <SearchIcon size={16} color={ink(0.45)} strokeWidth={2} />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder="Search people, posts, groups... or @domain"
-            placeholderTextColor="rgba(26,26,32,0.35)"
+            placeholderTextColor={ink(0.35)}
             autoFocus
             autoCapitalize="none"
             autoCorrect={false}
@@ -282,7 +284,7 @@ export default function Search() {
               hitSlop={8}
               android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: true }}
             >
-              <X size={16} color="rgba(26,26,32,0.5)" strokeWidth={2} />
+              <X size={16} color={ink(0.5)} strokeWidth={2} />
             </Pressable>
           ) : null}
         </View>

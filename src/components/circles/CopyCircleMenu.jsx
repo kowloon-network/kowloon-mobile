@@ -24,11 +24,13 @@ import { Copy } from "lucide-react-native";
 import { useActiveClient } from "../../lib/useActiveClient.js";
 import { extractCircleId } from "../../lib/circles.js";
 import { selectActiveAccount } from "../../state/accountsSlice.js";
+import { useInk } from "../../lib/useInk.js";
 
 export function CopyCircleMenu({ circle, compact = false }) {
   const router = useRouter();
   const client = useActiveClient();
   const account = useSelector(selectActiveAccount);
+  const ink = useInk();
 
   const [open, setOpen] = useState(false);
   const [myCircles, setMyCircles] = useState([]);
@@ -113,7 +115,7 @@ export function CopyCircleMenu({ circle, compact = false }) {
       >
         <Copy
           size={compact ? 11 : 13}
-          color="rgba(26,26,32,0.85)"
+          color={ink(0.85)}
           strokeWidth={1.75}
         />
         <Text
@@ -157,7 +159,7 @@ export function CopyCircleMenu({ circle, compact = false }) {
                 ) : (
                   <Copy
                     size={16}
-                    color="rgba(26,26,32,0.7)"
+                    color={ink(0.7)}
                     strokeWidth={1.75}
                   />
                 )}

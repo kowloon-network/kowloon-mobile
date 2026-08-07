@@ -7,10 +7,12 @@ import { ChevronDown } from "lucide-react-native";
 
 import { POST_TYPE_NAMES, POST_TYPES } from "../../lib/postTypes.js";
 import { PostTypeIcon } from "./PostTypeIcon.jsx";
+import { useInk } from "../../lib/useInk.js";
 
 const DROPDOWN_WIDTH = 200;
 
 export function PostTypeDropdown({ value, onChange, prefix }) {
+  const ink = useInk();
   const triggerRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [dropPos, setDropPos] = useState({ top: 0, left: 0 });
@@ -64,7 +66,7 @@ export function PostTypeDropdown({ value, onChange, prefix }) {
             {value}
           </Text>
         </Text>
-        <ChevronDown size={22} color="rgba(26,26,32,0.5)" strokeWidth={2.5} />
+        <ChevronDown size={22} color={ink(0.5)} strokeWidth={2.5} />
       </Pressable>
 
       <Modal

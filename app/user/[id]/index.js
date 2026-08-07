@@ -37,6 +37,7 @@ import { PostCard } from "../../../src/components/posts/PostCard.jsx";
 import { useActiveClient } from "../../../src/lib/useActiveClient.js";
 import { resolveImageUrl } from "../../../src/lib/resolveImageUrl.js";
 import { selectActiveAccount } from "../../../src/state/accountsSlice.js";
+import { useInk } from "../../../src/lib/useInk.js";
 
 const TABS = [
   { key: "posts", label: "Posts" },
@@ -69,6 +70,7 @@ export default function UserProfile() {
   const { id } = useLocalSearchParams();
   const client = useActiveClient();
   const account = useSelector(selectActiveAccount);
+  const ink = useInk();
 
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -208,7 +210,7 @@ export default function UserProfile() {
                 <View className="flex-row items-center mt-2">
                   <MapPin
                     size={11}
-                    color="rgba(26,26,32,0.55)"
+                    color={ink(0.55)}
                     strokeWidth={1.75}
                   />
                   <Text

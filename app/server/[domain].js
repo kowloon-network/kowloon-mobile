@@ -25,6 +25,7 @@ import { RecShelf } from "../../src/components/discover/RecShelf.jsx";
 import { DiscoverMediaTile } from "../../src/components/discover/DiscoverMediaTile.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { resolveImageUrl } from "../../src/lib/resolveImageUrl.js";
+import { useInk } from "../../src/lib/useInk.js";
 
 const TABS = [
   { key: "posts",    label: "Public Posts" },
@@ -213,6 +214,7 @@ function CachedRow({ item, baseUrl }) {
 }
 
 function PageRow({ page, domain }) {
+  const ink = useInk();
   // Open the page IN-APP: we know the server (domain) and these are Kowloon
   // pages, so route to the viewer with ?domain= (our server hydrates the remote
   // page). Fall back to the browser only if we can't derive a slug.
@@ -236,7 +238,7 @@ function PageRow({ page, domain }) {
       <Text className="font-ui text-base text-base-content flex-1 mr-3" numberOfLines={1}>
         {page.title}
       </Text>
-      <ChevronRight size={16} color="rgba(26,26,32,0.4)" strokeWidth={1.75} />
+      <ChevronRight size={16} color={ink(0.4)} strokeWidth={1.75} />
     </Pressable>
   );
 }
@@ -257,6 +259,7 @@ export default function ServerProfile() {
   const client = useActiveClient();
   const baseUrl = client?.http?.baseUrl;
   const account = useSelector(selectActiveAccount);
+  const ink = useInk();
 
   const [server, setServer] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -505,7 +508,7 @@ export default function ServerProfile() {
 
           {server?.location?.name ? (
             <View className="flex-row items-center mt-3">
-              <MapPin size={13} color="rgba(26,26,32,0.5)" strokeWidth={1.75} />
+              <MapPin size={13} color={ink(0.5)} strokeWidth={1.75} />
               <Text className="font-ui text-xs uppercase tracking-[0.14em] text-base-content/50 ml-1.5">
                 {server.location.name}
               </Text>
@@ -528,7 +531,7 @@ export default function ServerProfile() {
             android_ripple={{ color: "rgba(0,0,0,0.06)" }}
             className="flex-row items-center self-start   px-4 py-2.5 mt-4"
           >
-            <PlusCircle size={14} color="rgba(26,26,32,0.8)" strokeWidth={2} />
+            <PlusCircle size={14} color={ink(0.8)} strokeWidth={2} />
             <Text className="font-ui uppercase tracking-[0.16em] text-xs text-base-content ml-2">
               Add to Circle
             </Text>
@@ -695,7 +698,7 @@ export default function ServerProfile() {
               Add {domain} to Circle
             </Text>
             <Pressable onPress={() => setShowPicker(false)} hitSlop={8}>
-              <X size={18} color="rgba(26,26,32,0.7)" strokeWidth={2} />
+              <X size={18} color={ink(0.7)} strokeWidth={2} />
             </Pressable>
           </View>
 
@@ -737,7 +740,7 @@ export default function ServerProfile() {
                     {isAdding ? (
                       <ActivityIndicator size="small" />
                     ) : isAdded ? (
-                      <Check size={16} color="rgba(26,26,32,0.5)" strokeWidth={2.5} />
+                      <Check size={16} color={ink(0.5)} strokeWidth={2.5} />
                     ) : null}
                   </Pressable>
                 );

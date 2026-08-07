@@ -27,10 +27,12 @@ import * as Location from "expo-location";
 
 import { placeLabel, reverseLookup, searchPlaces } from "../../lib/geocode.js";
 import { useKeyboardInset } from "../../lib/useKeyboardInset.js";
+import { useInk } from "../../lib/useInk.js";
 
 const SEARCH_DEBOUNCE_MS = 400;
 
 export function LocationField({ value, onChange }) {
+  const ink = useInk();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -195,7 +197,7 @@ export function LocationField({ value, onChange }) {
                   value={query}
                   onChangeText={setQuery}
                   placeholder="Search for a place"
-                  placeholderTextColor="rgba(26,26,32,0.35)"
+                  placeholderTextColor={ink(0.35)}
                   autoCapitalize="none"
                   autoCorrect={false}
                   returnKeyType="search"

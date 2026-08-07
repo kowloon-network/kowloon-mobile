@@ -21,7 +21,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ban, BellOff, Check, MoreHorizontal, X } from "lucide-react-native";
 import { sortByPins } from "@kowloon/client";
 
+import { useInk } from "../../lib/useInk.js";
+
 export function ProfileActions({ client, account, targetId, name }) {
+  const ink = useInk();
   const displayName = name || targetId || "this user";
 
   // --- Add to Circle picker --------------------------------------------------
@@ -162,7 +165,7 @@ export function ProfileActions({ client, account, targetId, name }) {
         className="bg-base-200 px-4 py-2.5 items-center justify-center"
         accessibilityLabel="More options"
       >
-        <MoreHorizontal size={18} color="rgba(26,26,32,0.7)" strokeWidth={2} />
+        <MoreHorizontal size={18} color={ink(0.7)} strokeWidth={2} />
       </Pressable>
 
       {/* Overflow menu — anchored below the trigger. */}
@@ -178,7 +181,7 @@ export function ProfileActions({ client, account, targetId, name }) {
               android_ripple={{ color: "rgba(0,0,0,0.06)" }}
               className="flex-row items-center px-4 py-3"
             >
-              <BellOff size={15} color="rgba(26,26,32,0.85)" strokeWidth={1.75} />
+              <BellOff size={15} color={ink(0.85)} strokeWidth={1.75} />
               <Text className="font-ui text-sm ml-3 text-base-content">Mute</Text>
             </Pressable>
             <Pressable
@@ -209,7 +212,7 @@ export function ProfileActions({ client, account, targetId, name }) {
               Add {displayName} to Circle
             </Text>
             <Pressable onPress={() => setShowPicker(false)} hitSlop={8}>
-              <X size={20} color="rgba(26,26,32,0.7)" strokeWidth={2} />
+              <X size={20} color={ink(0.7)} strokeWidth={2} />
             </Pressable>
           </View>
 
@@ -218,7 +221,7 @@ export function ProfileActions({ client, account, targetId, name }) {
               value={circleQuery}
               onChangeText={setCircleQuery}
               placeholder="Search your circles..."
-              placeholderTextColor="rgba(26,26,32,0.35)"
+              placeholderTextColor={ink(0.35)}
               autoCorrect={false}
               autoCapitalize="none"
               className="bg-base-200 px-3 py-2.5 font-ui text-base text-base-content"
@@ -268,7 +271,7 @@ export function ProfileActions({ client, account, targetId, name }) {
                       {isAdding ? (
                         <ActivityIndicator size="small" />
                       ) : isAdded ? (
-                        <Check size={16} color="rgba(26,26,32,0.5)" strokeWidth={2.5} />
+                        <Check size={16} color={ink(0.5)} strokeWidth={2.5} />
                       ) : null}
                     </Pressable>
                   );

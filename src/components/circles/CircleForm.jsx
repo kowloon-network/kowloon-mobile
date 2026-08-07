@@ -26,6 +26,7 @@ import { useActiveClient } from "../../lib/useActiveClient.js";
 import { useKeyboardInset } from "../../lib/useKeyboardInset.js";
 import { circleVisibilityOptions } from "../../lib/circles.js";
 import { selectActiveAccount } from "../../state/accountsSlice.js";
+import { useInk } from "../../lib/useInk.js";
 
 const SEARCH_DEBOUNCE_MS = 350;
 
@@ -57,6 +58,7 @@ export function CircleForm({
   const account = useSelector(selectActiveAccount);
   const { keyboardInset } = useKeyboardInset();
   const insets = useSafeAreaInsets();
+  const ink = useInk();
 
   const [name, setName] = useState(initialValues.name || "");
   const [description, setDescription] = useState(
@@ -178,7 +180,7 @@ export function CircleForm({
             <View className="absolute -bottom-1 -right-1 bg-base-100   p-1">
               <ImagePlus
                 size={13}
-                color="rgba(26,26,32,0.85)"
+                color={ink(0.85)}
                 strokeWidth={1.75}
               />
             </View>
@@ -189,7 +191,7 @@ export function CircleForm({
               value={name}
               onChangeText={setName}
               placeholder="Circle name"
-              placeholderTextColor="rgba(26,26,32,0.35)"
+              placeholderTextColor={ink(0.35)}
               className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
             />
           </View>
@@ -203,7 +205,7 @@ export function CircleForm({
             onChangeText={setDescription}
             multiline
             placeholder="What's this circle for?"
-            placeholderTextColor="rgba(26,26,32,0.35)"
+            placeholderTextColor={ink(0.35)}
             className="  bg-white px-3 py-2.5 font-ui text-base text-base-content min-h-16"
           />
         </View>
@@ -229,7 +231,7 @@ export function CircleForm({
                   >
                     <Text
                       className="font-ui uppercase tracking-[0.12em] text-[11px] text-center"
-                      style={{ color: selected ? "#F4F5F7" : "rgba(26,26,32,0.7)" }}
+                      style={{ color: selected ? "#F4F5F7" : ink(0.7) }}
                     >
                       {opt.label}
                     </Text>
@@ -278,7 +280,7 @@ export function CircleForm({
                     }}
                     className="ml-2 p-1"
                   >
-                    <X size={18} color="rgba(26,26,32,0.45)" strokeWidth={1.75} />
+                    <X size={18} color={ink(0.45)} strokeWidth={1.75} />
                   </Pressable>
                 </View>
               ))}
@@ -289,7 +291,7 @@ export function CircleForm({
             value={query}
             onChangeText={setQuery}
             placeholder="Name, @handle, or @user@other.server"
-            placeholderTextColor="rgba(26,26,32,0.35)"
+            placeholderTextColor={ink(0.35)}
             autoCapitalize="none"
             autoCorrect={false}
             className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"

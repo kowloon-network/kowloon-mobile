@@ -21,11 +21,12 @@ import { useRouter } from "expo-router";
 import { ReactButton } from "./ReactButton.jsx";
 import { BookmarkComposer } from "../bookmarks/BookmarkComposer.jsx";
 import { PostMoreMenu } from "./PostMoreMenu.jsx";
+import { useInk } from "../../lib/useInk.js";
 
-const ICON_COLOR = "rgba(26,26,32,0.55)";
 const ICON_STROKE = 1.75;
 
 function CountIcon({ Icon, count, onPress, label, size = "md", disabled }) {
+  const ink = useInk();
   const iconSize = size === "sm" ? 16 : 20;
   const countSize = size === "sm" ? "text-[11px]" : "text-xs";
   return (
@@ -37,7 +38,7 @@ function CountIcon({ Icon, count, onPress, label, size = "md", disabled }) {
       android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: true }}
       className={`flex-row items-center ${disabled ? "opacity-30" : ""}`}
     >
-      <Icon size={iconSize} color={ICON_COLOR} strokeWidth={ICON_STROKE} />
+      <Icon size={iconSize} color={ink(0.55)} strokeWidth={ICON_STROKE} />
       {typeof count === "number" && count > 0 ? (
         <Text className={`font-ui ${countSize} text-base-content/55 ml-1.5`}>
           {count}

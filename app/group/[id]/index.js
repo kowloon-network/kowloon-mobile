@@ -39,6 +39,7 @@ import {
   rsvpPolicyLabel,
 } from "../../../src/lib/groups.js";
 import { selectActiveAccount } from "../../../src/state/accountsSlice.js";
+import { useInk } from "../../../src/lib/useInk.js";
 
 function memberView(m) {
   return {
@@ -59,6 +60,7 @@ export default function GroupDetail() {
   const client = useActiveClient();
   const account = useSelector(selectActiveAccount);
   const insets = useSafeAreaInsets();
+  const ink = useInk();
 
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
@@ -264,7 +266,7 @@ export default function GroupDetail() {
 
               {group.location?.name ? (
                 <View className="flex-row items-center mt-3">
-                  <MapPin size={13} color="rgba(26,26,32,0.55)" strokeWidth={1.75} />
+                  <MapPin size={13} color={ink(0.55)} strokeWidth={1.75} />
                   <Text className="font-ui text-[11px] uppercase tracking-[0.16em] text-base-content/55 ml-1.5 flex-1">
                     {group.location.name}
                   </Text>
@@ -280,7 +282,7 @@ export default function GroupDetail() {
                   android_ripple={{ color: "rgba(0,0,0,0.06)" }}
                   className="flex-row items-center   px-3 py-2"
                 >
-                  <Newspaper size={13} color="rgba(26,26,32,0.85)" strokeWidth={1.75} />
+                  <Newspaper size={13} color={ink(0.85)} strokeWidth={1.75} />
                   <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content ml-1.5">
                     View Feed
                   </Text>
@@ -292,7 +294,7 @@ export default function GroupDetail() {
                     android_ripple={{ color: "rgba(0,0,0,0.06)" }}
                     className="flex-row items-center   px-3 py-2"
                   >
-                    <Share2 size={13} color="rgba(26,26,32,0.85)" strokeWidth={1.75} />
+                    <Share2 size={13} color={ink(0.85)} strokeWidth={1.75} />
                     <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content ml-1.5">
                       Share
                     </Text>
@@ -307,7 +309,7 @@ export default function GroupDetail() {
                       android_ripple={{ color: "rgba(0,0,0,0.06)" }}
                       className="flex-row items-center   px-3 py-2"
                     >
-                      <LogOut size={13} color="rgba(26,26,32,0.85)" strokeWidth={1.75} />
+                      <LogOut size={13} color={ink(0.85)} strokeWidth={1.75} />
                       <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content ml-1.5">
                         {busy ? "…" : "Leave"}
                       </Text>
@@ -336,7 +338,7 @@ export default function GroupDetail() {
                       android_ripple={{ color: "rgba(0,0,0,0.06)" }}
                       className="flex-row items-center   px-3 py-2"
                     >
-                      <Inbox size={13} color="rgba(26,26,32,0.85)" strokeWidth={1.75} />
+                      <Inbox size={13} color={ink(0.85)} strokeWidth={1.75} />
                       <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content ml-1.5">
                         Pending
                       </Text>
@@ -348,7 +350,7 @@ export default function GroupDetail() {
                       android_ripple={{ color: "rgba(0,0,0,0.06)" }}
                       className="flex-row items-center   px-3 py-2"
                     >
-                      <Pencil size={13} color="rgba(26,26,32,0.85)" strokeWidth={1.75} />
+                      <Pencil size={13} color={ink(0.85)} strokeWidth={1.75} />
                       <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content ml-1.5">
                         Edit
                       </Text>

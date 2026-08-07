@@ -8,6 +8,8 @@ import { useRef, useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import { Check, MoreVertical } from "lucide-react-native";
 
+import { useInk } from "../../lib/useInk.js";
+
 const DROPDOWN_WIDTH = 248;
 
 export function FeedDefaultsMenu({
@@ -19,6 +21,7 @@ export function FeedDefaultsMenu({
   const triggerRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, right: 0 });
+  const ink = useInk();
 
   function openMenu() {
     triggerRef.current?.measureInWindow((x, y, w, h) => {
@@ -36,7 +39,7 @@ export function FeedDefaultsMenu({
         android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: true }}
         className="ml-3"
       >
-        <MoreVertical size={22} color="rgba(26,26,32,0.55)" strokeWidth={2} />
+        <MoreVertical size={22} color={ink(0.55)} strokeWidth={2} />
       </Pressable>
 
       <Modal visible={open} transparent animationType="none" onRequestClose={() => setOpen(false)}>

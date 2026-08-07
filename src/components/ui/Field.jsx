@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { Eye, EyeOff } from "lucide-react-native";
 
+import { useInk } from "../../lib/useInk.js";
+
 // Single text input with a thin uppercase label above. Editorial styling:
 // no rounding, 2px bottom  that shifts to primary on focus is
 // future work — for now we render a 2px box  on all sides for clarity.
@@ -23,6 +25,7 @@ export function Field({
 }) {
   const [revealed, setRevealed] = useState(false);
   const isSecure = secureTextEntry && !revealed;
+  const ink = useInk();
 
   return (
     <View className="mb-4">
@@ -36,7 +39,7 @@ export function Field({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="rgba(26,26,32,0.35)"
+          placeholderTextColor={ink(0.35)}
           autoCapitalize={autoCapitalize}
           autoCorrect={autoCorrect}
           secureTextEntry={isSecure}
@@ -57,11 +60,11 @@ export function Field({
             {revealed ? (
               <EyeOff
                 size={18}
-                color="rgba(26,26,32,0.55)"
+                color={ink(0.55)}
                 strokeWidth={1.75}
               />
             ) : (
-              <Eye size={18} color="rgba(26,26,32,0.55)" strokeWidth={1.75} />
+              <Eye size={18} color={ink(0.55)} strokeWidth={1.75} />
             )}
           </Pressable>
         ) : null}

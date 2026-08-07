@@ -20,17 +20,19 @@ import { CircleAvatar } from "../circles/CircleAvatar.jsx";
 import { GroupAvatar } from "../groups/GroupAvatar.jsx";
 import { useActiveClient } from "../../lib/useActiveClient.js";
 import { resolveImageUrl } from "../../lib/resolveImageUrl.js";
+import { useInk } from "../../lib/useInk.js";
 
 const SQUARE = 168;
 const MAX = 18;
 const sq = { width: SQUARE, height: SQUARE };
 
 function LinkSquare({ item, Icon, onPress }) {
+  const ink = useInk();
   const blurb = item.summary || item.description;
   return (
     <Pressable onPress={onPress} style={sq} className="bg-base-100 border border-base-300 p-3">
       <View className="flex-row items-center mb-1.5">
-        <Icon size={11} color="rgba(26,26,32,0.45)" strokeWidth={1.75} />
+        <Icon size={11} color={ink(0.45)} strokeWidth={1.75} />
         <Text className="font-ui uppercase tracking-[0.16em] text-[9px] text-base-content/45 ml-1.5">
           {item.refType}
         </Text>
@@ -48,6 +50,7 @@ function LinkSquare({ item, Icon, onPress }) {
 }
 
 function SquareCard({ item, baseUrl, router }) {
+  const ink = useInk();
   switch (item.refType) {
     case "Post": {
       const img = resolveImageUrl(item.featuredImage || item.mediaImage, baseUrl);
@@ -85,7 +88,7 @@ function SquareCard({ item, baseUrl, router }) {
           className="bg-base-200 p-3"
         >
           <View className="flex-row items-center mb-1.5">
-            <Newspaper size={11} color="rgba(26,26,32,0.45)" strokeWidth={1.75} />
+            <Newspaper size={11} color={ink(0.45)} strokeWidth={1.75} />
             <Text className="font-ui uppercase tracking-[0.16em] text-[9px] text-base-content/45 ml-1.5">
               {item.type || "Post"}
             </Text>
@@ -181,6 +184,7 @@ export function FeedDiscoverRow({ refreshKey = 0 }) {
   const client = useActiveClient();
   const baseUrl = client?.http?.baseUrl;
   const router = useRouter();
+  const ink = useInk();
   const [items, setItems] = useState([]);
 
   useEffect(() => {
@@ -223,7 +227,7 @@ export function FeedDiscoverRow({ refreshKey = 0 }) {
           <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-base-content/50 mr-0.5">
             See all
           </Text>
-          <ChevronRight size={12} color="rgba(26,26,32,0.5)" />
+          <ChevronRight size={12} color={ink(0.5)} />
         </Pressable>
       </View>
       <ScrollView

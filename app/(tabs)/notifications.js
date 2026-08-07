@@ -25,6 +25,7 @@ import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { useUnreadCount } from "../../src/lib/UnreadCountContext.js";
 import { NOTIF_TYPES, notificationRoute } from "../../src/lib/notifications.js";
 import { selectActiveAccount } from "../../src/state/accountsSlice.js";
+import { useInk } from "../../src/lib/useInk.js";
 
 const FILTERS = [
   { key: "all", label: "All" },
@@ -39,6 +40,7 @@ export default function Notifications() {
   const client = useActiveClient();
   const account = useSelector(selectActiveAccount);
   const { refresh: refreshUnread, setCount: setUnread } = useUnreadCount();
+  const ink = useInk();
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -148,7 +150,7 @@ export default function Notifications() {
                 >
                   <Text
                     className={`font-ui uppercase tracking-[0.14em] text-[11px] ${active ? "font-bold" : ""}`}
-                    style={{ color: active ? "#F4F5F7" : "rgba(26,26,32,0.7)" }}
+                    style={{ color: active ? "#F4F5F7" : ink(0.7) }}
                   >
                     {item.label}
                   </Text>

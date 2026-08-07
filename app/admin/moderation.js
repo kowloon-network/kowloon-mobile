@@ -18,6 +18,7 @@ import { Check, X, ExternalLink, Trash2 } from "lucide-react-native";
 
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
+import { useInk } from "../../src/lib/useInk.js";
 
 const STATUSES = [
   { key: "open", label: "Open" },
@@ -89,6 +90,7 @@ function ActionButton({ label, icon, onPress, disabled, tone = "default" }) {
 export default function Moderation() {
   const router = useRouter();
   const client = useActiveClient();
+  const ink = useInk();
 
   const [status, setStatus] = useState("open");
   const [items, setItems] = useState([]);
@@ -270,7 +272,7 @@ export default function Moderation() {
                   {viewRoute ? (
                     <ActionButton
                       label="View"
-                      icon={<ExternalLink size={12} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />}
+                      icon={<ExternalLink size={12} color={ink(0.7)} strokeWidth={1.75} />}
                       onPress={() => router.push(viewRoute)}
                     />
                   ) : null}
@@ -278,7 +280,7 @@ export default function Moderation() {
                     <>
                       <ActionButton
                         label="Dismiss"
-                        icon={<X size={12} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />}
+                        icon={<X size={12} color={ink(0.7)} strokeWidth={1.75} />}
                         disabled={busy}
                         onPress={() => resolve(flag, "dismissed")}
                       />

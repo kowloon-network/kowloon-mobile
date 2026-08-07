@@ -11,6 +11,7 @@ import { Avatar } from "./Avatar.jsx";
 import { HtmlContent } from "../HtmlContent.jsx";
 import { ReactButton } from "./ReactButton.jsx";
 import { timeAgo } from "../../lib/timeAgo.js";
+import { useInk } from "../../lib/useInk.js";
 
 export function Reply({
   reply,
@@ -24,6 +25,7 @@ export function Reply({
   childReplies = [],
   childComposer = null,
 }) {
+  const ink = useInk();
   const actor = reply?.actor || {};
   const html = reply?.body || reply?.source?.content || "";
   const isAuthor = !!currentUserId && reply?.actorId === currentUserId;
@@ -109,7 +111,7 @@ export function Reply({
               multiline
               autoFocus
               placeholder="Edit your reply…"
-              placeholderTextColor="rgba(26,26,32,0.35)"
+              placeholderTextColor={ink(0.35)}
               className="  bg-white px-3 py-2 font-ui text-sm text-base-content min-h-20"
             />
             <View className="flex-row justify-end mt-2">

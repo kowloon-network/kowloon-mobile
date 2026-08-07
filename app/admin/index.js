@@ -24,6 +24,7 @@ import {
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { useIsAdmin } from "../../src/lib/useIsAdmin.js";
+import { useInk } from "../../src/lib/useInk.js";
 
 const STAT_FIELDS = [
   { key: "users", label: "Users" },
@@ -52,6 +53,7 @@ function StatCard({ label, value }) {
 }
 
 function NavRow({ icon, label, sublabel, badge, onPress }) {
+  const ink = useInk();
   return (
     <Pressable
       onPress={onPress}
@@ -74,7 +76,7 @@ function NavRow({ icon, label, sublabel, badge, onPress }) {
           </Text>
         </View>
       ) : null}
-      <ChevronRight size={18} color="rgba(26,26,32,0.35)" strokeWidth={1.75} />
+      <ChevronRight size={18} color={ink(0.35)} strokeWidth={1.75} />
     </Pressable>
   );
 }
@@ -83,6 +85,7 @@ export default function AdminHome() {
   const router = useRouter();
   const client = useActiveClient();
   const isAdmin = useIsAdmin();
+  const ink = useInk();
 
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -169,19 +172,19 @@ export default function AdminHome() {
             onPress={() => router.push("/admin/moderation")}
           />
           <NavRow
-            icon={<Users size={20} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />}
+            icon={<Users size={20} color={ink(0.7)} strokeWidth={1.75} />}
             label="Users"
             sublabel="Deactivate, restore, roles"
             onPress={() => router.push("/admin/users")}
           />
           <NavRow
-            icon={<Mail size={20} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />}
+            icon={<Mail size={20} color={ink(0.7)} strokeWidth={1.75} />}
             label="Invites"
             sublabel="Create and manage invites"
             onPress={() => router.push("/admin/invites")}
           />
           <NavRow
-            icon={<FileText size={20} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />}
+            icon={<FileText size={20} color={ink(0.7)} strokeWidth={1.75} />}
             label="Pages"
             sublabel="Create and edit content pages"
             onPress={() => router.push("/admin/pages")}

@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Home, Hexagon, Users, Compass, Bell } from "lucide-react-native";
 
 import { useUnreadCount } from "../../lib/UnreadCountContext.js";
+import { useInk } from "../../lib/useInk.js";
 
 // Route name (file name under app/(tabs)) -> label + icon. Routes without an
 // entry here (e.g. "search") stay mounted but are hidden from the bar.
@@ -24,10 +25,10 @@ const META = {
 };
 
 const ACTIVE = "#5588B1"; // primary
-const INACTIVE = "rgba(26,26,32,0.5)"; // ink /50
 
 export function BottomTabBar({ state, navigation }) {
   const { count } = useUnreadCount();
+  const ink = useInk();
 
   return (
     <SafeAreaView
@@ -63,7 +64,7 @@ export function BottomTabBar({ state, navigation }) {
               <View>
                 <Icon
                   size={22}
-                  color={on ? ACTIVE : INACTIVE}
+                  color={on ? ACTIVE : ink(0.5)}
                   strokeWidth={1.75}
                 />
                 {showBadge ? (

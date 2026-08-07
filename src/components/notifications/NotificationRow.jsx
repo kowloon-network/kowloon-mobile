@@ -10,6 +10,7 @@ import { X } from "lucide-react-native";
 import { Avatar } from "../posts/Avatar.jsx";
 import { NOTIF_TYPES } from "../../lib/notifications.js";
 import { timeAgo } from "../../lib/timeAgo.js";
+import { useInk } from "../../lib/useInk.js";
 
 export function NotificationRow({
   notification,
@@ -17,6 +18,7 @@ export function NotificationRow({
   onPress,
   onDismiss,
 }) {
+  const ink = useInk();
   const meta = NOTIF_TYPES[notification?.type] || {
     label: notification?.type || "Notification",
     Icon: null,
@@ -56,7 +58,7 @@ export function NotificationRow({
           {Icon ? (
             <Icon
               size={11}
-              color="rgba(26,26,32,0.55)"
+              color={ink(0.55)}
               strokeWidth={1.75}
             />
           ) : null}
@@ -80,7 +82,7 @@ export function NotificationRow({
         accessibilityRole="button"
         accessibilityLabel="Dismiss notification"
       >
-        <X size={16} color="rgba(26,26,32,0.45)" strokeWidth={1.75} />
+        <X size={16} color={ink(0.45)} strokeWidth={1.75} />
       </Pressable>
     </Pressable>
   );

@@ -7,8 +7,11 @@ import { Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 
+import { useInk } from "../../lib/useInk.js";
+
 export function BackLink({ label = "Back", className = "" }) {
   const router = useRouter();
+  const ink = useInk();
   return (
     <Pressable
       onPress={() => router.back()}
@@ -17,7 +20,7 @@ export function BackLink({ label = "Back", className = "" }) {
       className={`flex-row items-center self-start ${className}`}
     >
       <View className="mr-1">
-        <ChevronLeft size={14} color="rgba(26,26,32,0.65)" strokeWidth={1.75} />
+        <ChevronLeft size={14} color={ink(0.65)} strokeWidth={1.75} />
       </View>
       <Text className="font-ui uppercase tracking-[0.16em] text-[11px] text-base-content/65">
         {label}

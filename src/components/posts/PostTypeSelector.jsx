@@ -6,10 +6,10 @@ import { Pressable, Text, View } from "react-native";
 
 import { POST_TYPE_NAMES, POST_TYPES } from "../../lib/postTypes.js";
 import { PostTypeIcon } from "./PostTypeIcon.jsx";
-
-const MUTED = "rgba(26,26,32,0.38)";
+import { useInk } from "../../lib/useInk.js";
 
 export function PostTypeSelector({ value, onChange }) {
+  const ink = useInk();
   return (
     <View className="flex-row  ">
       {POST_TYPE_NAMES.map((type) => {
@@ -30,7 +30,7 @@ export function PostTypeSelector({ value, onChange }) {
             <PostTypeIcon
               type={type}
               size={26}
-              color={active ? color : MUTED}
+              color={active ? color : ink(0.38)}
             />
             <Text
               className={`font-ui text-[10px] uppercase tracking-[0.08em] mt-1 ${

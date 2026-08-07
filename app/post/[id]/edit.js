@@ -39,6 +39,7 @@ import { useKeyboardInset } from "../../../src/lib/useKeyboardInset.js";
 import { uploadFile } from "../../../src/lib/uploadFile.js";
 import { selectActiveAccount } from "../../../src/state/accountsSlice.js";
 import { pmToMarkdown } from "../../../src/lib/pmToMarkdown.js";
+import { useInk } from "../../../src/lib/useInk.js";
 
 const TOOLBAR_HEIGHT = 44;
 const EDITOR_HEIGHT = 320;
@@ -130,6 +131,7 @@ export default function EditPost() {
   const account = useSelector(selectActiveAccount);
   const { keyboardInset } = useKeyboardInset();
   const insets = useSafeAreaInsets();
+  const ink = useInk();
 
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -424,7 +426,7 @@ export default function EditPost() {
                   value={title}
                   onChangeText={setTitle}
                   placeholder={`${type} title`}
-                  placeholderTextColor="rgba(26,26,32,0.35)"
+                  placeholderTextColor={ink(0.35)}
                   className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
                 />
               </View>

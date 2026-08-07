@@ -27,6 +27,7 @@ import { sortByPins, togglePin } from "@kowloon/client";
 
 import { useActiveClient } from "../../lib/useActiveClient.js";
 import { useJoinedGroups } from "../../lib/useJoinedGroups.js";
+import { useInk } from "../../lib/useInk.js";
 import { selectActiveAccount } from "../../state/accountsSlice.js";
 import { orderUserCircles } from "../../lib/orderCircles.js";
 import { ServerFeedIcon } from "./ServerFeedIcon.jsx";
@@ -50,6 +51,7 @@ export function FeedViewSelector({ value, onChange, subject }) {
   const client = useActiveClient();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const ink = useInk();
   const triggerRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [dropPos, setDropPos] = useState({ top: 0, left: 0 });
@@ -296,7 +298,7 @@ export function FeedViewSelector({ value, onChange, subject }) {
                   value={search}
                   onChangeText={setSearch}
                   placeholder="Search circles & groups..."
-                  placeholderTextColor="rgba(26,26,32,0.3)"
+                  placeholderTextColor={ink(0.3)}
                   autoCorrect={false}
                   autoCapitalize="none"
                   className="font-ui text-sm text-base-content"
@@ -404,7 +406,7 @@ export function FeedViewSelector({ value, onChange, subject }) {
               className="flex-row items-center px-4 py-3  "
             >
               <View className="mr-3">
-                <Compass size={20} color="rgba(26,26,32,0.7)" strokeWidth={1.75} />
+                <Compass size={20} color={ink(0.7)} strokeWidth={1.75} />
               </View>
               <Text className="font-ui uppercase tracking-[0.14em] text-xs text-base-content">
                 Discover...
@@ -418,6 +420,7 @@ export function FeedViewSelector({ value, onChange, subject }) {
 }
 
 function Row({ label, summary, selected, onPress, icon, pinned, onTogglePin }) {
+  const ink = useInk();
   return (
     <View className={`flex-row items-center ${selected ? "bg-secondary" : ""}`}>
       <Pressable
@@ -456,7 +459,7 @@ function Row({ label, summary, selected, onPress, icon, pinned, onTogglePin }) {
         >
           <Pin
             size={15}
-            color={pinned ? "#5588B1" : "rgba(26,26,32,0.28)"}
+            color={pinned ? "#5588B1" : ink(0.28)}
             fill={pinned ? "#5588B1" : "none"}
             strokeWidth={1.75}
           />

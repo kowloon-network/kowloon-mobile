@@ -2,10 +2,10 @@ import { Pressable, View } from "react-native";
 
 import { PostTypeIcon } from "./PostTypeIcon.jsx";
 import { POST_TYPE_NAMES, POST_TYPES } from "../../lib/postTypes.js";
-
-const INK_DIM = "rgba(26,26,32,0.15)";
+import { useInk } from "../../lib/useInk.js";
 
 export function TypeFilter({ activeTypes = [], onSetTypes }) {
+  const ink = useInk();
   const isAll = !activeTypes || activeTypes.length === 0;
 
   function handlePress(type) {

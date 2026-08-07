@@ -9,6 +9,7 @@ import { Pressable, Text, View } from "react-native";
 import { ChevronDown, ChevronRight } from "lucide-react-native";
 
 import { AudienceSelector } from "./AudienceSelector.jsx";
+import { useInk } from "../../lib/useInk.js";
 
 export function ReplyReactScope({
   audience,
@@ -17,6 +18,7 @@ export function ReplyReactScope({
   onChangeReply,
   onChangeReact,
 }) {
+  const ink = useInk();
   const [open, setOpen] = useState(false);
   const customized = canReply !== audience || canReact !== audience;
 
@@ -28,9 +30,9 @@ export function ReplyReactScope({
         android_ripple={{ color: "rgba(0,0,0,0.06)" }}
       >
         {open ? (
-          <ChevronDown size={14} color="rgba(26,26,32,0.5)" strokeWidth={1.9} />
+          <ChevronDown size={14} color={ink(0.5)} strokeWidth={1.9} />
         ) : (
-          <ChevronRight size={14} color="rgba(26,26,32,0.5)" strokeWidth={1.9} />
+          <ChevronRight size={14} color={ink(0.5)} strokeWidth={1.9} />
         )}
         <Text className="font-ui uppercase tracking-[0.12em] text-[11px] text-base-content/50 ml-1.5">
           Advanced

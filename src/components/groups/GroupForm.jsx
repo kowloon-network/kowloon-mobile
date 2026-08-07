@@ -25,6 +25,7 @@ import { GroupAvatar } from "./GroupAvatar.jsx";
 import { LocationField } from "../posts/LocationField.jsx";
 import { useActiveClient } from "../../lib/useActiveClient.js";
 import { useKeyboardInset } from "../../lib/useKeyboardInset.js";
+import { useInk } from "../../lib/useInk.js";
 import {
   RSVP_POLICIES,
   groupVisibilityOptions,
@@ -51,6 +52,7 @@ export function GroupForm({
   const account = useSelector(selectActiveAccount);
   const { keyboardInset } = useKeyboardInset();
   const insets = useSafeAreaInsets();
+  const ink = useInk();
 
   const [name, setName] = useState(initialValues.name || "");
   const [description, setDescription] = useState(
@@ -206,7 +208,7 @@ export function GroupForm({
             <View className="absolute -bottom-1 -right-1 bg-base-100   p-1">
               <ImagePlus
                 size={13}
-                color="rgba(26,26,32,0.85)"
+                color={ink(0.85)}
                 strokeWidth={1.75}
               />
             </View>
@@ -217,7 +219,7 @@ export function GroupForm({
               value={name}
               onChangeText={setName}
               placeholder="Group name"
-              placeholderTextColor="rgba(26,26,32,0.35)"
+              placeholderTextColor={ink(0.35)}
               className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
             />
           </View>
@@ -231,7 +233,7 @@ export function GroupForm({
             onChangeText={setDescription}
             multiline
             placeholder="What's this group for?"
-            placeholderTextColor="rgba(26,26,32,0.35)"
+            placeholderTextColor={ink(0.35)}
             className="  bg-white px-3 py-2.5 font-ui text-base text-base-content min-h-20"
           />
         </View>

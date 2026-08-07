@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 
 import { Avatar } from "./Avatar.jsx";
+import { useInk } from "../../lib/useInk.js";
 
 export function ReplyComposer({
   postId,
@@ -19,6 +20,7 @@ export function ReplyComposer({
   autoFocus = false,
   placeholder = "Write a reply…",
 }) {
+  const ink = useInk();
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -88,7 +90,7 @@ export function ReplyComposer({
           onChangeText={setText}
           multiline
           placeholder={placeholder}
-          placeholderTextColor="rgba(26,26,32,0.35)"
+          placeholderTextColor={ink(0.35)}
           className="  bg-white px-3 py-2.5 font-ui text-[15px] text-base-content min-h-20"
         />
         <View className="flex-row items-center justify-end mt-2">

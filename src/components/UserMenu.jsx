@@ -13,6 +13,7 @@ import { Plus } from "lucide-react-native";
 import { Avatar } from "./posts/Avatar.jsx";
 import { useUnreadCount } from "../lib/UnreadCountContext.js";
 import { useIsAdmin } from "../lib/useIsAdmin.js";
+import { useInk } from "../lib/useInk.js";
 import {
   selectAccounts,
   selectActiveAccount,
@@ -52,6 +53,7 @@ export function UserMenu({ visible, onClose }) {
   const accounts = useSelector(selectAccounts);
   const { count: unreadCount } = useUnreadCount();
   const isAdmin = useIsAdmin();
+  const ink = useInk();
 
   if (!account) return null;
 
@@ -162,7 +164,7 @@ export function UserMenu({ visible, onClose }) {
               className="flex-row items-center px-4 py-3 border-t border-base-200"
             >
               <View className="w-8 h-8 items-center justify-center border border-base-300">
-                <Plus size={16} color="rgba(26,26,32,0.6)" strokeWidth={2} />
+                <Plus size={16} color={ink(0.6)} strokeWidth={2} />
               </View>
               <Text className="font-ui text-sm text-base-content ml-3">Add account</Text>
             </Pressable>

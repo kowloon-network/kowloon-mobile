@@ -26,6 +26,7 @@ import { HtmlContent } from "../../src/components/HtmlContent.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { useTypography } from "../../src/lib/TypographyContext.js";
 import { timeAgo } from "../../src/lib/timeAgo.js";
+import { useInk } from "../../src/lib/useInk.js";
 
 // Resolve the page's `image` field to a displayable URL — handles file IDs
 // (`file:abc@domain`), absolute /files/ paths, and full URLs.
@@ -46,6 +47,7 @@ export default function PageDetail() {
   const { slug, domain } = useLocalSearchParams();
   const client = useActiveClient();
   const { resolved } = useTypography();
+  const ink = useInk();
 
   const [page, setPage] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -207,7 +209,7 @@ export default function PageDetail() {
                 <View className="flex-row items-center flex-wrap mb-3">
                   <Tag
                     size={11}
-                    color="rgba(26,26,32,0.45)"
+                    color={ink(0.45)}
                     strokeWidth={1.75}
                   />
                   {page.tags.map((tag) => (
@@ -263,7 +265,7 @@ export default function PageDetail() {
                   Share Page
                 </Text>
                 <Pressable onPress={() => setShareOpen(false)} hitSlop={8}>
-                  <X size={18} color="rgba(26,26,32,0.6)" strokeWidth={2} />
+                  <X size={18} color={ink(0.6)} strokeWidth={2} />
                 </Pressable>
               </View>
               <Pressable
@@ -271,7 +273,7 @@ export default function PageDetail() {
                 android_ripple={{ color: "rgba(0,0,0,0.06)" }}
                 className="flex-row items-center px-5 py-4"
               >
-                <Link2 size={18} color="rgba(26,26,32,0.85)" strokeWidth={1.75} />
+                <Link2 size={18} color={ink(0.85)} strokeWidth={1.75} />
                 <Text className="font-ui text-base text-base-content ml-3">
                   Share as a Post
                 </Text>
@@ -281,7 +283,7 @@ export default function PageDetail() {
                 android_ripple={{ color: "rgba(0,0,0,0.06)" }}
                 className="flex-row items-center px-5 py-4"
               >
-                <Share2 size={18} color="rgba(26,26,32,0.85)" strokeWidth={1.75} />
+                <Share2 size={18} color={ink(0.85)} strokeWidth={1.75} />
                 <Text className="font-ui text-base text-base-content ml-3">
                   Share to Other Apps
                 </Text>

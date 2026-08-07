@@ -14,6 +14,7 @@ import { ChevronRight, Folder, MoreHorizontal } from "lucide-react-native";
 
 import { VisibilityChip } from "./VisibilityChip.jsx";
 import { resolveImageUrl } from "../../lib/resolveImageUrl.js";
+import { useInk } from "../../lib/useInk.js";
 
 function hostOf(url) {
   if (!url) return "";
@@ -38,6 +39,7 @@ export function TreeNode({
   onMenu,
   version = 0,
 }) {
+  const ink = useInk();
   const isFolder = node?.type === "Folder";
   const [expanded, setExpanded] = useState(false);
   const [children, setChildren] = useState(null);
@@ -93,7 +95,7 @@ export function TreeNode({
         >
           <ChevronRight
             size={14}
-            color="rgba(26,26,32,0.55)"
+            color={ink(0.55)}
             style={{ transform: [{ rotate: expanded ? "90deg" : "0deg" }] }}
           />
           <Folder
@@ -122,7 +124,7 @@ export function TreeNode({
             >
               <MoreHorizontal
                 size={18}
-                color="rgba(26,26,32,0.55)"
+                color={ink(0.55)}
                 strokeWidth={1.75}
               />
             </Pressable>
@@ -236,7 +238,7 @@ export function TreeNode({
         >
           <MoreHorizontal
             size={18}
-            color="rgba(26,26,32,0.55)"
+            color={ink(0.55)}
             strokeWidth={1.75}
           />
         </Pressable>

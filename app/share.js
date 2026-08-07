@@ -10,6 +10,7 @@ import { Bookmark as BookmarkIcon, ChevronRight, Link2, X } from "lucide-react-n
 
 import { BookmarkComposer } from "../src/components/bookmarks/BookmarkComposer.jsx";
 import { useActiveClient } from "../src/lib/useActiveClient.js";
+import { useInk } from "../src/lib/useInk.js";
 
 function hostOf(url) {
   try {
@@ -20,6 +21,7 @@ function hostOf(url) {
 }
 
 function Choice({ icon, title, subtitle, onPress }) {
+  const ink = useInk();
   return (
     <Pressable
       onPress={onPress}
@@ -35,7 +37,7 @@ function Choice({ icon, title, subtitle, onPress }) {
           {subtitle}
         </Text>
       </View>
-      <ChevronRight size={18} color="rgba(26,26,32,0.35)" strokeWidth={2} />
+      <ChevronRight size={18} color={ink(0.35)} strokeWidth={2} />
     </Pressable>
   );
 }
@@ -46,6 +48,7 @@ export default function ShareChooser() {
   const client = useActiveClient();
   const currentUser = client?.auth?.getUser?.() || null;
   const [bookmarking, setBookmarking] = useState(false);
+  const ink = useInk();
 
   function dismiss() {
     if (router.canGoBack()) router.back();
@@ -61,7 +64,7 @@ export default function ShareChooser() {
       <View className="flex-row items-center justify-between px-5 pt-3 pb-4">
         <Text className="font-ui text-lg text-base-content">Share to Kowloon</Text>
         <Pressable onPress={dismiss} hitSlop={12}>
-          <X size={22} color="rgba(26,26,32,0.6)" strokeWidth={2} />
+          <X size={22} color={ink(0.6)} strokeWidth={2} />
         </Pressable>
       </View>
 

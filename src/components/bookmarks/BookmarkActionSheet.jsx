@@ -22,6 +22,7 @@ import { X, Folder, FolderOpen, FileText } from "lucide-react-native";
 
 import { AudienceSelector } from "../posts/AudienceSelector.jsx";
 import { useKeyboardInset } from "../../lib/useKeyboardInset.js";
+import { useInk } from "../../lib/useInk.js";
 
 function ActionRow({ label, onPress, destructive, muted }) {
   return (
@@ -162,6 +163,7 @@ export function BookmarkActionSheet({
 function EditModal({ node, client, onClose, onSaved }) {
   const isFolder = node.type === "Folder";
   const { keyboardInset } = useKeyboardInset();
+  const ink = useInk();
 
   const [title, setTitle] = useState(node.title || "");
   const [href, setHref] = useState(node.href || "");
@@ -227,7 +229,7 @@ function EditModal({ node, client, onClose, onSaved }) {
                 value={title}
                 onChangeText={setTitle}
                 placeholder={isFolder ? "e.g. Recipes" : "Bookmark title"}
-                placeholderTextColor="rgba(26,26,32,0.35)"
+                placeholderTextColor={ink(0.35)}
                 className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
               />
             </View>
@@ -243,7 +245,7 @@ function EditModal({ node, client, onClose, onSaved }) {
                     autoCorrect={false}
                     keyboardType="url"
                     placeholder="https://…"
-                    placeholderTextColor="rgba(26,26,32,0.35)"
+                    placeholderTextColor={ink(0.35)}
                     className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
                   />
                 </View>
@@ -254,7 +256,7 @@ function EditModal({ node, client, onClose, onSaved }) {
                     onChangeText={setSummary}
                     multiline
                     placeholder="A short note about what this is."
-                    placeholderTextColor="rgba(26,26,32,0.35)"
+                    placeholderTextColor={ink(0.35)}
                     className="  bg-white px-3 py-2.5 font-ui text-base text-base-content min-h-20"
                   />
                 </View>
@@ -303,6 +305,7 @@ function EditModal({ node, client, onClose, onSaved }) {
 
 export function FolderCreateModal({ visible, client, onClose, onCreated }) {
   const { keyboardInset } = useKeyboardInset();
+  const ink = useInk();
   const [title, setTitle] = useState("");
   const [audience, setAudience] = useState("@public");
   const [saving, setSaving] = useState(false);
@@ -372,7 +375,7 @@ export function FolderCreateModal({ visible, client, onClose, onCreated }) {
                 value={title}
                 onChangeText={setTitle}
                 placeholder="e.g. Recipes"
-                placeholderTextColor="rgba(26,26,32,0.35)"
+                placeholderTextColor={ink(0.35)}
                 autoFocus
                 className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
               />
@@ -418,6 +421,7 @@ export function FolderCreateModal({ visible, client, onClose, onCreated }) {
 
 function MoveModal({ node, client, account, onClose, onMoved }) {
   const ownerId = account?.id;
+  const ink = useInk();
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(node.parentFolder || null);
@@ -501,7 +505,7 @@ function MoveModal({ node, client, account, onClose, onMoved }) {
             >
               <FolderOpen
                 size={16}
-                color="rgba(26,26,32,0.55)"
+                color={ink(0.55)}
                 strokeWidth={1.75}
               />
               <Text className="font-ui text-base text-base-content ml-2">
