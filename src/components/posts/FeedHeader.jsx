@@ -25,12 +25,17 @@ export function FeedHeader({
   const { kind, subject, isOwner } = useFeedSubject(viewKey);
 
   return (
-    <View className="flex-row items-end px-5 pt-2.5 pb-5">
-      <View className="flex-1 min-w-0">
-        <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-base-content/45 mb-1">
+    <View className="px-5 pt-2.5 pb-5">
+      <View className="flex-row items-center justify-between mb-1.5">
+        <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-base-content/45">
           Current feed
         </Text>
-        <View className="flex-row items-center">
+        <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-base-content/45">
+          Post Types
+        </Text>
+      </View>
+      <View className="flex-row items-center">
+        <View className="flex-1 min-w-0 flex-row items-center">
           <View className="flex-shrink min-w-0">
             <FeedViewSelector
               value={viewKey}
@@ -42,12 +47,7 @@ export function FeedHeader({
             <FeedViewAction kind={kind} subject={subject} isOwner={isOwner} />
           </View>
         </View>
-      </View>
-      <View className="flex-shrink-0 items-end">
-        <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-base-content/45 mb-1">
-          Post Types
-        </Text>
-        <View className="flex-row items-center">
+        <View className="flex-shrink-0 flex-row items-center">
           <TypeFilter activeTypes={activeTypes} onSetTypes={onSetTypes} />
           <FeedDefaultsMenu
             isViewDefault={isViewDefault}
