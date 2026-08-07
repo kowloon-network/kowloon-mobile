@@ -141,7 +141,7 @@ export function Reply({
             </View>
           </View>
         ) : html ? (
-          <HtmlContent html={html} fontSize={14} />
+          <HtmlContent html={html} fontSize={14} lineHeight={20} />
         ) : null}
 
         {!editing ? (
