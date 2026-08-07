@@ -26,8 +26,9 @@ import { PushProvider } from "../src/lib/PushProvider.jsx";
 import { ShareIntentRouter } from "../src/components/ShareIntentRouter.jsx";
 import { ImageViewerProvider } from "../src/components/ImageViewerProvider.jsx";
 import { AudioPlayerProvider } from "../src/lib/AudioPlayerProvider.jsx";
-import { ThemeProvider } from "../src/lib/ThemeContext.jsx";
+import { ThemeProvider, THEME_VARS } from "../src/lib/ThemeContext.jsx";
 import { useColorScheme } from "nativewind";
+import { View } from "react-native";
 
 // Hold the native splash screen until fonts are ready — no flash of fallback
 // text. preventAutoHideAsync can reject during fast-refresh; ignore that.
@@ -63,6 +64,7 @@ export default function RootLayout() {
       <ShareIntentProvider options={{ resetOnBackground: false }}>
         <Provider store={store}>
           <GestureHandlerRootView style={{ flex: 1 }}>
+            <View style={[{ flex: 1 }, isDark ? THEME_VARS.dark : THEME_VARS.light]}>
             <SafeAreaProvider>
               <TypographyProvider>
                 <UnreadCountProvider>
@@ -86,6 +88,7 @@ export default function RootLayout() {
                 </UnreadCountProvider>
               </TypographyProvider>
             </SafeAreaProvider>
+            </View>
           </GestureHandlerRootView>
         </Provider>
       </ShareIntentProvider>
