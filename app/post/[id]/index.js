@@ -17,6 +17,7 @@ import { PostBody } from "../../../src/components/posts/PostBody.jsx";
 import { ReactsBar } from "../../../src/components/posts/ReactsBar.jsx";
 import { Reply } from "../../../src/components/posts/Reply.jsx";
 import { ReplyComposer } from "../../../src/components/posts/ReplyComposer.jsx";
+import { MorePostsByAuthor } from "../../../src/components/posts/MorePostsByAuthor.jsx";
 import { useActiveClient } from "../../../src/lib/useActiveClient.js";
 import { useKeyboardInset } from "../../../src/lib/useKeyboardInset.js";
 import { useTypography } from "../../../src/lib/TypographyContext.js";
@@ -385,6 +386,8 @@ export default function PostDetail() {
                 }}
               />
             </View>
+
+            <MorePostsByAuthor post={post} />
           </>
         ) : null}
       </ScrollView>
