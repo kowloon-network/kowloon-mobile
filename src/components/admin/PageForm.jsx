@@ -34,7 +34,7 @@ const TOOLBAR_ITEMS = DEFAULT_TOOLBAR_ITEMS.filter(
 const TOOLBAR_HEIGHT = 44;
 
 const inputCls =
-  "bg-white border border-base-300 px-3 py-2.5 font-ui text-base text-base-content";
+  "bg-field border border-base-300 px-3 py-2.5 font-ui text-base text-base-content";
 
 function slugify(str = "") {
   return str
@@ -69,7 +69,7 @@ function PageBodyEditor({ initialHtml, editorRef }) {
     editorRef.current = editor;
   }, [editor, editorRef]);
   return (
-    <View className="flex-1 bg-white border border-base-300 mt-1.5">
+    <View className="flex-1 bg-field border border-base-300 mt-1.5">
       <View style={{ height: TOOLBAR_HEIGHT }}>
         <Toolbar editor={editor} hidden={false} items={TOOLBAR_ITEMS} />
       </View>

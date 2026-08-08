@@ -42,7 +42,7 @@ function Field({ label, children }) {
 }
 
 const inputCls =
-  "bg-white border border-base-300 px-3 py-2.5 font-ui text-base text-base-content";
+  "bg-field border border-base-300 px-3 py-2.5 font-ui text-base text-base-content";
 
 function CreateModal({ visible, client, onClose, onCreated }) {
   const ink = useInk();

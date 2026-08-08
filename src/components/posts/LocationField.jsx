@@ -201,7 +201,7 @@ export function LocationField({ value, onChange }) {
                   autoCapitalize="none"
                   autoCorrect={false}
                   returnKeyType="search"
-                  className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
+                  className="  bg-field px-3 py-2.5 font-ui text-base text-base-content"
                 />
               </View>
 

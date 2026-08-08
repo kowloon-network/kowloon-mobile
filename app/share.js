@@ -26,7 +26,7 @@ function Choice({ icon, title, subtitle, onPress }) {
     <Pressable
       onPress={onPress}
       android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-      className="flex-row items-center bg-white px-4 py-4 mb-3"
+      className="flex-row items-center bg-field px-4 py-4 mb-3"
     >
       <View className="bg-secondary items-center justify-center" style={{ width: 44, height: 44 }}>
         {icon}
@@ -70,7 +70,7 @@ export default function ShareChooser() {
 
       <View className="px-5">
         {/* Shared link preview */}
-        <View className="bg-white px-4 py-3 mb-6">
+        <View className="bg-field px-4 py-3 mb-6">
           <Text className="font-ui text-[10px] uppercase tracking-[0.16em] text-base-content/45 mb-1">
             Shared link
           </Text>

@@ -356,7 +356,7 @@ export default function CircleDetail() {
                   placeholderTextColor={ink(0.35)}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
+                  className="  bg-field px-3 py-2.5 font-ui text-base text-base-content"
                 />
                 {addSearching ? (
                   <View className="py-3 items-start">

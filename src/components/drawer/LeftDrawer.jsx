@@ -153,7 +153,7 @@ function SearchBar({ onNavigate }) {
 
   return (
     <View className="  pb-5 mb-5">
-      <View className="flex-row items-center   bg-white px-3">
+      <View className="flex-row items-center   bg-field px-3">
         <Search size={15} color={ink(0.4)} strokeWidth={1.75} />
         <TextInput
           value={query}

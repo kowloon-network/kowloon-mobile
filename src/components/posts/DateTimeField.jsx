@@ -64,7 +64,7 @@ export function DateTimeField({
           {label}
         </Text>
       ) : null}
-      <View className="flex-row   bg-white">
+      <View className="flex-row   bg-field">
         <Pressable
           onPress={() => setMode("date")}
           android_ripple={{ color: "rgba(0,0,0,0.05)" }}

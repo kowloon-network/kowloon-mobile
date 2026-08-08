@@ -230,7 +230,7 @@ function EditModal({ node, client, onClose, onSaved }) {
                 onChangeText={setTitle}
                 placeholder={isFolder ? "e.g. Recipes" : "Bookmark title"}
                 placeholderTextColor={ink(0.35)}
-                className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
+                className="  bg-field px-3 py-2.5 font-ui text-base text-base-content"
               />
             </View>
 
@@ -246,7 +246,7 @@ function EditModal({ node, client, onClose, onSaved }) {
                     keyboardType="url"
                     placeholder="https://…"
                     placeholderTextColor={ink(0.35)}
-                    className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
+                    className="  bg-field px-3 py-2.5 font-ui text-base text-base-content"
                   />
                 </View>
                 <View className="mb-4">
@@ -257,7 +257,7 @@ function EditModal({ node, client, onClose, onSaved }) {
                     multiline
                     placeholder="A short note about what this is."
                     placeholderTextColor={ink(0.35)}
-                    className="  bg-white px-3 py-2.5 font-ui text-base text-base-content min-h-20"
+                    className="  bg-field px-3 py-2.5 font-ui text-base text-base-content min-h-20"
                   />
                 </View>
               </>
@@ -377,7 +377,7 @@ export function FolderCreateModal({ visible, client, onClose, onCreated }) {
                 placeholder="e.g. Recipes"
                 placeholderTextColor={ink(0.35)}
                 autoFocus
-                className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
+                className="  bg-field px-3 py-2.5 font-ui text-base text-base-content"
               />
             </View>
             <View className="mb-4">

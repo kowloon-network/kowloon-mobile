@@ -91,7 +91,7 @@ export function ReplyComposer({
           multiline
           placeholder={placeholder}
           placeholderTextColor={ink(0.35)}
-          className="  bg-white px-3 py-2.5 font-ui text-[15px] text-base-content min-h-20"
+          className="  bg-field px-3 py-2.5 font-ui text-[15px] text-base-content min-h-20"
         />
         <View className="flex-row items-center justify-end mt-2">
           {error ? (

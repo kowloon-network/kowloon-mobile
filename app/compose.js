@@ -784,14 +784,14 @@ export default function Compose() {
                   autoCorrect={false}
                   autoFocus
                   keyboardType="url"
-                  className="  bg-white px-3 py-3 font-ui text-base text-base-content"
+                  className="  bg-field px-3 py-3 font-ui text-base text-base-content"
                 />
                 {/* Link preview — auto-fetched from /preview when href
                     changes. On a Repost, forcedFeaturedImage carries the
                     source post's hero so the preview block shows the right
                     image immediately, even before the OG fetch returns. */}
                 {previewing || linkPreview || forcedFeaturedImage ? (
-                  <View className="flex-row mt-2   bg-white p-2">
+                  <View className="flex-row mt-2   bg-field p-2">
                     {forcedFeaturedImage ? (
                       <Image
                         source={{ uri: forcedFeaturedImage }}
@@ -856,7 +856,7 @@ export default function Compose() {
                   }
                   placeholderTextColor={ink(0.35)}
                   autoFocus={type !== "Link"}
-                  className="  bg-white px-3 py-3 font-ui text-lg text-base-content"
+                  className="  bg-field px-3 py-3 font-ui text-lg text-base-content"
                 />
               </View>
             ) : null}
@@ -891,7 +891,7 @@ export default function Compose() {
                   <Pressable
                     onPress={pickMedia}
                     android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-                    className="flex-row items-center justify-center bg-white border border-base-300 py-4"
+                    className="flex-row items-center justify-center bg-field border border-base-300 py-4"
                   >
                     <Text className="text-xl text-base-content/45 leading-none mr-2">+</Text>
                     <Text className="font-ui uppercase tracking-[0.14em] text-xs text-base-content/55">
@@ -954,7 +954,7 @@ export default function Compose() {
                         onPress={pickMedia}
                         android_ripple={{ color: "rgba(0,0,0,0.05)" }}
                         style={{ aspectRatio: 1 }}
-                        className="bg-white border border-base-300 items-center justify-center"
+                        className="bg-field border border-base-300 items-center justify-center"
                       >
                         <Text className="text-3xl text-base-content/40 leading-none">
                           +
@@ -972,7 +972,7 @@ export default function Compose() {
             {type === "Article" || type === "Event" ? (
               <View className="px-4 pt-3">
                 {featuredImage ? (
-                  <View className="  bg-white">
+                  <View className="  bg-field">
                     <Image
                       source={{ uri: featuredImage.uri }}
                       className="w-full h-40"
@@ -992,7 +992,7 @@ export default function Compose() {
                   <Pressable
                     onPress={pickFeaturedImage}
                     android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-                    className="  bg-white py-5 items-center"
+                    className="  bg-field py-5 items-center"
                   >
                     <Text className="font-ui uppercase tracking-[0.14em] text-xs text-base-content/55">
                       + Add featured image
@@ -1187,7 +1187,7 @@ export default function Compose() {
                       onChangeText={(v) => updateAttachment(editingIndex, { title: v })}
                       placeholder="Optional title"
                       placeholderTextColor={ink(0.35)}
-                      className="bg-white border border-base-300 px-3 py-2.5 font-ui text-base text-base-content mb-4"
+                      className="bg-field border border-base-300 px-3 py-2.5 font-ui text-base text-base-content mb-4"
                     />
                     <Text className="font-ui uppercase tracking-[0.16em] text-[11px] text-base-content/55 mb-1.5">
                       Alt text
@@ -1199,7 +1199,7 @@ export default function Compose() {
                       placeholderTextColor={ink(0.35)}
                       multiline
                       style={{ minHeight: 64 }}
-                      className="bg-white border border-base-300 px-3 py-2.5 font-ui text-base text-base-content"
+                      className="bg-field border border-base-300 px-3 py-2.5 font-ui text-base text-base-content"
                     />
                     <View className="flex-row items-center justify-between mt-5">
                       <Pressable

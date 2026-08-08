@@ -112,7 +112,7 @@ export function Reply({
               autoFocus
               placeholder="Edit your reply…"
               placeholderTextColor={ink(0.35)}
-              className="  bg-white px-3 py-2 font-ui text-sm text-base-content min-h-20"
+              className="  bg-field px-3 py-2 font-ui text-sm text-base-content min-h-20"
             />
             <View className="flex-row justify-end mt-2">
               <Pressable

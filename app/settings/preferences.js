@@ -76,7 +76,7 @@ export default function PreferencesScreen() {
               <Text className="font-ui uppercase tracking-[0.14em] text-xs text-base-content/55 px-4 pb-2">
                 {group.label}
               </Text>
-              <View className="bg-white">
+              <View className="bg-field">
                 {entries.map((entry) => (
                   <PrefControl
                     key={entry.key}
@@ -99,7 +99,7 @@ export default function PreferencesScreen() {
           <Pressable
             onPress={() => router.push("/settings/typography")}
             android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-            className="bg-white px-4 py-4 flex-row items-center justify-between"
+            className="bg-field px-4 py-4 flex-row items-center justify-between"
           >
             <Text className="font-ui text-base text-base-content">
               Reading typography

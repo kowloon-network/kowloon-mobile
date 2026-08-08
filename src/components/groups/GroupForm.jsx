@@ -220,7 +220,7 @@ export function GroupForm({
               onChangeText={setName}
               placeholder="Group name"
               placeholderTextColor={ink(0.35)}
-              className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
+              className="  bg-field px-3 py-2.5 font-ui text-base text-base-content"
             />
           </View>
         </View>
@@ -234,7 +234,7 @@ export function GroupForm({
             multiline
             placeholder="What's this group for?"
             placeholderTextColor={ink(0.35)}
-            className="  bg-white px-3 py-2.5 font-ui text-base text-base-content min-h-20"
+            className="  bg-field px-3 py-2.5 font-ui text-base text-base-content min-h-20"
           />
         </View>
 

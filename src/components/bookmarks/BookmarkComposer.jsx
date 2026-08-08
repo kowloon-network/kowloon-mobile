@@ -264,7 +264,7 @@ export function BookmarkComposer({
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
-                className={`  bg-white px-3 py-2.5 font-ui text-base text-base-content ${
+                className={`  bg-field px-3 py-2.5 font-ui text-base text-base-content ${
                   hrefLocked ? "opacity-60" : ""
                 }`}
               />
@@ -300,7 +300,7 @@ export function BookmarkComposer({
                   fetchingPreview ? "Fetching…" : "Bookmark title"
                 }
                 placeholderTextColor={ink(0.35)}
-                className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
+                className="  bg-field px-3 py-2.5 font-ui text-base text-base-content"
               />
             </View>
 
@@ -313,7 +313,7 @@ export function BookmarkComposer({
                 multiline
                 placeholder="Why are you saving this?"
                 placeholderTextColor={ink(0.35)}
-                className="  bg-white px-3 py-2.5 font-ui text-base text-base-content min-h-20"
+                className="  bg-field px-3 py-2.5 font-ui text-base text-base-content min-h-20"
               />
             </View>
 
@@ -326,7 +326,7 @@ export function BookmarkComposer({
                 placeholder="reading, design, reference"
                 placeholderTextColor={ink(0.35)}
                 autoCapitalize="none"
-                className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
+                className="  bg-field px-3 py-2.5 font-ui text-base text-base-content"
               />
             </View>
 
@@ -376,7 +376,7 @@ export function BookmarkComposer({
                     placeholder="New folder name"
                     placeholderTextColor={ink(0.35)}
                     autoFocus
-                    className="flex-1   bg-white px-3 py-2 font-ui text-sm text-base-content mr-2"
+                    className="flex-1   bg-field px-3 py-2 font-ui text-sm text-base-content mr-2"
                   />
                   <Pressable
                     onPress={handleCreateFolder}

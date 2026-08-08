@@ -113,7 +113,7 @@ function PostBodyEditor({ initialHtml, editorRef }) {
   // editor is a sibling of the metadata ScrollView (not nested inside it), so
   // nothing steals the scroll gesture.
   return (
-    <View style={{ height: EDITOR_HEIGHT }} className="bg-white border border-base-300">
+    <View style={{ height: EDITOR_HEIGHT }} className="bg-field border border-base-300">
       <View style={{ height: TOOLBAR_HEIGHT }}>
         <Toolbar editor={editor} hidden={false} items={TOOLBAR_ITEMS} />
       </View>
@@ -427,7 +427,7 @@ export default function EditPost() {
                   onChangeText={setTitle}
                   placeholder={`${type} title`}
                   placeholderTextColor={ink(0.35)}
-                  className="  bg-white px-3 py-2.5 font-ui text-base text-base-content"
+                  className="  bg-field px-3 py-2.5 font-ui text-base text-base-content"
                 />
               </View>
             ) : null}
