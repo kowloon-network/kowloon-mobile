@@ -450,6 +450,34 @@ function DiscoverSection({ client, onNavigate }) {
 
 // ── LeftDrawer ──────────────────────────────────────────────────────────────
 
+// The scrollable body shared by the drawer (phone) and the persistent tablet
+// left column (#tablet-layout). `onNavigate` lets the drawer close-then-navigate
+// while the tablet column just navigates.
+export function SidebarBody({ client, onNavigate }) {
+  const isAdmin = useIsAdmin();
+  const ink = useInk();
+  return (
+    <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ServerInfoSection client={client} />
+      <SearchBar onNavigate={onNavigate} />
+      <PagesMenuSection client={client} onNavigate={onNavigate} />
+      <DiscoverSection client={client} onNavigate={onNavigate} />
+      {isAdmin ? (
+        <Pressable
+          onPress={() => onNavigate("/admin")}
+          android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+          className="flex-row items-center mt-4 pt-4 border-t border-base-200"
+        >
+          <Shield size={18} color={ink(0.7)} strokeWidth={1.75} />
+          <Text className="font-ui uppercase tracking-[0.16em] text-xs text-base-content ml-2.5">
+            Server Admin
+          </Text>
+        </Pressable>
+      ) : null}
+    </ScrollView>
+  );
+}
+
 export function LeftDrawer({ visible, onClose }) {
   const router = useRouter();
   const client = useActiveClient();
@@ -534,24 +562,7 @@ export function LeftDrawer({ visible, onClose }) {
             </Pressable>
           </View>
 
-          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-            <ServerInfoSection client={client} />
-            <SearchBar onNavigate={navigate} />
-            <PagesMenuSection client={client} onNavigate={navigate} />
-            <DiscoverSection client={client} onNavigate={navigate} />
-            {isAdmin ? (
-              <Pressable
-                onPress={() => navigate("/admin")}
-                android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-                className="flex-row items-center mt-4 pt-4 border-t border-base-200"
-              >
-                <Shield size={18} color={ink(0.7)} strokeWidth={1.75} />
-                <Text className="font-ui uppercase tracking-[0.16em] text-xs text-base-content ml-2.5">
-                  Server Admin
-                </Text>
-              </Pressable>
-            ) : null}
-          </ScrollView>
+          <SidebarBody client={client} onNavigate={navigate} />
         </SafeAreaView>
 
         {/* Backdrop */}

@@ -23,6 +23,7 @@ import { Avatar } from "../../src/components/posts/Avatar.jsx";
 import { FeedHeader } from "../../src/components/posts/FeedHeader.jsx";
 import { UserMenu } from "../../src/components/UserMenu.jsx";
 import { LeftDrawer } from "../../src/components/drawer/LeftDrawer.jsx";
+import { TabletColumns } from "../../src/components/layout/TabletColumns.jsx";
 import { ComposeFab } from "../../src/components/nav/ComposeFab.jsx";
 import { FeedDiscoverRow } from "../../src/components/discover/FeedDiscoverRow.jsx";
 import { Globe, Search } from "lucide-react-native";
@@ -316,6 +317,7 @@ export default function Feed() {
       <LeftDrawer visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <UserMenu visible={menuOpen} onClose={() => setMenuOpen(false)} />
 
+      <TabletColumns>
       {/* Filter header — view picker (Public / Server / Circle) + type filter */}
       <FeedHeader
         viewKey={viewKey}
@@ -389,6 +391,7 @@ export default function Feed() {
           ) : null
         }
       />
+      </TabletColumns>
 
 
       {/* Compose — speed-dial FAB: tap to pick a post type, double-tap for the
