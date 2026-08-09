@@ -6,7 +6,7 @@
 // next/ff + close) and the play-now/add-to-queue prompt. Consume via
 // useAudioBar(): { requestTrack, current, ... }.
 
-import { createContext, useContext, useEffect, useReducer, useRef, useState } from "react";
+import { Component, createContext, useContext, useEffect, useReducer, useRef, useState } from "react";
 import { Animated, Modal, Pressable, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
@@ -316,7 +316,11 @@ function RealAudioPlayerProvider({ children }) {
 // expected 3"). Audio needs a real build for background/lock-screen anyway, so
 // in Expo Go we mount a no-op bar and the app loads; the real player runs in
 // dev-client and standalone builds.
-const IS_EXPO_GO = Constants.executionEnvironment === "storeClient";
+// Expo Go detection is unreliable across SDK/Constants versions
+// (executionEnvironment isn't always "storeClient"), so check multiple signals.
+const IS_EXPO_GO =
+  Constants.appOwnership === "expo" ||
+  Constants.executionEnvironment === "storeClient";
 const NOOP = () => {};
 
 function StubAudioPlayerProvider({ children }) {
@@ -340,9 +344,26 @@ function StubAudioPlayerProvider({ children }) {
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }
 
+// Backstop: if the real provider throws at render anyway (e.g. the expo-audio
+// native module is a mismatched version), catch it and fall back to the no-op
+// bar so the app still mounts instead of white-screening.
+class AudioProviderBoundary extends Component {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch() {}
+  render() {
+    if (this.state.failed) {
+      return <StubAudioPlayerProvider>{this.props.children}</StubAudioPlayerProvider>;
+    }
+    return <RealAudioPlayerProvider>{this.props.children}</RealAudioPlayerProvider>;
+  }
+}
+
 export function AudioPlayerProvider({ children }) {
   if (IS_EXPO_GO) {
     return <StubAudioPlayerProvider>{children}</StubAudioPlayerProvider>;
   }
-  return <RealAudioPlayerProvider>{children}</RealAudioPlayerProvider>;
+  return <AudioProviderBoundary>{children}</AudioProviderBoundary>;
 }
