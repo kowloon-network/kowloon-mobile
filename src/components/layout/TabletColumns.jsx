@@ -19,7 +19,9 @@ export function useIsWide() {
 // `overlay` (e.g. the compose FAB) renders positioned relative to the CENTER
 // column on wide screens — outside the content padding — so it hugs the center
 // column's edge, not the whole screen.
-export function TabletColumns({ children, overlay = null }) {
+// `sidebar={false}` leaves BOTH side columns empty and borderless — just the
+// centered content band (used by pre-auth screens like login).
+export function TabletColumns({ children, overlay = null, sidebar = true }) {
   const wide = useIsWide();
   const router = useRouter();
   const client = useActiveClient();
@@ -35,8 +37,13 @@ export function TabletColumns({ children, overlay = null }) {
 
   return (
     <View className="flex-1 flex-row bg-base-100">
-      <View style={{ flex: 3 }} className="border-r border-base-300">
-        <SidebarBody client={client} onNavigate={(p) => router.push(p)} />
+      <View
+        style={{ flex: 3 }}
+        className={sidebar ? "border-r border-base-300" : ""}
+      >
+        {sidebar ? (
+          <SidebarBody client={client} onNavigate={(p) => router.push(p)} />
+        ) : null}
       </View>
       <View style={{ flex: 6 }}>
         {/* Extra horizontal padding for the center column's content. */}
@@ -44,7 +51,10 @@ export function TabletColumns({ children, overlay = null }) {
         {overlay}
       </View>
       {/* Right column reserved (empty for now — web parity). */}
-      <View style={{ flex: 3 }} className="border-l border-base-300" />
+      <View
+        style={{ flex: 3 }}
+        className={sidebar ? "border-l border-base-300" : ""}
+      />
     </View>
   );
 }

@@ -27,6 +27,7 @@ import { parseKowloonId, inferBaseUrl, domainFromUrl } from "../src/lib/identity
 import { ensureClient, forgetClient } from "../src/lib/client.js";
 import { addAccountAndPersist } from "../src/state/accountsSlice.js";
 import { purgeAccountStorage } from "../src/lib/storage.js";
+import { TabletColumns } from "../src/components/layout/TabletColumns.jsx";
 
 export default function Login() {
   const router = useRouter();
@@ -112,6 +113,7 @@ export default function Login() {
 
   return (
     <SafeAreaView className="flex-1 bg-base-100">
+      <TabletColumns sidebar={false}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         className="flex-1"
@@ -184,6 +186,7 @@ export default function Login() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      </TabletColumns>
     </SafeAreaView>
   );
 }
