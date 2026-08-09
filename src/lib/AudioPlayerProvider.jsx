@@ -9,6 +9,7 @@
 import { createContext, useContext, useEffect, useReducer, useRef, useState } from "react";
 import { Animated, Modal, Pressable, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Constants from "expo-constants";
 import {
   useAudioPlayer,
   useAudioPlayerStatus,
@@ -144,7 +145,7 @@ function AudioBar({ api }) {
   );
 }
 
-export function AudioPlayerProvider({ children }) {
+function RealAudioPlayerProvider({ children }) {
   const player = useAudioPlayer();
   const status = useAudioPlayerStatus(player);
   const insets = useSafeAreaInsets();
@@ -308,4 +309,40 @@ export function AudioPlayerProvider({ children }) {
       </Modal>
     </Ctx.Provider>
   );
+}
+
+// expo-audio's native module isn't available (or is a mismatched version) in
+// Expo Go, where useAudioPlayer() throws at load ("received 4 arguments but
+// expected 3"). Audio needs a real build for background/lock-screen anyway, so
+// in Expo Go we mount a no-op bar and the app loads; the real player runs in
+// dev-client and standalone builds.
+const IS_EXPO_GO = Constants.executionEnvironment === "storeClient";
+const NOOP = () => {};
+
+function StubAudioPlayerProvider({ children }) {
+  const api = {
+    requestTrack: NOOP,
+    playNow: NOOP,
+    enqueue: NOOP,
+    toggle: NOOP,
+    next: NOOP,
+    prev: NOOP,
+    seekBy: NOOP,
+    stop: NOOP,
+    current: null,
+    playing: false,
+    position: 0,
+    duration: 0,
+    queue: [],
+    index: -1,
+    unavailable: true,
+  };
+  return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
+}
+
+export function AudioPlayerProvider({ children }) {
+  if (IS_EXPO_GO) {
+    return <StubAudioPlayerProvider>{children}</StubAudioPlayerProvider>;
+  }
+  return <RealAudioPlayerProvider>{children}</RealAudioPlayerProvider>;
 }
