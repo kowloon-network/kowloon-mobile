@@ -26,7 +26,8 @@
     "production": {
       "ios": {
         "appleId": "jzellis@gmail.com",
-        "appleTeamId": "493R795A98"
+        "appleTeamId": "493R795A98",
+        "ascAppId": "6793585672"
       }
     }
   }
