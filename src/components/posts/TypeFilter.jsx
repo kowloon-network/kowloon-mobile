@@ -32,7 +32,7 @@ export function TypeFilter({ activeTypes = [], onSetTypes }) {
             <PostTypeIcon
               type={type}
               size={20}
-              color={active ? POST_TYPES[type].color : INK_DIM}
+              color={active ? POST_TYPES[type].color : ink(0.15)}
             />
           </Pressable>
         );
