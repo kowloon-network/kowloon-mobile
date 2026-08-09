@@ -23,6 +23,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Avatar } from "../../src/components/posts/Avatar.jsx";
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { RecShelf } from "../../src/components/discover/RecShelf.jsx";
+import { TabletColumns } from "../../src/components/layout/TabletColumns.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { resolveImageUrl } from "../../src/lib/resolveImageUrl.js";
 import { rootStorage } from "../../src/lib/storage.js";
@@ -148,6 +149,7 @@ export default function Discover() {
         style={{ backgroundColor: "transparent" }}
       >
         <AppHeader title="Discover" />
+        <TabletColumns>
         <ScrollView
           contentContainerStyle={{ paddingBottom: 48 }}
           keyboardShouldPersistTaps="handled"
@@ -226,6 +228,7 @@ export default function Discover() {
             </View>
           )}
         </ScrollView>
+        </TabletColumns>
       </SafeAreaView>
     </View>
   );

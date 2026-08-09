@@ -29,6 +29,7 @@ import { PostCard } from "../../src/components/posts/PostCard.jsx";
 import { GroupCard } from "../../src/components/groups/GroupCard.jsx";
 import { BookmarkCard } from "../../src/components/bookmarks/BookmarkCard.jsx";
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
+import { TabletColumns } from "../../src/components/layout/TabletColumns.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { selectActiveAccount } from "../../src/state/accountsSlice.js";
 import { resolveImageUrl } from "../../src/lib/resolveImageUrl.js";
@@ -263,6 +264,7 @@ export default function Search() {
   return (
     <SafeAreaView className="flex-1 bg-base-100" edges={["left", "right"]}>
       <AppHeader title="Search" />
+      <TabletColumns>
       {/* Search field */}
       <View className="px-5 pt-3 pb-3  ">
         <View className="flex-row items-center   bg-field px-3">
@@ -392,6 +394,7 @@ export default function Search() {
         />
       )}
       </View>
+      </TabletColumns>
 
     </SafeAreaView>
   );

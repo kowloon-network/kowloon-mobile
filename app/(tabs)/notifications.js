@@ -21,6 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BackLink } from "../../src/components/ui/BackLink.jsx";
 import { NotificationRow } from "../../src/components/notifications/NotificationRow.jsx";
 import { AppHeader, HeaderButton } from "../../src/components/nav/AppHeader.jsx";
+import { TabletColumns } from "../../src/components/layout/TabletColumns.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { useUnreadCount } from "../../src/lib/UnreadCountContext.js";
 import { NOTIF_TYPES, notificationRoute } from "../../src/lib/notifications.js";
@@ -127,6 +128,7 @@ export default function Notifications() {
         }
       />
 
+      <TabletColumns>
       {/* Filter chips */}
       <View className=" ">
         <FlatList
@@ -214,6 +216,7 @@ export default function Notifications() {
           )
         }
       />
+      </TabletColumns>
 
     </SafeAreaView>
   );

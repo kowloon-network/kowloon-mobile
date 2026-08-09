@@ -18,6 +18,7 @@ import { Plus } from "lucide-react-native";
 import { BackLink } from "../../src/components/ui/BackLink.jsx";
 import { GroupCard } from "../../src/components/groups/GroupCard.jsx";
 import { AppHeader, HeaderButton } from "../../src/components/nav/AppHeader.jsx";
+import { TabletColumns } from "../../src/components/layout/TabletColumns.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { useJoinedGroups } from "../../src/lib/useJoinedGroups.js";
 import { selectActiveAccount } from "../../src/state/accountsSlice.js";
@@ -90,6 +91,7 @@ export default function Groups() {
         }
       />
 
+      <TabletColumns>
       {/* Tabs */}
       <View className="flex-row  ">
         <TabButton
@@ -158,6 +160,7 @@ export default function Groups() {
           )
         }
       />
+      </TabletColumns>
 
     </SafeAreaView>
   );

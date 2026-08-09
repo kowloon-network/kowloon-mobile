@@ -23,6 +23,7 @@ import { sortByPins } from "@kowloon/client";
 
 import { CircleCard } from "../../src/components/circles/CircleCard.jsx";
 import { AppHeader, HeaderButton } from "../../src/components/nav/AppHeader.jsx";
+import { TabletColumns } from "../../src/components/layout/TabletColumns.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { selectActiveAccount } from "../../src/state/accountsSlice.js";
 
@@ -128,6 +129,7 @@ export default function Circles() {
         }
       />
 
+      <TabletColumns>
       {/* Tabs */}
       <View className="flex-row  ">
         <TabButton
@@ -196,6 +198,7 @@ export default function Circles() {
           )
         }
       />
+      </TabletColumns>
 
     </SafeAreaView>
   );
