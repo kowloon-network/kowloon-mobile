@@ -7,7 +7,7 @@
 // useAudioBar(): { requestTrack, current, ... }.
 
 import { Component, createContext, useContext, useEffect, useReducer, useRef, useState } from "react";
-import { Animated, Modal, Pressable, Text, useWindowDimensions, View } from "react-native";
+import { Animated, LogBox, Modal, Pressable, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import {
@@ -27,6 +27,15 @@ import {
   SkipForward,
   X,
 } from "lucide-react-native";
+
+// In an older dev-client build / Expo Go, expo-audio's native module can lag the
+// JS and make useAudioPlayer() throw ("Received 4 arguments, but 3 was
+// expected"). The provider's error boundary catches it (falls back to a no-op
+// bar), so silence the dev overlay for that specific, handled error. A fresh
+// build has matching native+JS and never hits this.
+if (__DEV__) {
+  LogBox.ignoreLogs([/Received \d+ arguments, but \d+ (was|were) expected/]);
+}
 
 const Ctx = createContext(null);
 export function useAudioBar() {
