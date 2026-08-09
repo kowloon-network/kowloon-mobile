@@ -13,6 +13,7 @@ import { Home, Hexagon, Users, Compass, Bell } from "lucide-react-native";
 
 import { useUnreadCount } from "../../lib/UnreadCountContext.js";
 import { useInk } from "../../lib/useInk.js";
+import { useIsWide } from "../layout/TabletColumns.jsx";
 
 // Route name (file name under app/(tabs)) -> label + icon. Routes without an
 // entry here (e.g. "search") stay mounted but are hidden from the bar.
@@ -29,11 +30,15 @@ const ACTIVE = "#5588B1"; // primary
 export function BottomTabBar({ state, navigation }) {
   const { count } = useUnreadCount();
   const ink = useInk();
+  const wide = useIsWide();
 
   return (
     <SafeAreaView
       edges={["bottom"]}
       className="bg-base-100  "
+      // On wide (tablet landscape) screens, match the center column: 50% wide,
+      // centered (25% margin each side = the 3:6:3 center band).
+      style={wide ? { marginHorizontal: "25%" } : undefined}
     >
       <View className="flex-row">
         {state.routes.map((route, index) => {

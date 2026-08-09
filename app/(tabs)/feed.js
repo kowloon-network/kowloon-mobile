@@ -317,7 +317,7 @@ export default function Feed() {
       <LeftDrawer visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <UserMenu visible={menuOpen} onClose={() => setMenuOpen(false)} />
 
-      <TabletColumns>
+      <TabletColumns overlay={<ComposeFab />}>
       {/* Filter header — view picker (Public / Server / Circle) + type filter */}
       <FeedHeader
         viewKey={viewKey}
@@ -392,12 +392,6 @@ export default function Feed() {
         }
       />
       </TabletColumns>
-
-
-      {/* Compose — speed-dial FAB: tap to pick a post type, double-tap for the
-          default. The Tabs navigator lays the tab bar below the scene, so it
-          only needs to clear the scene's own bottom edge. */}
-      <ComposeFab />
     </View>
   );
 }
