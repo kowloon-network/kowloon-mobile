@@ -37,6 +37,7 @@ import {
 import { ensureClient, forgetClient } from "../src/lib/client.js";
 import { purgeAccountStorage, rootStorage } from "../src/lib/storage.js";
 import { addAccountAndPersist } from "../src/state/accountsSlice.js";
+import { TabletColumns } from "../src/components/layout/TabletColumns.jsx";
 
 const BANNER_KEY = "kowloon_discover_welcomed";
 
@@ -215,6 +216,7 @@ export default function Register() {
 
   return (
     <SafeAreaView className="flex-1 bg-base-100">
+      <TabletColumns sidebar={false}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         className="flex-1"
@@ -392,6 +394,7 @@ export default function Register() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      </TabletColumns>
     </SafeAreaView>
   );
 }

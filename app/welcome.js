@@ -9,12 +9,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../src/components/ui/Button.jsx";
 import { Heading, Eyebrow } from "../src/components/ui/Heading.jsx";
+import { TabletColumns } from "../src/components/layout/TabletColumns.jsx";
 
 export default function Welcome() {
   const router = useRouter();
 
   return (
     <SafeAreaView className="flex-1 bg-base-100">
+      <TabletColumns sidebar={false}>
       <View className="flex-1 px-6 justify-between">
         <View className="pt-12">
           <Eyebrow>The Kowloon Network</Eyebrow>
@@ -46,6 +48,7 @@ export default function Welcome() {
           />
         </View>
       </View>
+      </TabletColumns>
     </SafeAreaView>
   );
 }
