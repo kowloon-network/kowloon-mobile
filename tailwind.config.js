@@ -1,4 +1,12 @@
 /** @type {import('tailwindcss').Config} */
+// Single source of truth for the palette — shared with the web frontend.
+const palette = require("@kowloon/client/theme/palette.json");
+const L = palette.light;
+// Tokens that differ between light and dark are variable-driven (their runtime
+// values are set by ThemeContext's vars() from this same palette). The rest are
+// constant across modes, so they read straight from palette.light.
+const v = (name) => `rgb(var(--color-${name}) / <alpha-value>)`;
+
 module.exports = {
   content: [
     "./app/**/*.{js,jsx}",
@@ -10,59 +18,33 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Editorial palette — mirrors frontend's kowloon theme.
-        // Surface + text + field tokens are variable-driven (see global.css) so
-        // they swap for light/dark automatically. Brand accents below stay
-        // constant across modes.
+        // From the shared palette (@kowloon/client/theme/palette.json).
+        // Variable-driven tokens swap light/dark; constant tokens read light.
         base: {
-          100: "rgb(var(--color-base-100) / <alpha-value>)", // app background
-          200: "rgb(var(--color-base-200) / <alpha-value>)", // card / sheet surface
-          300: "rgb(var(--color-base-300) / <alpha-value>)", // hairline / placeholder
-          content: "rgb(var(--color-base-content) / <alpha-value>)",
+          100: v("base-100"), // app background
+          200: v("base-200"), // card / sheet surface
+          300: v("base-300"), // hairline / placeholder
+          content: v("base-content"),
         },
-        primary: {
-          DEFAULT: "#5588B1", // desaturated steel blue
-          content: "#F4F5F7",
-        },
-        secondary: {
-          DEFAULT: "#393B7A", // medium navy
-          content: "#FAF4E8",
-        },
-        accent: {
-          DEFAULT: "#C0394A", // vermillion
-          content: "#F7E8E8",
-        },
-        success: {
-          DEFAULT: "#2F9956",
-          content: "#F0F8F2",
-        },
-        warning: {
-          DEFAULT: "#D9B038",
-          content: "#1A1A20",
-        },
-        error: {
-          DEFAULT: "#C0394A",
-          content: "#F7E8E8",
-        },
-        info: {
-          DEFAULT: "#3C8DB8",
-          content: "#F0F6FA",
-        },
-        // Post type accents (light defaults)
+        field: v("field"), // text input / editor surface
+        primary: { DEFAULT: L.primary, content: v("primary-content") },
+        secondary: { DEFAULT: L.secondary, content: L["secondary-content"] },
+        accent: { DEFAULT: L.accent, content: L["accent-content"] },
+        neutral: { DEFAULT: v("neutral"), content: L["neutral-content"] },
+        success: { DEFAULT: L.success, content: L["success-content"] },
+        warning: { DEFAULT: L.warning, content: L["warning-content"] },
+        error: { DEFAULT: L.error, content: L["error-content"] },
+        info: { DEFAULT: L.info, content: L["info-content"] },
+        // Post type accents (brighten in dark via the palette)
         post: {
-          note: "#B76C00",
-          article: "#006893",
-          media: "#009084",
-          link: "#417843",
-          event: "#CC272E",
+          note: v("post-note"),
+          article: v("post-article"),
+          media: v("post-media"),
+          link: v("post-link"),
+          event: v("post-event"),
         },
-        // Klein blue app header (white sans on Yves Klein blue)
-        header: {
-          DEFAULT: "#002FA7",
-          content: "#FFFFFF",
-        },
-        // Text input / editor surface (variable-driven; see global.css)
-        field: "rgb(var(--color-field) / <alpha-value>)",
+        // Klein blue app header (constant across modes)
+        header: { DEFAULT: L.header, content: L["header-content"] },
       },
       fontFamily: {
         // Static chrome fonts — bundled via expo-font (see src/lib/typography.js).

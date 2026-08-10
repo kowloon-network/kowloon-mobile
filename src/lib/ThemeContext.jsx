@@ -11,30 +11,44 @@ import {
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colorScheme, vars } from "nativewind";
+import palette from "@kowloon/client/theme/palette.json";
 
 const KEY = "kowloon.themePref";
 const VALID = new Set(["light", "dark", "system"]);
 
-// Theme token values applied via vars() on a wrapper View (see app/_layout.js).
-// This is the reliable way to swap CSS variables in NativeWind/RN — a `.dark:root`
-// CSS selector does not take effect because there is no real :root/DOM. Keep
-// these in sync with the fallbacks in global.css.
-export const THEME_VARS = {
-  light: vars({
-    "--color-base-100": "255 255 255",
-    "--color-base-200": "244 244 244",
-    "--color-base-300": "231 231 231",
-    "--color-base-content": "26 26 32",
-    "--color-field": "252 251 247",
-  }),
-  dark: vars({
-    "--color-base-100": "21 22 26",
-    "--color-base-200": "30 32 39",
-    "--color-base-300": "46 49 58",
-    "--color-base-content": "233 233 236",
-    "--color-field": "30 32 39",
-  }),
-};
+// The variable-driven tokens (must match the `v(...)` set in tailwind.config.js).
+// Their light/dark values come from the shared palette and are applied via
+// vars() on a wrapper View (app/_layout.js) — the reliable way to swap CSS
+// variables in NativeWind/RN (a `.dark:root` CSS selector has no effect, since
+// there's no real :root/DOM).
+const VAR_TOKENS = [
+  "base-100",
+  "base-200",
+  "base-300",
+  "base-content",
+  "field",
+  "primary-content",
+  "neutral",
+  "post-note",
+  "post-article",
+  "post-media",
+  "post-link",
+  "post-event",
+];
+
+function hexToRgb(hex) {
+  const h = hex.replace("#", "");
+  return `${parseInt(h.slice(0, 2), 16)} ${parseInt(h.slice(2, 4), 16)} ${parseInt(h.slice(4, 6), 16)}`;
+}
+
+function themeVars(mode) {
+  const m = palette[mode];
+  const out = {};
+  for (const t of VAR_TOKENS) out[`--color-${t}`] = hexToRgb(m[t]);
+  return vars(out);
+}
+
+export const THEME_VARS = { light: themeVars("light"), dark: themeVars("dark") };
 
 const ThemeContext = createContext({ pref: "system", setPref: () => {} });
 
