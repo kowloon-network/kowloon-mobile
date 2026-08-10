@@ -26,10 +26,11 @@ import { LeftDrawer } from "../../src/components/drawer/LeftDrawer.jsx";
 import { TabletColumns } from "../../src/components/layout/TabletColumns.jsx";
 import { ComposeFab } from "../../src/components/nav/ComposeFab.jsx";
 import { FeedDiscoverRow } from "../../src/components/discover/FeedDiscoverRow.jsx";
-import { Globe, Search } from "lucide-react-native";
+import { Globe, Menu, Search } from "lucide-react-native";
 import { useFeed } from "../../src/lib/useFeed.js";
 import { consumeFeedRefresh } from "../../src/lib/feedRefreshSignal.js";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
+import { useInk } from "../../src/lib/useInk.js";
 import { useUnreadCount } from "../../src/lib/UnreadCountContext.js";
 import { usePersistedFilter } from "../../src/lib/usePersistedFilter.js";
 import { resolveImageUrl } from "../../src/lib/resolveImageUrl.js";
@@ -50,6 +51,7 @@ export default function Feed() {
   const dispatch = useDispatch();
   const account = useSelector(selectActiveAccount);
   const client = useActiveClient();
+  const ink = useInk();
   const { count: unreadCount } = useUnreadCount();
   const params = useLocalSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -247,20 +249,21 @@ export default function Feed() {
 
   return (
     <View className="flex-1 bg-base-100">
-      {/* Masthead — Klein blue. Server icon + name opens the drawer; the
-          account avatar opens the account menu. */}
-      <SafeAreaView edges={["top"]} className="bg-header">
+      {/* Masthead — white. Hamburger opens the drawer; the account avatar opens
+          the account menu. The server icon + name is just branding now. */}
+      <SafeAreaView edges={["top"]} className="bg-base-100 border-b border-base-300">
         <View className="px-5 pt-2 pb-3 flex-row items-center">
           <Pressable
             onPress={() => setDrawerOpen(true)}
             hitSlop={8}
-            android_ripple={{ color: "rgba(255,255,255,0.15)" }}
-            className="flex-row items-center flex-1 min-w-0 mr-3"
+            android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: true }}
+            className="-ml-1 mr-2 p-1"
+            accessibilityLabel="Menu"
           >
-            <View
-              className="w-6 h-6 items-center justify-center overflow-hidden mr-2.5"
-              style={{ backgroundColor: "rgba(255,255,255,0.16)" }}
-            >
+            <Menu size={24} color={ink(0.85)} strokeWidth={1.9} />
+          </Pressable>
+          <View className="flex-row items-center flex-1 min-w-0 mr-3">
+            <View className="w-6 h-6 items-center justify-center overflow-hidden mr-2.5 bg-base-200">
               {serverIcon ? (
                 <Image
                   source={{ uri: serverIcon }}
@@ -268,29 +271,29 @@ export default function Feed() {
                   resizeMode="cover"
                 />
               ) : (
-                <Globe size={15} color="#FFFFFF" strokeWidth={1.75} />
+                <Globe size={15} color={ink(0.7)} strokeWidth={1.75} />
               )}
             </View>
             <Text
-              className="font-ui text-xl tracking-tight text-header-content flex-1"
+              className="font-ui text-xl tracking-tight text-base-content flex-1"
               numberOfLines={1}
             >
               {account.serverName || account.server}
             </Text>
-          </Pressable>
+          </View>
           <Pressable
             onPress={() => router.push("/search")}
             hitSlop={8}
-            android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true }}
+            android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: true }}
             className="w-9 h-9 items-center justify-center mr-1"
             accessibilityLabel="Search"
           >
-            <Search size={20} color="#FFFFFF" strokeWidth={1.9} />
+            <Search size={20} color={ink(0.85)} strokeWidth={1.9} />
           </Pressable>
           <Pressable
             onPress={() => setMenuOpen(true)}
             hitSlop={8}
-            android_ripple={{ color: "rgba(255,255,255,0.15)", borderless: true }}
+            android_ripple={{ color: "rgba(0,0,0,0.06)", borderless: true }}
           >
             <View className="relative">
               <Avatar

@@ -148,7 +148,7 @@ export default function Discover() {
         edges={["left", "right"]}
         style={{ backgroundColor: "transparent" }}
       >
-        <AppHeader title="Discover" />
+        <AppHeader title="Discover" transparent />
         <TabletColumns>
         <ScrollView
           contentContainerStyle={{ paddingBottom: 48 }}
