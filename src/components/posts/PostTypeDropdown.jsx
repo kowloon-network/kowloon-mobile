@@ -8,11 +8,13 @@ import { ChevronDown } from "lucide-react-native";
 import { POST_TYPE_NAMES, POST_TYPES } from "../../lib/postTypes.js";
 import { PostTypeIcon } from "./PostTypeIcon.jsx";
 import { useInk } from "../../lib/useInk.js";
+import { usePostColor } from "../../lib/usePostColor.js";
 
 const DROPDOWN_WIDTH = 200;
 
 export function PostTypeDropdown({ value, onChange, prefix }) {
   const ink = useInk();
+  const postColor = usePostColor();
   const triggerRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [dropPos, setDropPos] = useState({ top: 0, left: 0 });
@@ -33,7 +35,7 @@ export function PostTypeDropdown({ value, onChange, prefix }) {
     close();
   }
 
-  const typeColor = POST_TYPES[value]?.color ?? "#1A1A20";
+  const typeColor = POST_TYPES[value] ? postColor(value) : "#1A1A20";
 
   return (
     <>
@@ -101,7 +103,7 @@ export function PostTypeDropdown({ value, onChange, prefix }) {
                   <PostTypeIcon
                     type={t}
                     size={15}
-                    color={selected ? "#FAF4E8" : info.color}
+                    color={selected ? "#FAF4E8" : postColor(t)}
                   />
                   <Text
                     className={`font-ui uppercase tracking-[0.14em] text-xs ml-3 ${

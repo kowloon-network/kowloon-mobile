@@ -4,17 +4,19 @@
 
 import { Pressable, Text, View } from "react-native";
 
-import { POST_TYPE_NAMES, POST_TYPES } from "../../lib/postTypes.js";
+import { POST_TYPE_NAMES } from "../../lib/postTypes.js";
 import { PostTypeIcon } from "./PostTypeIcon.jsx";
 import { useInk } from "../../lib/useInk.js";
+import { usePostColor } from "../../lib/usePostColor.js";
 
 export function PostTypeSelector({ value, onChange }) {
   const ink = useInk();
+  const postColor = usePostColor();
   return (
     <View className="flex-row  ">
       {POST_TYPE_NAMES.map((type) => {
         const active = value === type;
-        const color = POST_TYPES[type].color;
+        const color = postColor(type);
         return (
           <Pressable
             key={type}

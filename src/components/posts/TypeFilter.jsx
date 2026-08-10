@@ -1,11 +1,13 @@
 import { Pressable, View } from "react-native";
 
 import { PostTypeIcon } from "./PostTypeIcon.jsx";
-import { POST_TYPE_NAMES, POST_TYPES } from "../../lib/postTypes.js";
+import { POST_TYPE_NAMES } from "../../lib/postTypes.js";
 import { useInk } from "../../lib/useInk.js";
+import { usePostColor } from "../../lib/usePostColor.js";
 
 export function TypeFilter({ activeTypes = [], onSetTypes }) {
   const ink = useInk();
+  const postColor = usePostColor();
   const isAll = !activeTypes || activeTypes.length === 0;
 
   function handlePress(type) {
@@ -32,7 +34,7 @@ export function TypeFilter({ activeTypes = [], onSetTypes }) {
             <PostTypeIcon
               type={type}
               size={20}
-              color={active ? POST_TYPES[type].color : ink(0.15)}
+              color={active ? postColor(type) : ink(0.15)}
             />
           </Pressable>
         );

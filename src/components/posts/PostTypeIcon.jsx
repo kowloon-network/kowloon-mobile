@@ -1,6 +1,6 @@
 import { Image } from "react-native";
 
-import { POST_TYPES } from "../../lib/postTypes.js";
+import { usePostColor } from "../../lib/usePostColor.js";
 
 // Monochrome line-art icons rasterized from the web frontend's SVGs. They're
 // black on transparent, so `tintColor` recolors them to any type color.
@@ -15,9 +15,10 @@ const ICONS = {
 // Post type icon, tinted. Pass an explicit `color` to override the type's
 // canonical color (e.g. a muted tint for an inactive picker item).
 export function PostTypeIcon({ type, size = 24, color }) {
+  const postColor = usePostColor();
   const src = ICONS[type];
   if (!src) return null;
-  const tint = color || POST_TYPES[type]?.color;
+  const tint = color || postColor(type);
   return (
     <Image
       source={src}
