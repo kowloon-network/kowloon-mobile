@@ -180,7 +180,7 @@ export default function CircleDetail() {
     }
   }
 
-  async function removeMember(memberId) {
+  async function doRemoveMember(memberId) {
     if (removingId) return;
     setRemovingId(memberId);
     try {
@@ -202,6 +202,28 @@ export default function CircleDetail() {
     } finally {
       setRemovingId(null);
     }
+  }
+
+  // Removing someone from Blocked = unblocking them — a real, meaningful
+  // action, so it gets a confirmation instead of firing on tap like a normal
+  // circle's member removal does.
+  function removeMember(member) {
+    if (circle?.id !== account?.blocked) {
+      doRemoveMember(member.id);
+      return;
+    }
+    const isServer = /^@[^@]+$/.test(member.id);
+    Alert.alert(
+      "Unblock?",
+      isServer
+        ? `Unblock the whole server ${member.id.slice(1)}? Everyone on that server will be able to reach you again.`
+        : `Unblock ${member.name ?? member.id}? They'll be able to interact with you again.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Unblock", style: "destructive", onPress: () => doRemoveMember(member.id) },
+      ],
+      { cancelable: true }
+    );
   }
 
   return (
@@ -482,7 +504,7 @@ export default function CircleDetail() {
                     </Pressable>
                     {isOwner ? (
                       <Pressable
-                        onPress={() => removeMember(m.id)}
+                        onPress={() => removeMember(m)}
                         disabled={removingId === m.id}
                         hitSlop={8}
                         android_ripple={{

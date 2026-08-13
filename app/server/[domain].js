@@ -23,6 +23,7 @@ import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { PostCard } from "../../src/components/posts/PostCard.jsx";
 import { RecShelf } from "../../src/components/discover/RecShelf.jsx";
 import { DiscoverMediaTile } from "../../src/components/discover/DiscoverMediaTile.jsx";
+import { ServerMoreMenu } from "../../src/components/servers/ServerMoreMenu.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { resolveImageUrl } from "../../src/lib/resolveImageUrl.js";
 import { useInk } from "../../src/lib/useInk.js";
@@ -473,7 +474,11 @@ export default function ServerProfile() {
 
   return (
     <SafeAreaView className="flex-1 bg-base-100" edges={["left", "right"]}>
-      <AppHeader back title={server?.name || domain} />
+      <AppHeader
+        back
+        title={server?.name || domain}
+        right={<ServerMoreMenu domain={domain} client={client} account={account} />}
+      />
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
