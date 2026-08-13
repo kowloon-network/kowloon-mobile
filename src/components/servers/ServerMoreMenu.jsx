@@ -37,6 +37,11 @@ export function ServerMoreMenu({ domain, client, account }) {
 
   if (!account?.id || !domain) return null;
 
+  // account (from Redux' selectActiveAccount) is a minimal { id, username,
+  // server, baseUrl, profile, addedAt } — it does NOT carry blocked/muted
+  // circle ids. Those live on the auth client's cached user object instead.
+  const authUser = client?.auth?.getUser?.();
+
   function openMenu() {
     triggerRef.current?.measureInWindow((x, y, w, h) => {
       const left = Math.max(8, x + w - DROPDOWN_WIDTH);
@@ -62,7 +67,7 @@ export function ServerMoreMenu({ domain, client, account }) {
             style: "destructive",
             onPress: async () => {
               try {
-                await client.activities.removeFromCircle({ circleId: account.blocked, memberId });
+                await client.activities.removeFromCircle({ circleId: authUser?.blocked, memberId });
                 setState((s) => ({ ...s, blocked: false }));
               } catch (e) {
                 Alert.alert("Couldn't unblock", e?.message || "Please try again.");
@@ -83,7 +88,7 @@ export function ServerMoreMenu({ domain, client, account }) {
             style: "destructive",
             onPress: async () => {
               try {
-                await client.activities.addToCircle({ circleId: account.blocked, memberId });
+                await client.activities.addToCircle({ circleId: authUser?.blocked, memberId });
                 setState((s) => ({ ...s, blocked: true }));
               } catch (e) {
                 Alert.alert("Couldn't block", e?.message || "Please try again.");
@@ -109,7 +114,7 @@ export function ServerMoreMenu({ domain, client, account }) {
             text: "Unmute",
             onPress: async () => {
               try {
-                await client.activities.removeFromCircle({ circleId: account.muted, memberId });
+                await client.activities.removeFromCircle({ circleId: authUser?.muted, memberId });
                 setState((s) => ({ ...s, muted: false }));
               } catch (e) {
                 Alert.alert("Couldn't unmute", e?.message || "Please try again.");
@@ -130,7 +135,7 @@ export function ServerMoreMenu({ domain, client, account }) {
             style: "destructive",
             onPress: async () => {
               try {
-                await client.activities.addToCircle({ circleId: account.muted, memberId });
+                await client.activities.addToCircle({ circleId: authUser?.muted, memberId });
                 setState((s) => ({ ...s, muted: true }));
               } catch (e) {
                 Alert.alert("Couldn't mute", e?.message || "Please try again.");

@@ -206,9 +206,13 @@ export default function CircleDetail() {
 
   // Removing someone from Blocked = unblocking them — a real, meaningful
   // action, so it gets a confirmation instead of firing on tap like a normal
-  // circle's member removal does.
+  // circle's member removal does. account (Redux' selectActiveAccount) is a
+  // minimal { id, username, server, baseUrl, profile, addedAt } — it does NOT
+  // carry blocked/muted circle ids, those live on the auth client's cached
+  // user object instead.
   function removeMember(member) {
-    if (circle?.id !== account?.blocked) {
+    const authUser = client?.auth?.getUser?.();
+    if (circle?.id !== authUser?.blocked) {
       doRemoveMember(member.id);
       return;
     }
