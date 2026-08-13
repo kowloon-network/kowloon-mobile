@@ -323,7 +323,13 @@ export default function ServerProfile() {
         }).finally(() => clearTimeout(timer));
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        const items = data.orderedItems ?? data.items ?? [];
+        // This is an anonymous, direct fetch to the REMOTE server (previewing
+        // any server's live public firehose, even ones you have no account
+        // on) — kwln.dev has no idea it's you asking, so it can't apply your
+        // blocks/mutes. Filter client-side using your own list instead.
+        const raw = data.orderedItems ?? data.items ?? [];
+        await client?.moderation?.load();
+        const items = client?.moderation?.filterItems(raw) ?? raw;
         if (append) {
           setPosts((prev) => {
             const seen = new Set(prev.map((p) => p.id));
@@ -341,7 +347,7 @@ export default function ServerProfile() {
         setLoadingMore(false);
       }
     },
-    [domain]
+    [domain, client]
   );
 
   // The remote server's own Discover (curated + heuristic), fetched from its
@@ -359,7 +365,13 @@ export default function ServerProfile() {
       }).finally(() => clearTimeout(timer));
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setRecSections(data.sections ?? []);
+      // Same anonymous-fetch gap as loadPosts above — filter client-side.
+      await client?.moderation?.load();
+      const sections = (data.sections ?? []).map((s) => ({
+        ...s,
+        items: client?.moderation?.filterItems(s.items) ?? s.items,
+      }));
+      setRecSections(sections);
       setRecBg(data.background ? resolveImageUrl(data.background, `https://${domain}`) : null);
     } catch (e) {
       setRecError(e?.message || "Couldn't load this server's Discover.");
@@ -367,7 +379,7 @@ export default function ServerProfile() {
     } finally {
       setRecLoading(false);
     }
-  }, [domain]);
+  }, [domain, client]);
 
   const openPicker = useCallback(async () => {
     if (!client || !account?.id) return;
