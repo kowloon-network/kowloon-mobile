@@ -41,6 +41,10 @@ export default function Circles() {
   const [mineError, setMineError] = useState(null);
   const [mineRefreshing, setMineRefreshing] = useState(false);
 
+  // Blocked/Muted — shown in their own section below My Circles, not mixed in.
+  const [blockedCircle, setBlockedCircle] = useState(null);
+  const [mutedCircle, setMutedCircle] = useState(null);
+
   // Browse — local discovery (public + server), minus the ones you already own.
   const [browseList, setBrowseList] = useState([]);
   const [browseLoading, setBrowseLoading] = useState(false);
@@ -54,13 +58,25 @@ export default function Circles() {
       else setMineLoading(true);
       setMineError(null);
       try {
+        // GET /users/:id/circles only returns type:"Circle" (user-created)
+        // rows — System circles never come back from it, so Blocked/Muted
+        // are fetched separately below by id.
         const res = await client.feeds.getUserCircles({ userId: account.id });
         const items = res?.orderedItems || res?.items || [];
-        // Hide system circles (Following, Groups, Blocked, Muted) — those are
-        // managed implicitly, not curated by hand. Order by the user's pins so
-        // this matches the feed selector and everywhere else circles are listed.
-        const pinned = client?.auth?.getUser?.()?.prefs?.pinnedCircles || [];
-        setMine(sortByPins(items.filter((c) => c?.type !== "System"), pinned));
+        const authUser = client?.auth?.getUser?.() || {};
+        const pinned = authUser?.prefs?.pinnedCircles || [];
+        setMine(sortByPins(items, pinned));
+
+        const [blockedRes, mutedRes] = await Promise.all([
+          authUser.blocked
+            ? client.feeds.getCircle({ circleId: authUser.blocked }).catch(() => null)
+            : null,
+          authUser.muted
+            ? client.feeds.getCircle({ circleId: authUser.muted }).catch(() => null)
+            : null,
+        ]);
+        setBlockedCircle(blockedRes?.item ?? blockedRes ?? null);
+        setMutedCircle(mutedRes?.item ?? mutedRes ?? null);
       } catch (e) {
         setMineError(e?.message || "Couldn't load your circles.");
       } finally {
@@ -196,6 +212,35 @@ export default function Circles() {
               </Text>
             </View>
           )
+        }
+        ListFooterComponent={
+          tab === "mine" && (blockedCircle || mutedCircle) ? (
+            <View className="mt-6 pt-4 border-t-2 border-base-300">
+              <Text className="font-ui uppercase tracking-[0.16em] text-xs text-base-content/50 px-5 pb-2">
+                Blocked & Muted
+              </Text>
+              {blockedCircle ? (
+                <CircleCard
+                  circle={{ ...blockedCircle, name: "Blocked" }}
+                  serverDomain={account?.server}
+                  baseUrl={account?.baseUrl}
+                  onPress={() =>
+                    router.push(`/circle/${encodeURIComponent(blockedCircle.id)}`)
+                  }
+                />
+              ) : null}
+              {mutedCircle ? (
+                <CircleCard
+                  circle={{ ...mutedCircle, name: "Muted" }}
+                  serverDomain={account?.server}
+                  baseUrl={account?.baseUrl}
+                  onPress={() =>
+                    router.push(`/circle/${encodeURIComponent(mutedCircle.id)}`)
+                  }
+                />
+              ) : null}
+            </View>
+          ) : null
         }
       />
       </TabletColumns>

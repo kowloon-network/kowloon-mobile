@@ -80,11 +80,14 @@ export default function CircleDetail() {
 
   const ownerId = circle?.actorId || circle?.actor?.id;
   const isOwner = !!account?.id && ownerId === account.id;
+  // System circles (Following, All Following, Groups, Blocked, Muted) are
+  // fixed identity, not user content — never deletable, no compose FAB.
+  // Name/description/icon editing is locked on the Edit screen itself.
+  const isSystem = circle?.type === "System";
   // System-managed circles (Blocked/Muted/Groups) shouldn't get the friendly
   // "find people to add" nudge — it makes no sense on a block list.
   const isSystemManaged =
-    circle?.type === "System" &&
-    ["Blocked", "Muted", "Groups"].includes(circle?.name);
+    isSystem && ["Blocked", "Muted", "Groups"].includes(circle?.name);
   const owner = circle?.actor || (ownerId ? { id: ownerId } : null);
   const members = Array.isArray(circle?.members)
     ? circle.members.map(memberView)
@@ -321,17 +324,20 @@ export default function CircleDetail() {
                         Edit
                       </Text>
                     </Pressable>
-                    <Pressable
-                      onPress={confirmDelete}
-                      disabled={deleting}
-                      android_ripple={{ color: "rgba(0,0,0,0.06)" }}
-                      className="flex-row items-center   px-3 py-2"
-                    >
-                      <Trash2 size={13} color="#CC272E" strokeWidth={1.75} />
-                      <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-error ml-1.5">
-                        {deleting ? "Deleting…" : "Delete"}
-                      </Text>
-                    </Pressable>
+                    {/* System circles are fixed identity — never deletable. */}
+                    {!isSystem ? (
+                      <Pressable
+                        onPress={confirmDelete}
+                        disabled={deleting}
+                        android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+                        className="flex-row items-center   px-3 py-2"
+                      >
+                        <Trash2 size={13} color="#CC272E" strokeWidth={1.75} />
+                        <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-error ml-1.5">
+                          {deleting ? "Deleting…" : "Delete"}
+                        </Text>
+                      </Pressable>
+                    ) : null}
                   </>
                 ) : null}
                 {account?.id ? (
@@ -504,8 +510,9 @@ export default function CircleDetail() {
         ) : null}
       </ScrollView>
 
-      {/* FAB — only the circle owner can post to their own circle */}
-      {isOwner ? (
+      {/* FAB — only the circle owner can post to their own circle; posting
+          "to" a Blocked/Muted circle is meaningless, so skip it for System. */}
+      {isOwner && !isSystem ? (
         <Pressable
           onPress={() =>
             router.push(

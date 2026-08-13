@@ -53,6 +53,9 @@ export function CircleForm({
   error = null,
   onSubmit,
   onCancel,
+  // System circles (Following, Groups, Blocked, Muted, …) are fixed identity
+  // — icon/name/description aren't user-editable, only membership + visibility.
+  lockMetadata = false,
 }) {
   const client = useActiveClient();
   const account = useSelector(selectActiveAccount);
@@ -169,46 +172,54 @@ export function CircleForm({
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: 20, paddingBottom: 20 + keyboardInset }}
       >
-        {/* Icon + name */}
+        {/* Icon + name — locked for System circles (fixed identity) */}
         <View className="flex-row items-center mb-5">
-          <Pressable onPress={pickIcon} className="relative">
+          <Pressable onPress={lockMetadata ? undefined : pickIcon} className="relative">
             <CircleAvatar
               circle={previewCircle}
               size={64}
               baseUrl={account?.baseUrl}
             />
-            <View className="absolute -bottom-1 -right-1 bg-base-100   p-1">
-              <ImagePlus
-                size={13}
-                color={ink(0.85)}
-                strokeWidth={1.75}
-              />
-            </View>
+            {!lockMetadata ? (
+              <View className="absolute -bottom-1 -right-1 bg-base-100   p-1">
+                <ImagePlus
+                  size={13}
+                  color={ink(0.85)}
+                  strokeWidth={1.75}
+                />
+              </View>
+            ) : null}
           </Pressable>
           <View className="flex-1 ml-4">
             <FieldLabel>Name</FieldLabel>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="Circle name"
-              placeholderTextColor={ink(0.35)}
-              className="  bg-field px-3 py-2.5 font-ui text-base text-base-content"
-            />
+            {lockMetadata ? (
+              <Text className="font-ui text-base text-base-content py-2.5">{name}</Text>
+            ) : (
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                placeholder="Circle name"
+                placeholderTextColor={ink(0.35)}
+                className="  bg-field px-3 py-2.5 font-ui text-base text-base-content"
+              />
+            )}
           </View>
         </View>
 
-        {/* Description */}
-        <View className="mb-5">
-          <FieldLabel>Description</FieldLabel>
-          <TextInput
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            placeholder="What's this circle for?"
-            placeholderTextColor={ink(0.35)}
-            className="  bg-field px-3 py-2.5 font-ui text-base text-base-content min-h-16"
-          />
-        </View>
+        {/* Description — locked for System circles */}
+        {!lockMetadata ? (
+          <View className="mb-5">
+            <FieldLabel>Description</FieldLabel>
+            <TextInput
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              placeholder="What's this circle for?"
+              placeholderTextColor={ink(0.35)}
+              className="  bg-field px-3 py-2.5 font-ui text-base text-base-content min-h-16"
+            />
+          </View>
+        ) : null}
 
         {/* Visibility */}
         <View className="mb-5">

@@ -104,7 +104,7 @@ export default function EditCircle() {
 
   return (
     <SafeAreaView className="flex-1 bg-base-100" edges={["left", "right"]}>
-      <AppHeader back title="Edit Circle" />
+      <AppHeader back title={circle?.type === "System" ? "Edit Visibility" : "Edit Circle"} />
 
       {loading ? (
         <View className="py-20 items-center">
@@ -132,6 +132,7 @@ export default function EditCircle() {
           error={error}
           onSubmit={handleSubmit}
           onCancel={() => router.back()}
+          lockMetadata={circle.type === "System"}
         />
       ) : null}
     </SafeAreaView>
