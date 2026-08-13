@@ -90,7 +90,7 @@ export default function Groups() {
       >
         <Plus size={16} color="#FFFFFF" strokeWidth={2.25} />
         <Text className="font-ui uppercase tracking-[0.18em] text-sm text-primary-content">
-          New Group
+          Create Group
         </Text>
       </Pressable>
 
