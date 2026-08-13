@@ -17,7 +17,7 @@ import { Plus } from "lucide-react-native";
 
 import { BackLink } from "../../src/components/ui/BackLink.jsx";
 import { GroupCard } from "../../src/components/groups/GroupCard.jsx";
-import { AppHeader, HeaderButton } from "../../src/components/nav/AppHeader.jsx";
+import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { TabletColumns } from "../../src/components/layout/TabletColumns.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { useJoinedGroups } from "../../src/lib/useJoinedGroups.js";
@@ -80,18 +80,20 @@ export default function Groups() {
 
   return (
     <SafeAreaView className="flex-1 bg-base-100" edges={["left", "right"]}>
-      <AppHeader
-        title="Groups"
-        right={
-          <HeaderButton
-            label="New"
-            icon={<Plus size={14} color="#FFFFFF" strokeWidth={2} />}
-            onPress={() => router.push("/group/new")}
-          />
-        }
-      />
+      <AppHeader title="Groups" />
 
       <TabletColumns>
+      <Pressable
+        onPress={() => router.push("/group/new")}
+        className="flex-row items-center justify-center gap-2 bg-primary py-3.5 mx-4 mt-4 mb-1"
+        android_ripple={{ color: "rgba(255,255,255,0.15)" }}
+      >
+        <Plus size={16} color="#FFFFFF" strokeWidth={2.25} />
+        <Text className="font-ui uppercase tracking-[0.18em] text-sm text-primary-content">
+          New Group
+        </Text>
+      </Pressable>
+
       {/* Tabs */}
       <View className="flex-row  ">
         <TabButton

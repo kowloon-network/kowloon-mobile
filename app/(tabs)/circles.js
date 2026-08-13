@@ -22,7 +22,7 @@ import { Plus } from "lucide-react-native";
 import { sortByPins } from "@kowloon/client";
 
 import { CircleCard } from "../../src/components/circles/CircleCard.jsx";
-import { AppHeader, HeaderButton } from "../../src/components/nav/AppHeader.jsx";
+import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { TabletColumns } from "../../src/components/layout/TabletColumns.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { selectActiveAccount } from "../../src/state/accountsSlice.js";
@@ -134,18 +134,20 @@ export default function Circles() {
 
   return (
     <SafeAreaView className="flex-1 bg-base-100" edges={["left", "right"]}>
-      <AppHeader
-        title="Circles"
-        right={
-          <HeaderButton
-            label="New"
-            icon={<Plus size={14} color="#FFFFFF" strokeWidth={2} />}
-            onPress={() => router.push("/circle/new")}
-          />
-        }
-      />
+      <AppHeader title="Circles" />
 
       <TabletColumns>
+      <Pressable
+        onPress={() => router.push("/circle/new")}
+        className="flex-row items-center justify-center gap-2 bg-primary py-3.5 mx-4 mt-4 mb-1"
+        android_ripple={{ color: "rgba(255,255,255,0.15)" }}
+      >
+        <Plus size={16} color="#FFFFFF" strokeWidth={2.25} />
+        <Text className="font-ui uppercase tracking-[0.18em] text-sm text-primary-content">
+          New Circle
+        </Text>
+      </Pressable>
+
       {/* Tabs */}
       <View className="flex-row  ">
         <TabButton
