@@ -313,14 +313,15 @@ export function PostCard({ post, onDeleted }) {
               <Pressable
                 onPress={() => router.push(`/user/${encodeURIComponent(post.targetActor.id)}`)}
                 android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-                className="flex-row items-center mb-2"
+                className="flex-row items-center mb-1"
               >
                 <Avatar actor={post.targetActor} size={20} />
                 <Text className="font-ui text-sm text-base-content ml-2 shrink" numberOfLines={1}>
                   {post.targetActor.name ?? post.targetActor.id}
                 </Text>
+                {/* No (domain) here — it's redundant, already inside the handle. */}
                 <Text className="font-ui text-xs text-base-content/45 ml-1.5 shrink" numberOfLines={1}>
-                  {post.targetActor.id}{linkHost ? ` (${linkHost})` : ""}
+                  {post.targetActor.id}
                 </Text>
               </Pressable>
             ) : linkHost ? (

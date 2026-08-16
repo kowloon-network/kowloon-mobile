@@ -209,8 +209,9 @@ export function PostBody({ post, typography }) {
               <Text className="font-ui text-sm text-base-content ml-2 shrink" numberOfLines={1}>
                 {post.targetActor.name ?? post.targetActor.id}
               </Text>
+              {/* No (domain) here — it's redundant, already inside the handle. */}
               <Text className="font-ui text-xs text-base-content/55 ml-1.5 shrink" numberOfLines={1}>
-                {post.targetActor.id}{post?.href ? ` (${hostOf(post.href)})` : ""}
+                {post.targetActor.id}
               </Text>
             </Pressable>
           ) : post?.href ? (
