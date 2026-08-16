@@ -16,6 +16,7 @@ import { router } from "expo-router";
 
 import { openKowloonLink } from "../../lib/parseKowloonUrl.js";
 import { SmartImage as Image } from "../ui/SmartImage.jsx";
+import { Avatar } from "./Avatar.jsx";
 import { AudioAttachment } from "./AudioAttachment.jsx";
 import { VideoAttachment } from "./VideoAttachment.jsx";
 import { LocationLine } from "./LocationLine.jsx";
@@ -194,10 +195,28 @@ export function PostBody({ post, typography }) {
               </Text>
             </Pressable>
           ) : null}
-          {post?.href ? (
+          {/* Credit the ORIGINAL author when this Link is sharing another
+              Kowloon post (#44) — tapping navigates to their profile.
+              Falls back to the bare (domain), tapping opens the href, for a
+              plain external link or an old share made before targetActor
+              existed. */}
+          {post?.targetActor ? (
+            <Pressable
+              onPress={() => router.push(`/user/${encodeURIComponent(post.targetActor.id)}`)}
+              className="flex-row items-center mb-2"
+            >
+              <Avatar actor={post.targetActor} size={22} />
+              <Text className="font-ui text-sm text-base-content ml-2 shrink" numberOfLines={1}>
+                {post.targetActor.name ?? post.targetActor.id}
+              </Text>
+              <Text className="font-ui text-xs text-base-content/55 ml-1.5 shrink" numberOfLines={1}>
+                {post.targetActor.id}{post?.href ? ` (${hostOf(post.href)})` : ""}
+              </Text>
+            </Pressable>
+          ) : post?.href ? (
             <Pressable onPress={openHref}>
               <Text className="font-ui uppercase tracking-[0.18em] text-xs text-base-content/55 mb-2">
-                {hostOf(post.href)}
+                ({hostOf(post.href)})
               </Text>
             </Pressable>
           ) : null}

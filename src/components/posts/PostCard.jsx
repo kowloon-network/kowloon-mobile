@@ -304,9 +304,28 @@ export function PostCard({ post, onDeleted }) {
               </Pressable>
             ) : null}
             <LocationLine location={post?.location} />
-            {linkHost ? (
+            {/* Credit the ORIGINAL author when this Link is sharing another
+                Kowloon post (#44) — tapping navigates to their profile, not
+                the post (that's the outer card Pressable's job). Falls back
+                to the bare (domain) for a plain external link, or an old
+                share made before targetActor existed. */}
+            {post?.targetActor ? (
+              <Pressable
+                onPress={() => router.push(`/user/${encodeURIComponent(post.targetActor.id)}`)}
+                android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+                className="flex-row items-center mb-2"
+              >
+                <Avatar actor={post.targetActor} size={20} />
+                <Text className="font-ui text-sm text-base-content ml-2 shrink" numberOfLines={1}>
+                  {post.targetActor.name ?? post.targetActor.id}
+                </Text>
+                <Text className="font-ui text-xs text-base-content/45 ml-1.5 shrink" numberOfLines={1}>
+                  {post.targetActor.id}{linkHost ? ` (${linkHost})` : ""}
+                </Text>
+              </Pressable>
+            ) : linkHost ? (
               <Text className="font-ui text-xs text-base-content/45 mb-2">
-                {linkHost}
+                ({linkHost})
               </Text>
             ) : null}
             {previewHtml ? (
