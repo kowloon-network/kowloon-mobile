@@ -19,6 +19,8 @@ import {
   Users,
   Mail,
   FileText,
+  Users2,
+  Circle,
 } from "lucide-react-native";
 
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
@@ -176,6 +178,24 @@ export default function AdminHome() {
             label="Users"
             sublabel="Deactivate, restore, roles"
             onPress={() => router.push("/admin/users")}
+          />
+          <NavRow
+            icon={<FileText size={20} color={ink(0.7)} strokeWidth={1.75} />}
+            label="Posts"
+            sublabel="Server announcements"
+            onPress={() => router.push("/admin/posts")}
+          />
+          <NavRow
+            icon={<Users2 size={20} color={ink(0.7)} strokeWidth={1.75} />}
+            label="Groups"
+            sublabel="Create and manage groups"
+            onPress={() => router.push("/admin/groups")}
+          />
+          <NavRow
+            icon={<Circle size={20} color={ink(0.7)} strokeWidth={1.75} />}
+            label="Circles"
+            sublabel="Create and manage circles"
+            onPress={() => router.push("/admin/circles")}
           />
           <NavRow
             icon={<Mail size={20} color={ink(0.7)} strokeWidth={1.75} />}
