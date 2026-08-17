@@ -136,7 +136,7 @@ export function AdminPostForm({
     const to = visibility === "server" && serverDomain ? `@${serverDomain}` : "@public";
     onSubmit?.({
       type,
-      title: title.trim() || undefined,
+      title: type !== "Note" ? title.trim() || undefined : undefined,
       summary: summary.trim() || undefined,
       source: { content: markdown, mediaType: "text/markdown" },
       tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
@@ -146,7 +146,7 @@ export function AdminPostForm({
     });
   }
 
-  const canSave = !!(title.trim() || hasBody) && !submitting;
+  const canSave = (type === "Note" ? hasBody : !!(title.trim() || hasBody)) && !submitting;
 
   return (
     <View className="flex-1">
@@ -160,16 +160,18 @@ export function AdminPostForm({
             <SegmentedControl options={TYPE_OPTIONS} value={type} onChange={setType} />
           </View>
 
-          <View className="mb-4">
-            <FieldLabel>Title</FieldLabel>
-            <TextInput
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Post title"
-              placeholderTextColor={ink(0.35)}
-              className="bg-field px-3 py-2.5 font-ui text-base text-base-content"
-            />
-          </View>
+          {type !== "Note" ? (
+            <View className="mb-4">
+              <FieldLabel>Title</FieldLabel>
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder="Post title"
+                placeholderTextColor={ink(0.35)}
+                className="bg-field px-3 py-2.5 font-ui text-base text-base-content"
+              />
+            </View>
+          ) : null}
 
           <View className="mb-4">
             <FieldLabel>Summary (optional)</FieldLabel>
