@@ -21,7 +21,7 @@ export default function NewAdminPost() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  async function handleSubmit({ type, title, summary, source, tags, to, imageAsset }) {
+  async function handleSubmit({ type, title, source, tags, to, imageAsset }) {
     if (submitting) return;
     setSubmitting(true);
     setError(null);
@@ -41,7 +41,6 @@ export default function NewAdminPost() {
       await client.admin.createPost({
         type,
         title,
-        summary,
         source,
         tags,
         to,

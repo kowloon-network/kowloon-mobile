@@ -98,7 +98,6 @@ export function AdminPostForm({
     TYPE_OPTIONS.some((o) => o.value === initialValues.type) ? initialValues.type : "Note"
   );
   const [title, setTitle] = useState(initialValues.title || "");
-  const [summary, setSummary] = useState(initialValues.summary || "");
   const [tags, setTags] = useState((initialValues.tags || []).join(", "));
   const [visibility, setVisibility] = useState(
     initialValues.to && initialValues.to !== "@public" ? "server" : "public"
@@ -137,7 +136,6 @@ export function AdminPostForm({
     onSubmit?.({
       type,
       title: type !== "Note" ? title.trim() || undefined : undefined,
-      summary: summary.trim() || undefined,
       source: { content: markdown, mediaType: "text/markdown" },
       tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
       to,
@@ -172,17 +170,6 @@ export function AdminPostForm({
               />
             </View>
           ) : null}
-
-          <View className="mb-4">
-            <FieldLabel>Summary (optional)</FieldLabel>
-            <TextInput
-              value={summary}
-              onChangeText={setSummary}
-              placeholder="A short description"
-              placeholderTextColor={ink(0.35)}
-              className="bg-field px-3 py-2.5 font-ui text-base text-base-content"
-            />
-          </View>
 
           <View className="mb-4">
             <FieldLabel>Featured Image</FieldLabel>

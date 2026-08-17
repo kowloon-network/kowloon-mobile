@@ -51,7 +51,7 @@ export default function EditAdminPost() {
     load();
   }, [load]);
 
-  async function handleSubmit({ type, title, summary, source, tags, to, imageAsset, imageUrl }) {
+  async function handleSubmit({ type, title, source, tags, to, imageAsset, imageUrl }) {
     if (submitting) return;
     setSubmitting(true);
     setError(null);
@@ -70,7 +70,7 @@ export default function EditAdminPost() {
 
       await client.admin.updatePost({
         postId: String(id),
-        updates: { type, title, summary, source, tags, to, image },
+        updates: { type, title, source, tags, to, image },
       });
       router.back();
     } catch (e) {
