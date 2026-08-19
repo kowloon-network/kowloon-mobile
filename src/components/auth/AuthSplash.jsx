@@ -9,10 +9,16 @@
 // SVG href, so the scene backgrounds themselves are pre-rasterized PNGs —
 // see assets/splash/) and react-native-reanimated for the clouds/plane
 // motion, both already app dependencies.
+//
+// Deliberately reads React Native's own useColorScheme (raw OS Appearance)
+// here, NOT nativewind's — nativewind's tracks the user's in-app Light/
+// Dark/Auto preference (ThemeContext, device-persisted), and at Welcome
+// there's no meaningful preference yet (nothing's been chosen on this
+// account/device flow), so this screen always mirrors the OS directly
+// regardless of whatever theme pref happens to be stored.
 
 import { useEffect, useMemo, useState } from "react";
-import { Image, View } from "react-native";
-import { useColorScheme } from "nativewind";
+import { Image, useColorScheme, View } from "react-native";
 import Svg, { Ellipse, Path } from "react-native-svg";
 import Animated, {
   Easing,
@@ -29,8 +35,8 @@ const daySceneSrc = require("../../../assets/splash/day-scene.png");
 const planeSrc = require("../../../assets/splash/plane.png");
 
 const SCENES = {
-  night: { bg: "#130848" },
-  day: { bg: "#ADD8E1" },
+  night: { bg: "#130848", cloud: "rgb(48, 25, 171)" },
+  day: { bg: "#ADD8E1", cloud: "rgb(255, 255, 255)" },
 };
 
 // Native viewBox the scene illustrations (and the window paths below) were
@@ -74,7 +80,7 @@ function pickScene(colorScheme) {
   return hour >= 6 && hour < 20 ? "day" : "night";
 }
 
-function Cloud({ width, height }) {
+function Cloud({ width, height, color }) {
   const size = useMemo(() => random(width * 0.03, width * 0.2), [width]);
   const startY = useMemo(() => random(0, height * 0.5), [height]);
   const startX = useMemo(() => random(0, width), [width]);
@@ -119,7 +125,7 @@ function Cloud({ width, height }) {
           shape when width/height differ, not a true ellipse — needs an
           actual Ellipse to match the squashed-circle look. */}
       <Svg width={size} height={ellipseH} viewBox={`0 0 ${size} ${ellipseH}`}>
-        <Ellipse cx={size / 2} cy={ellipseH / 2} rx={size / 2} ry={ellipseH / 2} fill="white" />
+        <Ellipse cx={size / 2} cy={ellipseH / 2} rx={size / 2} ry={ellipseH / 2} fill={color} />
       </Svg>
     </Animated.View>
   );
@@ -201,7 +207,7 @@ function Plane({ width, height, active }) {
 }
 
 export function AuthSplash() {
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   // NOT useWindowDimensions() — this component can render inside
   // TabletColumns' narrower center column on wide/tablet layouts, so it
   // needs its own actually-rendered width, not the full device width.
@@ -240,7 +246,7 @@ export function AuthSplash() {
             // mount, so a resize (e.g. device rotation) needs a fresh mount
             // to pick up correctly re-scaled geometry rather than
             // continuing to animate toward stale, wrong-sized targets.
-            <Cloud key={`${width}-${i}`} width={width} height={height} />
+            <Cloud key={`${width}-${i}`} width={width} height={height} color={SCENES[scene].cloud} />
           ))}
 
           <Plane key={width} width={width} height={height} active={scene === "day"} />
