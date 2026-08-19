@@ -11,8 +11,9 @@
 // motion, both already app dependencies.
 
 import { useEffect, useMemo, useState } from "react";
-import { Image, useColorScheme, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import { Image, View } from "react-native";
+import { useColorScheme } from "nativewind";
+import Svg, { Ellipse, Path } from "react-native-svg";
 import Animated, {
   Easing,
   cancelAnimation,
@@ -103,17 +104,25 @@ function Cloud({ width, height }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const ellipseH = size * 0.6;
   const style = useAnimatedStyle(() => ({
     position: "absolute",
     left: x.value - size / 2,
-    top: startY - (size * 0.6) / 2,
+    top: startY - ellipseH / 2,
     width: size,
-    height: size * 0.6,
-    borderRadius: 9999,
-    backgroundColor: "white",
+    height: ellipseH,
   }));
 
-  return <Animated.View style={style} />;
+  return (
+    <Animated.View style={style}>
+      {/* A View with a large borderRadius renders a stadium (flat-sided)
+          shape when width/height differ, not a true ellipse — needs an
+          actual Ellipse to match the squashed-circle look. */}
+      <Svg width={size} height={ellipseH} viewBox={`0 0 ${size} ${ellipseH}`}>
+        <Ellipse cx={size / 2} cy={ellipseH / 2} rx={size / 2} ry={ellipseH / 2} fill="white" />
+      </Svg>
+    </Animated.View>
+  );
 }
 
 function Plane({ width, height, active }) {
@@ -192,7 +201,7 @@ function Plane({ width, height, active }) {
 }
 
 export function AuthSplash() {
-  const colorScheme = useColorScheme();
+  const { colorScheme } = useColorScheme();
   // NOT useWindowDimensions() — this component can render inside
   // TabletColumns' narrower center column on wide/tablet layouts, so it
   // needs its own actually-rendered width, not the full device width.
@@ -222,6 +231,20 @@ export function AuthSplash() {
     >
       {width > 0 ? (
         <>
+          {/* Clouds + plane render first (behind, in the transparent sky
+              area of the scene PNG below), matching the marketing site's
+              canvas-behind-scene-SVG layering — the building silhouette
+              occludes them wherever it's opaque. */}
+          {clouds.map((i) => (
+            // Keyed by width too — the animation effect below only runs on
+            // mount, so a resize (e.g. device rotation) needs a fresh mount
+            // to pick up correctly re-scaled geometry rather than
+            // continuing to animate toward stale, wrong-sized targets.
+            <Cloud key={`${width}-${i}`} width={width} height={height} />
+          ))}
+
+          <Plane key={width} width={width} height={height} active={scene === "day"} />
+
           <Image
             source={scene === "night" ? nightSceneSrc : daySceneSrc}
             resizeMode="cover"
@@ -241,16 +264,6 @@ export function AuthSplash() {
               ))}
             </Svg>
           ) : null}
-
-          {clouds.map((i) => (
-            // Keyed by width too — the animation effect below only runs on
-            // mount, so a resize (e.g. device rotation) needs a fresh mount
-            // to pick up correctly re-scaled geometry rather than
-            // continuing to animate toward stale, wrong-sized targets.
-            <Cloud key={`${width}-${i}`} width={width} height={height} />
-          ))}
-
-          <Plane key={width} width={width} height={height} active={scene === "day"} />
         </>
       ) : null}
     </View>
