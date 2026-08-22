@@ -1,9 +1,9 @@
 // GroupForm — shared create/edit form for groups.
 //
-// Fields: icon (pick + upload), name, description, location, visibility
+// Fields: icon (pick + upload), name, summary, location, visibility
 // (public / server / one of your circles), and RSVP policy. Parent owns the
 // actual createGroup/updateGroup + icon upload; this form hands back
-// { name, description, location, to, rsvpPolicy, iconAsset, iconUrl }.
+// { name, summary, location, to, rsvpPolicy, iconAsset, iconUrl }.
 
 import { useEffect, useState } from "react";
 import {
@@ -55,8 +55,8 @@ export function GroupForm({
   const ink = useInk();
 
   const [name, setName] = useState(initialValues.name || "");
-  const [description, setDescription] = useState(
-    initialValues.description || ""
+  const [summary, setSummary] = useState(
+    initialValues.summary || ""
   );
   const [location, setLocation] = useState(initialValues.location || null);
   const [to, setTo] = useState(initialValues.to ?? "@public");
@@ -145,7 +145,7 @@ export function GroupForm({
     if (!name.trim() || submitting) return;
     onSubmit?.({
       name: name.trim(),
-      description: description.trim(),
+      summary: summary.trim(),
       location,
       to,
       rsvpPolicy,
@@ -229,8 +229,8 @@ export function GroupForm({
         <View className="mb-5">
           <FieldLabel>Description</FieldLabel>
           <TextInput
-            value={description}
-            onChangeText={setDescription}
+            value={summary}
+            onChangeText={setSummary}
             multiline
             placeholder="What's this group for?"
             placeholderTextColor={ink(0.35)}

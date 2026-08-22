@@ -144,9 +144,9 @@ function SquareCard({ item, baseUrl, router }) {
               {item.memberCount} {item.memberCount === 1 ? "member" : "members"}
             </Text>
           ) : null}
-          {item.description ? (
+          {item.summary ? (
             <Text className="font-ui text-[11px] text-base-content/70 leading-snug mt-1" numberOfLines={3}>
-              {item.description}
+              {item.summary}
             </Text>
           ) : null}
         </Pressable>

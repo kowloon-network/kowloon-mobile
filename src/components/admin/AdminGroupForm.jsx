@@ -51,7 +51,7 @@ export function AdminGroupForm({
   const ink = useInk();
 
   const [name, setName] = useState(initialValues.name || "");
-  const [description, setDescription] = useState(initialValues.description || "");
+  const [summary, setSummary] = useState(initialValues.summary || "");
   const [visibility, setVisibility] = useState(
     initialValues.to && initialValues.to !== "@public" ? "server" : "public"
   );
@@ -83,7 +83,7 @@ export function AdminGroupForm({
     const to = visibility === "server" && serverDomain ? `@${serverDomain}` : "@public";
     onSubmit?.({
       name: name.trim(),
-      description: description.trim() || undefined,
+      summary: summary.trim() || undefined,
       rsvpPolicy,
       to,
       iconAsset,
@@ -122,8 +122,8 @@ export function AdminGroupForm({
         <View className="mb-5">
           <FieldLabel>Description</FieldLabel>
           <TextInput
-            value={description}
-            onChangeText={setDescription}
+            value={summary}
+            onChangeText={setSummary}
             multiline
             placeholder="What's this group for?"
             placeholderTextColor={ink(0.35)}

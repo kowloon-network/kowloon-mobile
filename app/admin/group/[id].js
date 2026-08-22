@@ -47,7 +47,7 @@ export default function EditAdminGroup() {
     load();
   }, [load]);
 
-  async function handleSubmit({ name, description, rsvpPolicy, to, iconAsset, iconUrl }) {
+  async function handleSubmit({ name, summary, rsvpPolicy, to, iconAsset, iconUrl }) {
     if (submitting) return;
     setSubmitting(true);
     setError(null);
@@ -66,7 +66,7 @@ export default function EditAdminGroup() {
 
       await client.admin.updateGroup({
         groupId: String(id),
-        updates: { name, description, rsvpPolicy, icon, to },
+        updates: { name, summary, rsvpPolicy, icon, to },
       });
       router.back();
     } catch (e) {

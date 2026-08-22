@@ -258,9 +258,9 @@ export default function GroupDetail() {
                 </View>
               </View>
 
-              {group.description ? (
+              {group.summary ? (
                 <Text className="font-ui text-base text-base-content/80 leading-relaxed mt-4">
-                  {group.description}
+                  {group.summary}
                 </Text>
               ) : null}
 

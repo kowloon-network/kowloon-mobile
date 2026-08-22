@@ -200,9 +200,9 @@ function GroupCard({ item, baseUrl, onView, onPosts }) {
           ) : null}
         </View>
       </View>
-      {item.description ? (
+      {item.summary ? (
         <Text className="font-ui text-xs text-base-content/70 leading-relaxed mt-2" numberOfLines={2}>
-          {item.description}
+          {item.summary}
         </Text>
       ) : null}
       <View className="flex-row mt-3" style={{ gap: 8 }}>

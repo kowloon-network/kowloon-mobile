@@ -49,7 +49,7 @@ export default function EditGroup() {
 
   async function handleSubmit({
     name,
-    description,
+    summary,
     location,
     to,
     rsvpPolicy,
@@ -89,7 +89,7 @@ export default function EditGroup() {
       await client.activities.updateGroup({
         groupId: String(id),
         name,
-        description,
+        description: summary,
         location,
         icon: finalIcon,
         image: finalImage,

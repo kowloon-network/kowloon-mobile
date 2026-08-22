@@ -59,12 +59,12 @@ export function GroupCard({ group, serverDomain, baseUrl, onPress }) {
             ) : null}
           </View>
         ) : null}
-        {group?.description || group?.summary ? (
+        {group?.summary ? (
           <Text
             className="font-ui text-xs text-base-content/70 leading-snug mt-1"
             numberOfLines={2}
           >
-            {group.description || group.summary}
+            {group.summary}
           </Text>
         ) : null}
       </View>

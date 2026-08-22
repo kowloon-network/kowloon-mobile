@@ -30,7 +30,7 @@ export default function NewGroup() {
 
   async function handleSubmit({
     name,
-    description,
+    summary,
     location,
     to,
     rsvpPolicy,
@@ -70,7 +70,7 @@ export default function NewGroup() {
 
       const res = await client.activities.createGroup({
         name,
-        description: description || undefined,
+        description: summary || undefined,
         location: location || undefined,
         icon: iconUrl || undefined,
         image: imageUrl || undefined,
