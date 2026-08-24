@@ -5,7 +5,7 @@
 // nesting is capped at one level: a Folder can't have a parentFolder, so
 // the folder picker only appears for type === "Bookmark".
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -44,6 +44,7 @@ export function AdminBookmarkForm({
   initialValues = {},
   serverDomain,
   folders = [],
+  client,
   submitting = false,
   error = null,
   onSubmit,
@@ -54,12 +55,52 @@ export function AdminBookmarkForm({
   const ink = useInk();
 
   const [title, setTitle] = useState(initialValues.title || "");
+  const [summary, setSummary] = useState(initialValues.summary || "");
   const [type, setType] = useState(initialValues.type || "Bookmark");
   const [href, setHref] = useState(initialValues.href || "");
   const [parentFolder, setParentFolder] = useState(initialValues.parentFolder || null);
   const [visibility, setVisibility] = useState(
     initialValues.to && initialValues.to !== "@public" ? "server" : "public"
   );
+  const [fetchingPreview, setFetchingPreview] = useState(false);
+  // URL already auto-filled from, so a re-fetch (as the user keeps typing)
+  // never re-injects title/summary the user has since edited or cleared.
+  const autoFilledHrefRef = useRef(null);
+
+  // Live link preview — debounced as the URL is typed/pasted, matching the
+  // Link-type post composer's autofill (app/compose.js). Fills title/summary
+  // once per URL, only into fields that are still empty.
+  useEffect(() => {
+    if (type !== "Bookmark" || !href.trim() || !client) return;
+    const url = href.trim();
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        new URL(url);
+      } catch {
+        return;
+      }
+      setFetchingPreview(true);
+      try {
+        const meta = await client.feeds.getLinkPreview({ url });
+        if (cancelled) return;
+        if (meta && autoFilledHrefRef.current !== url) {
+          autoFilledHrefRef.current = url;
+          if (meta.title && !title) setTitle(meta.title);
+          if (meta.summary && !summary) setSummary(meta.summary);
+        }
+      } catch {
+        /* non-fatal — preview is enhancement-only */
+      } finally {
+        if (!cancelled) setFetchingPreview(false);
+      }
+    }, 600);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [href, type, client]);
 
   const folderOptions = [
     { value: null, label: "None (top level)" },
@@ -71,6 +112,7 @@ export function AdminBookmarkForm({
     const to = visibility === "server" && serverDomain ? `@${serverDomain}` : "@public";
     onSubmit?.({
       title: title.trim(),
+      summary: summary.trim() || undefined,
       type,
       href: type === "Bookmark" ? href.trim() : undefined,
       parentFolder: type === "Bookmark" ? parentFolder || undefined : undefined,
@@ -87,6 +129,29 @@ export function AdminBookmarkForm({
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: 20, paddingBottom: 20 + keyboardInset }}
       >
+        {type === "Bookmark" ? (
+          <View className="mb-5">
+            <FieldLabel>
+              URL{fetchingPreview ? "  ·  fetching preview…" : ""}
+            </FieldLabel>
+            <TextInput
+              value={href}
+              onChangeText={setHref}
+              placeholder="https://…"
+              placeholderTextColor={ink(0.35)}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              className="bg-field px-3 py-2.5 font-ui text-base text-base-content"
+            />
+          </View>
+        ) : null}
+
+        <View className="mb-5">
+          <FieldLabel>Type</FieldLabel>
+          <SegmentedControl options={TYPE_OPTIONS} value={type} onChange={setType} />
+        </View>
+
         <View className="mb-5">
           <FieldLabel>Title</FieldLabel>
           <TextInput
@@ -98,24 +163,17 @@ export function AdminBookmarkForm({
           />
         </View>
 
-        <View className="mb-5">
-          <FieldLabel>Type</FieldLabel>
-          <SegmentedControl options={TYPE_OPTIONS} value={type} onChange={setType} />
-        </View>
-
         {type === "Bookmark" ? (
           <>
             <View className="mb-5">
-              <FieldLabel>URL</FieldLabel>
+              <FieldLabel>Summary</FieldLabel>
               <TextInput
-                value={href}
-                onChangeText={setHref}
-                placeholder="https://…"
+                value={summary}
+                onChangeText={setSummary}
+                multiline
+                placeholder="Optional short summary"
                 placeholderTextColor={ink(0.35)}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="url"
-                className="bg-field px-3 py-2.5 font-ui text-base text-base-content"
+                className="bg-field px-3 py-2.5 font-ui text-base text-base-content min-h-16"
               />
             </View>
 

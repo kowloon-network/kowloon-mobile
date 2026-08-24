@@ -47,6 +47,7 @@ export function BookmarkComposer({
 
   const [href, setHref] = useState("");
   const [title, setTitle] = useState("");
+  const [summary, setSummary] = useState("");
   const [image, setImage] = useState(null);
   const [notes, setNotes] = useState("");
   const [tags, setTags] = useState("");
@@ -64,16 +65,18 @@ export function BookmarkComposer({
 
   const dedupeRef = useRef(null);
   const hrefLocked = !!initialValues.href;
+  // URL already auto-filled from, so a re-fetch (as the user keeps typing)
+  // never re-injects title/summary/image the user has since edited or
+  // cleared. Reset whenever the sheet re-opens (see hydration effect below).
+  const autoFilledHrefRef = useRef(null);
 
   // Hydrate from initialValues each time the sheet opens; reset on close.
   useEffect(() => {
     if (!visible) return;
-    const initHref = initialValues.href || "";
-    const initTitle = initialValues.title || "";
-    const initImage = initialValues.image || null;
-    setHref(initHref);
-    setTitle(initTitle);
-    setImage(initImage);
+    setHref(initialValues.href || "");
+    setTitle(initialValues.title || "");
+    setSummary(initialValues.summary || "");
+    setImage(initialValues.image || null);
     setNotes(initialValues.notes || "");
     setTags("");
     setAudience("@public");
@@ -82,33 +85,49 @@ export function BookmarkComposer({
     setShowNewFolder(false);
     setNewFolderName("");
     dedupeRef.current = null;
-
-    // Link-preview fallback: if we opened with a URL but no title or image,
-    // fetch OG metadata to fill the gaps. Best-effort — the SSRF guard
-    // blocks loopback hosts, so this is a no-op for local dev post URLs
-    // (those already arrive with a derived title from PostActionBar).
-    if (initHref && (!initTitle || !initImage) && client) {
-      let cancelled = false;
-      setFetchingPreview(true);
-      client.feeds
-        .getLinkPreview({ url: initHref })
-        .then((meta) => {
-          if (cancelled || !meta) return;
-          if (meta.title && !initTitle) setTitle(meta.title);
-          if (meta.image && !initImage) setImage(meta.image);
-        })
-        .catch(() => {})
-        .finally(() => {
-          if (!cancelled) setFetchingPreview(false);
-        });
-      return () => {
-        cancelled = true;
-      };
-    }
+    autoFilledHrefRef.current = null;
     // initialValues is recreated each render by the caller; key off `visible`
     // so we only re-hydrate on an open transition, not every parent render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
+
+  // Live link preview — debounced as the URL is typed/pasted, matching the
+  // Link-type post composer's autofill (app/compose.js). Fills title/summary/
+  // image once per URL, only into fields that are still empty. Also covers
+  // the "opened with a prefilled URL but no title" case (share-intent flow),
+  // since href is set from initialValues by the hydration effect above.
+  useEffect(() => {
+    if (!visible || !href.trim() || !client) return;
+    const url = href.trim();
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        new URL(url);
+      } catch {
+        return;
+      }
+      setFetchingPreview(true);
+      try {
+        const meta = await client.feeds.getLinkPreview({ url });
+        if (cancelled) return;
+        if (meta && autoFilledHrefRef.current !== url) {
+          autoFilledHrefRef.current = url;
+          if (meta.title && !title) setTitle(meta.title);
+          if (meta.summary && !summary) setSummary(meta.summary);
+          if (meta.image && !image) setImage(meta.image);
+        }
+      } catch {
+        /* non-fatal — preview is enhancement-only */
+      } finally {
+        if (!cancelled) setFetchingPreview(false);
+      }
+    }, 600);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [href, visible, client]);
 
   // Load the user's folders for the picker.
   useEffect(() => {
@@ -127,22 +146,6 @@ export function BookmarkComposer({
     };
   }, [visible, client, currentUser?.id]);
 
-  // Fetch OG metadata when the title is empty and we have a URL.
-  async function fetchPreview() {
-    const url = href.trim();
-    if (!url || title.trim() || !client) return;
-    setFetchingPreview(true);
-    try {
-      const meta = await client.feeds.getLinkPreview({ url });
-      if (meta?.title && !title.trim()) setTitle(meta.title);
-      if (meta?.image && !image) setImage(meta.image);
-    } catch {
-      // preview is best-effort
-    } finally {
-      setFetchingPreview(false);
-    }
-  }
-
   async function handleSave() {
     if (!href.trim() || !title.trim() || saving) return;
     const tagList = tags
@@ -151,6 +154,7 @@ export function BookmarkComposer({
     const signature = JSON.stringify({
       href: href.trim(),
       title: title.trim(),
+      summary: summary.trim(),
       notes,
       tagList,
       audience,
@@ -168,6 +172,7 @@ export function BookmarkComposer({
       const res = await client.activities.createBookmark({
         href: href.trim(),
         title: title.trim(),
+        summary: summary.trim() || undefined,
         image: image || undefined,
         body: notes.trim() || undefined,
         tags: tagList.length ? tagList : undefined,
@@ -257,7 +262,6 @@ export function BookmarkComposer({
               <TextInput
                 value={href}
                 onChangeText={setHref}
-                onBlur={fetchPreview}
                 editable={!hrefLocked}
                 placeholder="https://…"
                 placeholderTextColor={ink(0.35)}
@@ -301,6 +305,19 @@ export function BookmarkComposer({
                 }
                 placeholderTextColor={ink(0.35)}
                 className="  bg-field px-3 py-2.5 font-ui text-base text-base-content"
+              />
+            </View>
+
+            {/* Summary */}
+            <View className="mb-4">
+              <FieldLabel>Summary</FieldLabel>
+              <TextInput
+                value={summary}
+                onChangeText={setSummary}
+                multiline
+                placeholder="Optional short summary"
+                placeholderTextColor={ink(0.35)}
+                className="  bg-field px-3 py-2.5 font-ui text-base text-base-content min-h-16"
               />
             </View>
 

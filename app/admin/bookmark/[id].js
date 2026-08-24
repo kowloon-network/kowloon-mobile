@@ -105,6 +105,7 @@ export default function EditBookmark() {
           initialValues={bookmark}
           serverDomain={serverDomainOf(client)}
           folders={folders}
+          client={client}
           submitting={submitting}
           error={error}
           onSubmit={handleSubmit}

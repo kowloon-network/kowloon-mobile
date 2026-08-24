@@ -52,6 +52,7 @@ export default function NewBookmark() {
         mode="create"
         serverDomain={serverDomainOf(client)}
         folders={folders}
+        client={client}
         submitting={submitting}
         error={error}
         onSubmit={handleSubmit}
