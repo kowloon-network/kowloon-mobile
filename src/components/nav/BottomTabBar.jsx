@@ -66,11 +66,14 @@ export function BottomTabBar({ state, navigation }) {
               key={route.key}
               onPress={onPress}
               android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-              className="flex-1 items-center pt-2 pb-1"
+              accessibilityRole="tab"
+              accessibilityLabel={meta.label}
+              accessibilityState={{ selected: on }}
+              className="flex-1 items-center justify-center py-3"
             >
               <View>
                 <Icon
-                  size={22}
+                  size={23}
                   color={on ? ACTIVE : ink(0.5)}
                   strokeWidth={1.75}
                 />
@@ -82,13 +85,6 @@ export function BottomTabBar({ state, navigation }) {
                   </View>
                 ) : null}
               </View>
-              <Text
-                className={`font-ui uppercase tracking-[0.14em] text-[9px] mt-1 ${
-                  on ? "text-base-content" : "text-base-content/50"
-                }`}
-              >
-                {meta.label}
-              </Text>
             </Pressable>
           );
         })}
