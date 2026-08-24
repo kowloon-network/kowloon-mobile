@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import {
   Dimensions,
   Image,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -295,6 +296,122 @@ function PagesMenuSection({ client, onNavigate }) {
   );
 }
 
+// ── BookmarksMenu ────────────────────────────────────────────────────────────
+// Server-owned bookmarks, mirrors PagesMenuSection's shape. Folders are
+// twistie-only (no navigation); Bookmarks open their href in the system
+// browser, same mechanism personal bookmarks use (TreeNode.jsx).
+
+function BookmarksMenuSection({ client }) {
+  const [items, setItems] = useState([]);
+  const [expanded, setExpanded] = useState(new Set());
+  const ink = useInk();
+
+  useEffect(() => {
+    if (!client) return;
+    let cancelled = false;
+    client.feeds
+      .getServerBookmarks({ limit: 50 })
+      .then((res) => {
+        if (cancelled) return;
+        const all = res?.orderedItems || res?.items || [];
+        const top = all.filter((b) => !b.parentFolder);
+        const tree = top.map((b) => ({
+          ...b,
+          children: all.filter((c) => c.parentFolder === b.id),
+        }));
+        setItems(tree);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [client]);
+
+  if (!items.length) return null;
+
+  function toggle(id) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function open(href) {
+    if (!href) return;
+    Linking.openURL(href).catch(() => {});
+  }
+
+  return (
+    <View className="  pb-5 mb-5">
+      <SectionHeader>Bookmarks</SectionHeader>
+      {items.map((item) => {
+        const hasChildren = item.children?.length > 0;
+        const isOpen = expanded.has(item.id);
+        const isFolder = item.type === "Folder";
+
+        return (
+          <View key={item.id}>
+            <View className="flex-row items-center py-2">
+              <Pressable
+                onPress={() => (isFolder ? toggle(item.id) : open(item.href))}
+                android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+                className="flex-1 mr-2"
+              >
+                <Text className="font-ui text-sm uppercase tracking-[0.16em] text-base-content/80">
+                  {item.title}
+                </Text>
+              </Pressable>
+              {hasChildren ? (
+                <Pressable
+                  onPress={() => toggle(item.id)}
+                  hitSlop={10}
+                  android_ripple={{
+                    color: "rgba(0,0,0,0.06)",
+                    borderless: true,
+                  }}
+                >
+                  {isOpen ? (
+                    <ChevronDown
+                      size={14}
+                      color={ink(0.55)}
+                      strokeWidth={1.75}
+                    />
+                  ) : (
+                    <ChevronRight
+                      size={14}
+                      color={ink(0.55)}
+                      strokeWidth={1.75}
+                    />
+                  )}
+                </Pressable>
+              ) : null}
+            </View>
+
+            {hasChildren && isOpen ? (
+              <View className="  ml-2 mb-1">
+                {item.children.map((child) => (
+                  <Pressable
+                    key={child.id}
+                    onPress={() => open(child.href)}
+                    android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+                    className="py-1.5 pl-3"
+                  >
+                    <Text className="font-ui text-sm uppercase tracking-[0.16em] text-base-content/65">
+                      {child.title}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 // ── Discover (Circles + Groups) ─────────────────────────────────────────────
 
 function ItemAvatar({ item, baseUrl }) {
@@ -461,6 +578,7 @@ export function SidebarBody({ client, onNavigate }) {
       <ServerInfoSection client={client} />
       <SearchBar onNavigate={onNavigate} />
       <PagesMenuSection client={client} onNavigate={onNavigate} />
+      <BookmarksMenuSection client={client} />
       <DiscoverSection client={client} onNavigate={onNavigate} />
       {isAdmin ? (
         <Pressable

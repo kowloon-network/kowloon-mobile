@@ -21,6 +21,7 @@ import {
   FileText,
   Users2,
   Circle,
+  Bookmark,
 } from "lucide-react-native";
 
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
@@ -208,6 +209,12 @@ export default function AdminHome() {
             label="Pages"
             sublabel="Create and edit content pages"
             onPress={() => router.push("/admin/pages")}
+          />
+          <NavRow
+            icon={<Bookmark size={20} color={ink(0.7)} strokeWidth={1.75} />}
+            label="Bookmarks"
+            sublabel="Server-owned bookmark folders"
+            onPress={() => router.push("/admin/bookmarks")}
           />
         </ScrollView>
       )}
