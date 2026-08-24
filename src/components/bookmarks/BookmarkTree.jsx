@@ -69,15 +69,19 @@ export const BookmarkTree = forwardRef(function BookmarkTree(
     );
   }
   if (!rootNodes.length) {
+    // Unlike Circles, bookmarks/folders can be @public or server-visible, so
+    // an empty result for a non-owner isn't necessarily "private" -- it may
+    // just mean nothing here is currently public/server-visible to you (or
+    // there's nothing at all). Keep the copy accurate either way.
     return (
       <View className="px-6 py-16 items-center">
         <Text className="font-ui text-lg text-base-content/70 text-center mb-2">
-          {emptyTitle || (isOwner ? "No bookmarks yet." : "Private.")}
+          {emptyTitle || (isOwner ? "No bookmarks yet." : "Nothing here yet.")}
         </Text>
         <Text className="font-ui text-sm text-base-content/55 text-center leading-6">
           {emptyBody || (isOwner
             ? "Save a link from a post and it lands here."
-            : "Someone's bookmarks are visible only to themselves.")}
+            : "Nothing they've saved is public or visible to you yet.")}
         </Text>
       </View>
     );
