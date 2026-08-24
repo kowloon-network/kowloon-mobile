@@ -3,13 +3,14 @@
 // switching tabs preserves each screen's mounted state (scroll + data) instead
 // of remounting it.
 //
-// Five destinations: Feed · Circles · Groups · Discover · Notify. Notify carries
-// the unread-count badge. Search moved to the feed masthead (top toolbar); the
-// user's own profile is reached from the account avatar in the header.
+// Six destinations: Feed · Circles · Groups · Bookmarks · Discover · Notify.
+// Notify carries the unread-count badge. Search moved to the feed masthead
+// (top toolbar); the user's own profile is reached from the account avatar
+// in the header.
 
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Home, Hexagon, Users, Compass, Bell } from "lucide-react-native";
+import { Home, Hexagon, Users, Bookmark, Compass, Bell } from "lucide-react-native";
 
 import { useUnreadCount } from "../../lib/UnreadCountContext.js";
 import { useInk } from "../../lib/useInk.js";
@@ -21,6 +22,7 @@ const META = {
   feed: { label: "Feeds", Icon: Home },
   circles: { label: "Circles", Icon: Hexagon },
   groups: { label: "Groups", Icon: Users },
+  bookmarks: { label: "Bookmarks", Icon: Bookmark },
   discover: { label: "Discover", Icon: Compass },
   notifications: { label: "Notify", Icon: Bell },
 };

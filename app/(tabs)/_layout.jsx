@@ -1,4 +1,4 @@
-// Tabs layout — the five primary destinations live here as a real Tabs
+// Tabs layout — the six primary destinations live here as a real Tabs
 // navigator so their screens stay MOUNTED across tab switches (scroll position
 // and loaded data are preserved natively). "(tabs)" is a route group, so the
 // URLs are unchanged (/feed, /circles, ...). Detail screens (post, circle,
@@ -19,6 +19,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="feed" />
       <Tabs.Screen name="circles" />
       <Tabs.Screen name="groups" />
+      <Tabs.Screen name="bookmarks" />
       <Tabs.Screen name="discover" />
       <Tabs.Screen name="notifications" />
       {/* Search is reachable from the feed masthead (top toolbar), not the bar —
