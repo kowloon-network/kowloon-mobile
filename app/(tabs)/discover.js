@@ -3,7 +3,7 @@
 // generated server-side; Klein-blue fallback when a server has no hero).
 // Featured content sits in translucent black panels with white text.
 //
-// Shelves come from GET /recommendations (server-curated sections of Posts,
+// Shelves come from GET /discovery (server-curated sections of Posts,
 // Circles, Groups, Bookmarks). The search box finds people to add to circles.
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -22,7 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Avatar } from "../../src/components/posts/Avatar.jsx";
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
-import { RecShelf } from "../../src/components/discover/RecShelf.jsx";
+import { DiscoveryShelf } from "../../src/components/discover/DiscoveryShelf.jsx";
 import { TabletColumns } from "../../src/components/layout/TabletColumns.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { resolveImageUrl } from "../../src/lib/resolveImageUrl.js";
@@ -105,7 +105,7 @@ export default function Discover() {
       setLoading(true);
       setError(null);
       client.feeds
-        .getRecommendations()
+        .getDiscovery()
         .then((res) => setSections(res?.sections ?? []))
         .catch((e) => setError(e?.message || "Couldn't load Discover."))
         .finally(() => setLoading(false));
@@ -222,7 +222,7 @@ export default function Discover() {
                 </View>
               ) : (
                 sections.map((s) => (
-                  <RecShelf key={s.id} section={s} baseUrl={baseUrl} onDark />
+                  <DiscoveryShelf key={s.id} section={s} baseUrl={baseUrl} onDark />
                 ))
               )}
             </View>

@@ -1,4 +1,4 @@
-// RecCard — renders one Discover recommendation, dispatched by refType.
+// DiscoveryCard — renders one Discover item, dispatched by refType.
 //
 // Post   : featured-image card with author + summary overlaid (text fallback).
 // Circle : icon + name + blurb, with View / Save actions.
@@ -336,7 +336,7 @@ function ServerCard({ item, baseUrl, onPress }) {
   );
 }
 
-export function RecCard({ item, baseUrl }) {
+export function DiscoveryCard({ item, baseUrl }) {
   const router = useRouter();
   const ink = useInk();
   const enc = (id) => encodeURIComponent(id);

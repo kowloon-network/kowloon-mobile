@@ -1,15 +1,15 @@
-// RecShelf — one horizontal Discover shelf: a section title/blurb over a
-// sideways-scrolling row of RecCards.
+// DiscoveryShelf — one horizontal Discover shelf: a section title/blurb over a
+// sideways-scrolling row of DiscoveryCards.
 //
 // `onDark` renders the shelf as a translucent black panel with white text, for
 // the Discover screen's blurred-hero background.
 
 import { FlatList, Text, View } from "react-native";
 
-import { RecCard } from "./RecCard.jsx";
+import { DiscoveryCard } from "./DiscoveryCard.jsx";
 import { DiscoverMediaTile } from "./DiscoverMediaTile.jsx";
 
-export function RecShelf({ section, baseUrl, onDark }) {
+export function DiscoveryShelf({ section, baseUrl, onDark }) {
   if (!section?.items?.length) return null;
   const isMedia = section.contentType === "media";
   return (
@@ -40,7 +40,7 @@ export function RecShelf({ section, baseUrl, onDark }) {
           isMedia ? (
             <DiscoverMediaTile item={item} size={150} baseUrl={baseUrl} showAuthor marginRight={8} />
           ) : (
-            <RecCard item={item} baseUrl={baseUrl} />
+            <DiscoveryCard item={item} baseUrl={baseUrl} />
           )
         }
         horizontal

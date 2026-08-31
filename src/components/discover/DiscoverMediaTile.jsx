@@ -1,6 +1,6 @@
 // DiscoverMediaTile — one media thumbnail in a Discover media row / server
 // landing strip. Images link to their post; video plays fullscreen; audio plays
-// in-app. `mediaKind` + `mediaUrl` come from the server (GET /recommendations).
+// in-app. `mediaKind` + `mediaUrl` come from the server (GET /discovery).
 
 import { useState } from "react";
 import { Image, Modal, Pressable, Text, View } from "react-native";

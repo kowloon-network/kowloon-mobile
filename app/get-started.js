@@ -15,7 +15,7 @@ import { ArrowRight } from "lucide-react-native";
 
 import { Button } from "../src/components/ui/Button.jsx";
 import { Eyebrow, Heading } from "../src/components/ui/Heading.jsx";
-import { RecShelf } from "../src/components/discover/RecShelf.jsx";
+import { DiscoveryShelf } from "../src/components/discover/DiscoveryShelf.jsx";
 import { useActiveClient } from "../src/lib/useActiveClient.js";
 import { selectActiveAccount } from "../src/state/accountsSlice.js";
 
@@ -33,7 +33,7 @@ export default function GetStarted() {
       if (!client) return;
       setLoading(true);
       client.feeds
-        .getRecommendations()
+        .getDiscovery()
         .then((res) => setSections(res?.sections ?? []))
         .catch(() => setSections([]))
         .finally(() => setLoading(false));
@@ -76,7 +76,7 @@ export default function GetStarted() {
         ) : sections.length > 0 ? (
           <View className="pt-7">
             {sections.map((s) => (
-              <RecShelf key={s.id} section={s} baseUrl={baseUrl} />
+              <DiscoveryShelf key={s.id} section={s} baseUrl={baseUrl} />
             ))}
             <View className="px-6 pt-1">
               <Button label="Go to the feed" onPress={enterFeed} />

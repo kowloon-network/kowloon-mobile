@@ -1,5 +1,5 @@
 // FeedDiscoverRow — a single horizontal row of square cards pulled from the same
-// curated pool as the Discover screen (getRecommendations). Rendered as the feed
+// curated pool as the Discover screen (getDiscovery). Rendered as the feed
 // list header on the Community Posts view only (gated by the caller). Mixed,
 // shuffled content: Posts (media + text), Circles, Groups, Pages, Bookmarks,
 // Servers. Mirror of the web FeedDiscoverRow.
@@ -191,7 +191,7 @@ export function FeedDiscoverRow({ refreshKey = 0 }) {
     if (!client) return;
     let cancelled = false;
     client.feeds
-      .getRecommendations()
+      .getDiscovery()
       .then((res) => {
         if (cancelled) return;
         const seen = new Set();

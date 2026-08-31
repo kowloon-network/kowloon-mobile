@@ -21,7 +21,7 @@ import { selectActiveAccount } from "../../src/state/accountsSlice.js";
 
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { PostCard } from "../../src/components/posts/PostCard.jsx";
-import { RecShelf } from "../../src/components/discover/RecShelf.jsx";
+import { DiscoveryShelf } from "../../src/components/discover/DiscoveryShelf.jsx";
 import { DiscoverMediaTile } from "../../src/components/discover/DiscoverMediaTile.jsx";
 import { ServerMoreMenu } from "../../src/components/servers/ServerMoreMenu.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
@@ -352,7 +352,7 @@ export default function ServerProfile() {
   );
 
   // The remote server's own Discover (curated + heuristic), fetched from its
-  // public /recommendations — the same shelves a non-member sees there.
+  // public /discovery — the same shelves a non-member sees there.
   const loadDiscover = useCallback(async () => {
     if (!domain) return;
     setRecLoading(true);
@@ -360,7 +360,7 @@ export default function ServerProfile() {
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 15000);
-      const res = await fetch(`https://${domain}/recommendations`, {
+      const res = await fetch(`https://${domain}/discovery`, {
         headers: { Accept: "application/json" },
         signal: controller.signal,
       }).finally(() => clearTimeout(timer));
@@ -423,7 +423,7 @@ export default function ServerProfile() {
     }
   }, [tab, loadPosts]);
 
-  // Recommendations power both the header media strip (always visible) and the
+  // The Discover feed powers both the header media strip (always visible) and the
   // Discover tab, so load them once the server page mounts.
   useEffect(() => {
     if (domain && recSections === null && !recLoading) loadDiscover();
@@ -647,7 +647,7 @@ export default function ServerProfile() {
               ) : (
                 <View className="pt-3 pb-4">
                   {recSections.map((s) => (
-                    <RecShelf key={s.id} section={s} baseUrl={baseUrl} onDark />
+                    <DiscoveryShelf key={s.id} section={s} baseUrl={baseUrl} onDark />
                   ))}
                 </View>
               )}
