@@ -23,6 +23,23 @@ import { useInk } from "../../lib/useInk.js";
 const CARD_W = 244;
 const POST_W = 288;
 
+// Editorial-commentary strip under a Post card. Always the same height,
+// whether or not there's a note, so cards in the same row stay level
+// regardless of which posts happen to be curated.
+const NOTE_H = 56;
+
+function NoteBlock({ note }) {
+  return (
+    <View className="bg-black px-3 justify-center" style={{ height: NOTE_H }}>
+      {note ? (
+        <Text className="font-ui text-xs text-white/80 leading-relaxed" numberOfLines={3}>
+          {note}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
 function MiniButton({ label, onPress, filled, disabled, icon }) {
   return (
     <Pressable
@@ -58,23 +75,26 @@ function PostCard({ item, baseUrl, onPress }) {
       <Pressable
         onPress={onPress}
         android_ripple={{ color: "rgba(0,0,0,0.06)" }}
-        style={{ width: POST_W, height: POST_H }}
+        style={{ width: POST_W }}
         className="bg-base-300 mr-3"
       >
-        <Image source={{ uri: img }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-        {/* Bottom scrim for legibility */}
-        <View className="absolute left-0 right-0 bottom-0 h-28 bg-black/45" />
-        <View className="absolute left-0 right-0 bottom-0 p-3">
-          <Text className="font-ui text-sm font-bold text-white leading-snug" numberOfLines={2}>
-            {overlayText}
-          </Text>
-          <View className="flex-row items-center mt-2">
-            <Avatar actor={author} size={20} baseUrl={baseUrl} />
-            <Text className="font-ui text-[11px] text-white/90 ml-2" numberOfLines={1}>
-              {author.name || author.id}
+        <View style={{ height: POST_H }}>
+          <Image source={{ uri: img }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+          {/* Bottom scrim for legibility */}
+          <View className="absolute left-0 right-0 bottom-0 h-28 bg-black/45" />
+          <View className="absolute left-0 right-0 bottom-0 p-3">
+            <Text className="font-ui text-sm font-bold text-white leading-snug" numberOfLines={2}>
+              {overlayText}
             </Text>
+            <View className="flex-row items-center mt-2">
+              <Avatar actor={author} size={20} baseUrl={baseUrl} />
+              <Text className="font-ui text-[11px] text-white/90 ml-2" numberOfLines={1}>
+                {author.name || author.id}
+              </Text>
+            </View>
           </View>
         </View>
+        <NoteBlock note={item.note} />
       </Pressable>
     );
   }
@@ -84,38 +104,41 @@ function PostCard({ item, baseUrl, onPress }) {
     <Pressable
       onPress={onPress}
       android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-      style={{ width: CARD_W, height: POST_H }}
-      className="bg-base-200 p-3 mr-3"
+      style={{ width: CARD_W }}
+      className="bg-base-200 mr-3"
     >
-      <View className="flex-row items-center mb-2">
-        <Newspaper size={12} color={ink(0.5)} strokeWidth={1.75} />
-        <Text className="font-ui uppercase tracking-[0.16em] text-[9px] text-base-content/45 ml-1.5">
-          {item.type || "Post"}
-        </Text>
-      </View>
-      <View className="flex-1">
-        {title ? (
-          <Text className="font-ui text-sm font-bold text-base-content leading-snug" numberOfLines={2}>
-            {title}
+      <View style={{ height: POST_H }} className="p-3">
+        <View className="flex-row items-center mb-2">
+          <Newspaper size={12} color={ink(0.5)} strokeWidth={1.75} />
+          <Text className="font-ui uppercase tracking-[0.16em] text-[9px] text-base-content/45 ml-1.5">
+            {item.type || "Post"}
           </Text>
-        ) : null}
-        {preview ? (
-          <Text
-            className="font-ui text-[13px] text-base-content/75 leading-relaxed mt-1"
-            numberOfLines={title ? 3 : 6}
-          >
-            {preview}
+        </View>
+        <View className="flex-1">
+          {title ? (
+            <Text className="font-ui text-sm font-bold text-base-content leading-snug" numberOfLines={2}>
+              {title}
+            </Text>
+          ) : null}
+          {preview ? (
+            <Text
+              className="font-ui text-[13px] text-base-content/75 leading-relaxed mt-1"
+              numberOfLines={title ? 3 : 6}
+            >
+              {preview}
+            </Text>
+          ) : !title ? (
+            <Text className="font-ui text-sm text-base-content/40 italic">No preview.</Text>
+          ) : null}
+        </View>
+        <View className="flex-row items-center mt-2">
+          <Avatar actor={author} size={20} baseUrl={baseUrl} />
+          <Text className="font-ui text-[11px] text-base-content/60 ml-2" numberOfLines={1}>
+            {author.name || author.id}
           </Text>
-        ) : !title ? (
-          <Text className="font-ui text-sm text-base-content/40 italic">No preview.</Text>
-        ) : null}
+        </View>
       </View>
-      <View className="flex-row items-center mt-2">
-        <Avatar actor={author} size={20} baseUrl={baseUrl} />
-        <Text className="font-ui text-[11px] text-base-content/60 ml-2" numberOfLines={1}>
-          {author.name || author.id}
-        </Text>
-      </View>
+      <NoteBlock note={item.note} />
     </Pressable>
   );
 }
