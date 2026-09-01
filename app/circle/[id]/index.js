@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
-import { Newspaper, Pencil, Trash2, X } from "lucide-react-native";
+import { Compass, Newspaper, Pencil, Trash2, X } from "lucide-react-native";
 
 import { Avatar } from "../../../src/components/posts/Avatar.jsx";
 import { AppHeader } from "../../../src/components/nav/AppHeader.jsx";
@@ -24,10 +24,12 @@ import { Button } from "../../../src/components/ui/Button.jsx";
 import { CircleAvatar } from "../../../src/components/circles/CircleAvatar.jsx";
 import { CircleHeartButton } from "../../../src/components/circles/CircleHeartButton.jsx";
 import { CopyCircleMenu } from "../../../src/components/circles/CopyCircleMenu.jsx";
+import { AddToDiscoveryModal } from "../../../src/components/discover/AddToDiscoveryModal.jsx";
 import { useActiveClient } from "../../../src/lib/useActiveClient.js";
 import { circleVisibilityLabel } from "../../../src/lib/circles.js";
 import { selectActiveAccount } from "../../../src/state/accountsSlice.js";
 import { useInk } from "../../../src/lib/useInk.js";
+import { useIsAdmin } from "../../../src/lib/useIsAdmin.js";
 
 function memberView(m) {
   return {
@@ -50,6 +52,8 @@ export default function CircleDetail() {
   const [error, setError] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [removingId, setRemovingId] = useState(null);
+  const [discoveryOpen, setDiscoveryOpen] = useState(false);
+  const isAdmin = useIsAdmin();
 
   // Quick-add state
   const [addQuery, setAddQuery] = useState("");
@@ -372,6 +376,18 @@ export default function CircleDetail() {
                     <CircleHeartButton circle={circle} client={client} />
                   </>
                 ) : null}
+                {isAdmin ? (
+                  <Pressable
+                    onPress={() => setDiscoveryOpen(true)}
+                    android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+                    className="flex-row items-center   px-3 py-2"
+                  >
+                    <Compass size={13} color={ink(0.85)} strokeWidth={1.75} />
+                    <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content ml-1.5">
+                      Add to Discovery
+                    </Text>
+                  </Pressable>
+                ) : null}
               </View>
             </View>
 
@@ -553,6 +569,15 @@ export default function CircleDetail() {
             +
           </Text>
         </Pressable>
+      ) : null}
+
+      {isAdmin && circle ? (
+        <AddToDiscoveryModal
+          item={circle}
+          refType="Circle"
+          visible={discoveryOpen}
+          onClose={() => setDiscoveryOpen(false)}
+        />
       ) : null}
     </SafeAreaView>
   );

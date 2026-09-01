@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import {
   Ban,
   BellOff,
+  Compass,
   Copy,
   ExternalLink,
   Flag,
@@ -28,7 +29,9 @@ try {
   Clipboard = { setStringAsync: async () => {} };
 }
 import { FlagSheet } from "./FlagSheet.jsx";
+import { AddToDiscoveryModal } from "../discover/AddToDiscoveryModal.jsx";
 import { useInk } from "../../lib/useInk.js";
+import { useIsAdmin } from "../../lib/useIsAdmin.js";
 
 const DROPDOWN_WIDTH = 210;
 const ICON_SIZE = 15;
@@ -57,6 +60,8 @@ export function PostMoreMenu({ post, client, currentUser, onDeleted }) {
     (currentUser.id === authorId || currentUser.id === post?.actorId);
   const isSelf = !!currentUser?.id && currentUser.id === authorId;
   const [flagOpen, setFlagOpen] = useState(false);
+  const [discoveryOpen, setDiscoveryOpen] = useState(false);
+  const isAdmin = useIsAdmin();
 
   function openMenu() {
     triggerRef.current?.measureInWindow((x, y, w, h) => {
@@ -264,6 +269,19 @@ export function PostMoreMenu({ post, client, currentUser, onDeleted }) {
     });
   }
 
+  if (isAdmin && post?.id) {
+    if (items.length > 0) items.push({ key: "sepdiscover", sep: true });
+    items.push({
+      key: "discover",
+      Icon: Compass,
+      label: "Add to Discovery",
+      onPress: () => {
+        close();
+        setDiscoveryOpen(true);
+      },
+    });
+  }
+
   // Nothing to show — don't render the trigger.
   if (!items.some((i) => !i.sep)) return null;
 
@@ -332,6 +350,15 @@ export function PostMoreMenu({ post, client, currentUser, onDeleted }) {
         onSubmit={submitFlag}
         client={client}
       />
+
+      {isAdmin && (
+        <AddToDiscoveryModal
+          item={post}
+          refType="Post"
+          visible={discoveryOpen}
+          onClose={() => setDiscoveryOpen(false)}
+        />
+      )}
     </>
   );
 }

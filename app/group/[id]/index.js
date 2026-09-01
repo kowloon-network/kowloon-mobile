@@ -17,6 +17,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 import {
+  Compass,
   Inbox,
   LogIn,
   LogOut,
@@ -31,6 +32,7 @@ import { AppHeader } from "../../../src/components/nav/AppHeader.jsx";
 import { Avatar } from "../../../src/components/posts/Avatar.jsx";
 import { Button } from "../../../src/components/ui/Button.jsx";
 import { GroupAvatar } from "../../../src/components/groups/GroupAvatar.jsx";
+import { AddToDiscoveryModal } from "../../../src/components/discover/AddToDiscoveryModal.jsx";
 import { useActiveClient } from "../../../src/lib/useActiveClient.js";
 import { resolveImageUrl } from "../../../src/lib/resolveImageUrl.js";
 import {
@@ -40,6 +42,7 @@ import {
 } from "../../../src/lib/groups.js";
 import { selectActiveAccount } from "../../../src/state/accountsSlice.js";
 import { useInk } from "../../../src/lib/useInk.js";
+import { useIsAdmin } from "../../../src/lib/useIsAdmin.js";
 
 function memberView(m) {
   return {
@@ -67,6 +70,8 @@ export default function GroupDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [discoveryOpen, setDiscoveryOpen] = useState(false);
+  const isAdmin = useIsAdmin();
 
   const load = useCallback(async () => {
     if (!client || !id) return;
@@ -368,6 +373,19 @@ export default function GroupDetail() {
                     </Pressable>
                   </>
                 ) : null}
+
+                {isAdmin ? (
+                  <Pressable
+                    onPress={() => setDiscoveryOpen(true)}
+                    android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+                    className="flex-row items-center   px-3 py-2"
+                  >
+                    <Compass size={13} color={ink(0.85)} strokeWidth={1.75} />
+                    <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content ml-1.5">
+                      Add to Discovery
+                    </Text>
+                  </Pressable>
+                ) : null}
               </View>
             </View>
 
@@ -432,6 +450,15 @@ export default function GroupDetail() {
             +
           </Text>
         </Pressable>
+      ) : null}
+
+      {isAdmin && group ? (
+        <AddToDiscoveryModal
+          item={group}
+          refType="Group"
+          visible={discoveryOpen}
+          onClose={() => setDiscoveryOpen(false)}
+        />
       ) : null}
     </SafeAreaView>
   );
