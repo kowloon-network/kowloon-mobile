@@ -22,6 +22,7 @@ import {
   Users2,
   Circle,
   Bookmark,
+  Palette,
 } from "lucide-react-native";
 
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
@@ -215,6 +216,12 @@ export default function AdminHome() {
             label="Bookmarks"
             sublabel="Server-owned bookmark folders"
             onPress={() => router.push("/admin/bookmarks")}
+          />
+          <NavRow
+            icon={<Palette size={20} color={ink(0.7)} strokeWidth={1.75} />}
+            label="Themes"
+            sublabel="Set your site's colors"
+            onPress={() => router.push("/admin/themes")}
           />
         </ScrollView>
       )}
