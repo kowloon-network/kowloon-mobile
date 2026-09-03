@@ -16,22 +16,33 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronRight, Star } from "lucide-react-native";
 
-import { AppHeader, HeaderButton } from "../../src/components/nav/AppHeader.jsx";
+import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
+import { Button } from "../../src/components/ui/Button.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { useInk } from "../../src/lib/useInk.js";
 
 const SWATCH_KEYS = ["base-100", "primary", "secondary", "accent", "base-content"];
+// Both swatch variants share this exact width so every row's title lines up,
+// regardless of whether a theme has real colors (5 stripes) or not (the
+// "AUTO" placeholder box) -- previously the placeholder was 36px and the
+// striped swatch was 45px (5 * 9), silently indenting every colored theme's
+// title 9px further right than "System"'s. Looked like a "current theme"
+// indicator; it was just a sizing mismatch.
+const SWATCH_WIDTH = SWATCH_KEYS.length * 9;
 
 function ThemeSwatches({ theme }) {
   if (!theme.colors) {
     return (
-      <View className="w-9 h-9 items-center justify-center border border-base-300">
+      <View
+        style={{ width: SWATCH_WIDTH, height: 36 }}
+        className="items-center justify-center border border-base-300"
+      >
         <Text className="font-ui text-[9px] text-base-content/40">AUTO</Text>
       </View>
     );
   }
   return (
-    <View className="flex-row">
+    <View className="flex-row" style={{ width: SWATCH_WIDTH, height: 36 }}>
       {SWATCH_KEYS.map((k) => (
         <View
           key={k}
@@ -103,11 +114,11 @@ export default function AdminThemes() {
 
   return (
     <SafeAreaView className="flex-1 bg-base-100" edges={["left", "right"]}>
-      <AppHeader
-        back
-        title="Themes"
-        right={<HeaderButton label="New" onPress={() => router.push("/admin/theme/new")} />}
-      />
+      <AppHeader back title="Themes" />
+
+      <View className="px-5 pt-4 pb-1">
+        <Button label="New Theme" onPress={() => router.push("/admin/theme/new")} />
+      </View>
 
       <ScrollView
         contentContainerStyle={{ paddingBottom: 96 }}
