@@ -198,6 +198,11 @@ export default function AdminThemes() {
             );
           })
         )}
+
+        <Text className="font-reading text-sm text-base-content/60 italic leading-6 px-5 pt-5">
+          Themes control the way your community looks on the Web and by default to new users, but
+          app users can set their own app theme.
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
