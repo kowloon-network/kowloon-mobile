@@ -1,13 +1,14 @@
 // Register a new Kowloon account.
 //
 // Flow:
-//   Stage 1 — enter server domain (or arrive prefilled via QR scan).
-//             Fetch GET / to confirm the server exists, get its name +
-//             registrationIsOpen flag + community rules.
-//   Stage 2 — server info card unfolds: fill out username, email, password,
-//             confirm. If registration is invite-only, the invite code field
-//             appears (prefilled from QR if available). Every community rule
-//             gets its own checkbox; all must be ticked to submit.
+//   Stage 1 — enter server domain (or arrive prefilled via QR scan). Fetch
+//             GET / to confirm the server exists, get its name + community
+//             rules.
+//   Stage 2 — server info card unfolds; the invite code field comes first
+//             (Kowloon has no server-wide open-signup switch — every server
+//             requires one, prefilled from a QR/deep-link scan when there is
+//             one), then username, email, password, confirm. Every community
+//             rule gets its own checkbox; all must be ticked to submit.
 //   Submit  — POST /register via @kowloon/client. If the server enables
 //             email verification it returns `{ requiresVerification: true }`;
 //             otherwise we get `{ token, user }` and auto-log-in straight to
@@ -93,8 +94,6 @@ export default function Register() {
   const rules = serverInfo?.settings?.rules || [];
   const allRulesAcknowledged =
     rules.length === 0 || rules.every((r) => !!acknowledged[r.id]);
-  const inviteRequired =
-    serverInfo && serverInfo.registrationIsOpen === false;
 
   async function fetchServerInfo(d, o) {
     const cleanDomain = (d || domain).trim().toLowerCase();
@@ -150,8 +149,8 @@ export default function Register() {
     }
     if (!password) return setError("Pick a password.");
     if (password !== confirm) return setError("Passwords don't match.");
-    if (inviteRequired && !inviteCode.trim()) {
-      return setError("This server is invite-only — paste your invite code.");
+    if (!inviteCode.trim()) {
+      return setError("An invite code is required to register.");
     }
     if (!allRulesAcknowledged) {
       return setError("Tick every rule to continue.");
@@ -298,6 +297,25 @@ export default function Register() {
                   </Text>
                 </View>
 
+                {/* Always first, always required — every Kowloon server
+                    requires an invite. Shown in the error slot (red) rather
+                    than the calm hint slot whenever it's empty, so a visitor
+                    who followed a bare link rather than an invite link sees
+                    immediately that this field isn't optional. */}
+                <Field
+                  label="Invite code"
+                  value={inviteCode}
+                  onChangeText={setInviteCode}
+                  autoCapitalize="none"
+                  placeholder="paste your invite code"
+                  hint={inviteCode ? "From your invite link." : undefined}
+                  error={
+                    inviteCode
+                      ? undefined
+                      : "Required — ask whoever invited you, or your server's admin."
+                  }
+                />
+
                 <Field
                   label="Username"
                   value={username}
@@ -329,17 +347,6 @@ export default function Register() {
                   secureTextEntry
                   placeholder="••••••••"
                 />
-
-                {inviteRequired ? (
-                  <Field
-                    label="Invite code"
-                    value={inviteCode}
-                    onChangeText={setInviteCode}
-                    autoCapitalize="none"
-                    placeholder="paste your invite code"
-                    hint="This server is invite-only."
-                  />
-                ) : null}
 
                 {rules.length > 0 ? (
                   <View className="mt-2 mb-4">
