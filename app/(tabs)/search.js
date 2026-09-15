@@ -21,7 +21,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Globe, Search as SearchIcon, X } from "lucide-react-native";
+import { ArrowRight, BookOpen, FileText, Globe, Search as SearchIcon, Users2, X } from "lucide-react-native";
+import { parseKowloonId, NAVIGABLE_TYPES } from "@kowloon/client";
 
 import { BackLink } from "../../src/components/ui/BackLink.jsx";
 import { Avatar } from "../../src/components/posts/Avatar.jsx";
@@ -261,6 +262,68 @@ export default function Search() {
     sections.groups.length === 0 &&
     sections.bookmarks.length === 0;
 
+  // Everything else parseKowloonId recognizes as a real, navigable id/handle
+  // (@user@domain, post:/circle:/group:/page: ids) — Server is excluded since
+  // isServerQuery above already owns that case end-to-end, and Bookmark/
+  // Reply/React are recognized ids with no standalone screen in this app, so
+  // a card for them would just be a dead end.
+  const idMatch = debounced ? parseKowloonId(debounced) : { type: "Unknown" };
+  const isGoToQuery =
+    !isServerQuery && idMatch.type !== "Unknown" && NAVIGABLE_TYPES.has(idMatch.type);
+
+  const [goToResult, setGoToResult] = useState(null);
+  const [goToLoading, setGoToLoading] = useState(false);
+  const [goToError, setGoToError] = useState(null);
+
+  // "Go to" lookup for a recognized id/handle. Runs GET /lookup, which
+  // enforces the exact same visibility rules as everywhere else in the app —
+  // a 404 here can mean "doesn't exist" or "you can't see it"; the server
+  // deliberately doesn't distinguish the two, so neither does this screen.
+  useEffect(() => {
+    if (!client || !isGoToQuery) {
+      setGoToResult(null);
+      setGoToError(null);
+      return;
+    }
+    let cancelled = false;
+    setGoToLoading(true);
+    setGoToError(null);
+    client.feeds
+      .lookup({ id: debounced })
+      .then((res) => { if (!cancelled) setGoToResult(res?.item ?? null); })
+      .catch((err) => {
+        if (cancelled) return;
+        setGoToResult(null);
+        setGoToError(
+          err?.statusCode === 404
+            ? "Nothing found at that ID — it may not exist, or you may not have access to it."
+            : "Could not look that up."
+        );
+      })
+      .finally(() => { if (!cancelled) setGoToLoading(false); });
+    return () => { cancelled = true; };
+  }, [client, debounced, isGoToQuery]);
+
+  function goToPathFor(item) {
+    const objectType = item?.objectType || item?.type;
+    switch (objectType) {
+      // sanitizeUser() puts the ActivityPub actor URL in `id` and the Kowloon
+      // handle (@user@domain) in `handle` — every route in this app
+      // addresses users by handle, so `id` would silently link to the wrong
+      // thing here.
+      case "User":
+      case "Person":
+        return item.handle ? `/user/${encodeURIComponent(item.handle)}` : null;
+      case "Post":   return `/post/${encodeURIComponent(item.id)}`;
+      case "Circle": return `/circle/${encodeURIComponent(item.id)}`;
+      case "Group":  return `/group/${encodeURIComponent(item.id)}`;
+      // pages/[slug].js accepts a raw id too (the server tries id-first, slug
+      // second), so the Kowloon id works here without a separate route.
+      case "Page":   return `/pages/${encodeURIComponent(item.id)}`;
+      default: return null;
+    }
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-base-100" edges={["left", "right"]}>
       <AppHeader title="Search" />
@@ -309,6 +372,35 @@ export default function Search() {
           ))}
         </ScrollView>
       </View>
+
+      {/* "Go to" — the input is a recognized Kowloon id/handle, not free
+          text. Shown regardless of the active tab, same as the @domain
+          server card above it would be if this were the "all" tab. */}
+      {isGoToQuery ? (
+        <View>
+          <SectionHeader title="Go to" showSeeAll={false} />
+          {goToLoading ? (
+            <View className="px-5 py-4">
+              <ActivityIndicator />
+            </View>
+          ) : goToResult ? (
+            <GoToResultCard
+              item={goToResult}
+              baseUrl={account?.baseUrl}
+              onPress={() => {
+                const path = goToPathFor(goToResult);
+                if (path) router.push(path);
+              }}
+            />
+          ) : (
+            <View className="px-5 py-4">
+              <Text className="font-ui text-sm text-base-content/50">
+                {goToError || "Nothing found at that ID."}
+              </Text>
+            </View>
+          )}
+        </View>
+      ) : null}
 
       {/* Body */}
       <View className="flex-1">
@@ -453,6 +545,55 @@ function ServerResultCard({ server, baseUrl, onPress }) {
           </Text>
         ) : null}
       </View>
+    </Pressable>
+  );
+}
+
+// ── "Go to" result card ──────────────────────────────────────────────────────
+// A /lookup hit for a recognized id/handle — the same visual weight as
+// ServerResultCard, generic across User/Post/Circle/Group/Page.
+function GoToResultCard({ item, baseUrl, onPress }) {
+  const objectType = item?.objectType || item?.type;
+
+  const label =
+    objectType === "User" || objectType === "Person"
+      ? item.name || item.preferredUsername || item.handle
+      : item.title || item.name || item.summary || item.id;
+
+  const sub =
+    objectType === "User" || objectType === "Person" ? item.handle
+      : objectType === "Post" ? "Post"
+      : objectType === "Circle" ? "Circle"
+      : objectType === "Group" ? "Group"
+      : objectType === "Page" ? "Page"
+      : null;
+
+  const TypeIcon = objectType === "Group" ? Users2 : objectType === "Page" ? BookOpen : FileText;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+      className="flex-row items-center px-5 py-4   bg-base-100"
+    >
+      {objectType === "User" || objectType === "Person" ? (
+        <Avatar actor={{ id: item.handle, name: label, icon: item.profile?.icon || null }} size={44} baseUrl={baseUrl} />
+      ) : (
+        <View style={{ width: 44, height: 44 }} className="  bg-secondary items-center justify-center">
+          <TypeIcon size={20} color="rgba(255,244,224,0.7)" strokeWidth={1.75} />
+        </View>
+      )}
+      <View className="flex-1 ml-3 min-w-0">
+        <Text className="font-ui text-lg text-base-content leading-tight" numberOfLines={1}>
+          {label}
+        </Text>
+        {sub ? (
+          <Text className="font-ui text-[11px] uppercase tracking-[0.14em] text-base-content/50 mt-0.5" numberOfLines={1}>
+            {sub}
+          </Text>
+        ) : null}
+      </View>
+      <ArrowRight size={16} color="rgba(0,0,0,0.3)" strokeWidth={2} />
     </Pressable>
   );
 }
