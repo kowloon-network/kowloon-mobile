@@ -6,14 +6,14 @@
 // sheet so it works from the bottom of the composer.
 
 import { useEffect, useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSelector } from "react-redux";
 
 import { useActiveClient } from "../../lib/useActiveClient.js";
 import { selectActiveAccount } from "../../state/accountsSlice.js";
 import { orderUserCircles } from "../../lib/orderCircles.js";
 import { useJoinedGroups } from "../../lib/useJoinedGroups.js";
+import { Sheet } from "../ui/Sheet.jsx";
 
 // `allowPrivate` opts in to a self-only ("Only Me") tier, addressed to the
 // user's own ID. Off by default — bookmarks enable it; the post composer does not.
@@ -132,76 +132,55 @@ export function AudienceSelector({
         <Text className="font-ui text-base-content/50 ml-1">▾</Text>
       </Pressable>
 
-      <Modal
-        visible={open}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}
-        statusBarTranslucent
-      >
-        <Pressable
-          className="flex-1 bg-black/40 justify-end"
-          onPress={() => setOpen(false)}
-        >
-          {/* Inner Pressable swallows taps so they don't dismiss. */}
-          <Pressable onPress={() => {}}>
-            <SafeAreaView edges={["bottom"]} className="bg-base-100">
-              <View className=" ">
-                <Text className="font-ui uppercase tracking-[0.18em] text-[11px] text-base-content/50 px-5 pt-4 pb-2">
-                  {title}
-                </Text>
-                <ScrollView className="max-h-96">
-                  {audienceOptions.map((opt) => (
-                    <Row
-                      key={opt.value}
-                      label={opt.label}
-                      summary={opt.summary}
-                      selected={value === opt.value}
-                      disabled={!optionEnabled(opt.value)}
-                      onPress={() => select(opt.value)}
-                    />
-                  ))}
+      <Sheet visible={open} onClose={() => setOpen(false)} title={title}>
+        <ScrollView className="max-h-96">
+          {audienceOptions.map((opt) => (
+            <Row
+              key={opt.value}
+              label={opt.label}
+              summary={opt.summary}
+              selected={value === opt.value}
+              disabled={!optionEnabled(opt.value)}
+              onPress={() => select(opt.value)}
+            />
+          ))}
 
-                  {circles.length > 0 ? (
-                    <View className="  mt-1 pt-1">
-                      <Text className="font-ui uppercase tracking-[0.18em] text-[10px] text-base-content/40 px-5 py-2">
-                        Your circles
-                      </Text>
-                      {circles.map((c) => (
-                        <Row
-                          key={c.id}
-                          label={c.name}
-                          summary={c.summary}
-                          selected={value === c.id}
-                          disabled={!optionEnabled(c.id)}
-                          onPress={() => select(c.id)}
-                        />
-                      ))}
-                    </View>
-                  ) : null}
+          {circles.length > 0 ? (
+            <View className="mt-1 pt-1">
+              <Text className="font-ui uppercase tracking-[0.18em] text-[10px] text-base-content/40 px-5 py-2">
+                Your circles
+              </Text>
+              {circles.map((c) => (
+                <Row
+                  key={c.id}
+                  label={c.name}
+                  summary={c.summary}
+                  selected={value === c.id}
+                  disabled={!optionEnabled(c.id)}
+                  onPress={() => select(c.id)}
+                />
+              ))}
+            </View>
+          ) : null}
 
-                  {groups.length > 0 ? (
-                    <View className="  mt-1 pt-1">
-                      <Text className="font-ui uppercase tracking-[0.18em] text-[10px] text-base-content/40 px-5 py-2">
-                        Your groups
-                      </Text>
-                      {groups.map((g) => (
-                        <Row
-                          key={g.id}
-                          label={g.name}
-                          selected={value === g.id}
-                          disabled={!optionEnabled(g.id)}
-                          onPress={() => select(g.id)}
-                        />
-                      ))}
-                    </View>
-                  ) : null}
-                </ScrollView>
-              </View>
-            </SafeAreaView>
-          </Pressable>
-        </Pressable>
-      </Modal>
+          {groups.length > 0 ? (
+            <View className="mt-1 pt-1">
+              <Text className="font-ui uppercase tracking-[0.18em] text-[10px] text-base-content/40 px-5 py-2">
+                Your groups
+              </Text>
+              {groups.map((g) => (
+                <Row
+                  key={g.id}
+                  label={g.name}
+                  selected={value === g.id}
+                  disabled={!optionEnabled(g.id)}
+                  onPress={() => select(g.id)}
+                />
+              ))}
+            </View>
+          ) : null}
+        </ScrollView>
+      </Sheet>
     </>
   );
 }
