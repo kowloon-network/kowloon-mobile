@@ -2,11 +2,9 @@ import { Pressable, View } from "react-native";
 
 import { PostTypeIcon } from "./PostTypeIcon.jsx";
 import { POST_TYPE_NAMES } from "../../lib/postTypes.js";
-import { useInk } from "../../lib/useInk.js";
 import { usePostColor } from "../../lib/usePostColor.js";
 
 export function TypeFilter({ activeTypes = [], onSetTypes }) {
-  const ink = useInk();
   const postColor = usePostColor();
   const isAll = !activeTypes || activeTypes.length === 0;
 
@@ -34,7 +32,7 @@ export function TypeFilter({ activeTypes = [], onSetTypes }) {
             <PostTypeIcon
               type={type}
               size={20}
-              color={active ? postColor(type) : ink(0.15)}
+              color={active ? postColor(type) : postColor(type, 0.15)}
             />
           </Pressable>
         );
