@@ -1,8 +1,8 @@
 // Post type metadata — labels + colors. Each color is used for the icon tint,
 // the picker underline, and the feed card accent. Colors come from the shared
-// palette (@kowloon/client/theme/palette.json) — light values here; the Tailwind
-// `post-*` classes carry the dark-mode variants.
-import palette from "@kowloon/client/theme/palette.json";
+// palette (@kowloon/design/tokens/palette.json) — light values here; the
+// Tailwind `post-*` classes carry the dark-mode variants.
+import palette from "@kowloon/design/tokens/palette.json";
 
 const P = palette.light;
 

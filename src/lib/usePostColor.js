@@ -1,9 +1,9 @@
 // Theme-aware post-type color. POST_TYPES[t].color is light-only (a JS value),
 // so icon tints / picker underlines wouldn't brighten in dark like the Tailwind
 // `post-*` classes do. This hook returns (type) => hex for the CURRENT scheme,
-// straight from the shared palette (@kowloon/client/theme/palette.json).
+// straight from the shared palette (@kowloon/design/tokens/palette.json).
 import { useColorScheme } from "nativewind";
-import palette from "@kowloon/client/theme/palette.json";
+import palette from "@kowloon/design/tokens/palette.json";
 
 const KEY = {
   Note: "post-note",

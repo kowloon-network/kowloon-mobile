@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 // Single source of truth for the palette — shared with the web frontend.
-const palette = require("@kowloon/client/theme/palette.json");
+const palette = require("@kowloon/design/tokens/palette.json");
 const L = palette.light;
 // Tokens that differ between light and dark are variable-driven (their runtime
 // values are set by ThemeContext's vars() from this same palette). The rest are
@@ -18,7 +18,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // From the shared palette (@kowloon/client/theme/palette.json).
+        // From the shared palette (@kowloon/design/tokens/palette.json).
         // Variable-driven tokens swap light/dark; constant tokens read light.
         base: {
           100: v("base-100"), // app background
@@ -26,10 +26,16 @@ module.exports = {
           300: v("base-300"), // hairline / placeholder
           content: v("base-content"),
         },
-        field: v("field"), // text input / editor surface
+        // field retired (2026-09-24, see kowloon-design/components/Field.md) —
+        // Field converged on an underline treatment, no fill color needed. This
+        // interim alias keeps `bg-field` a valid class for the 40+ call sites
+        // not yet individually revisited; it now just resolves to base-100.
+        field: v("base-100"),
         primary: { DEFAULT: L.primary, content: v("primary-content") },
         secondary: { DEFAULT: L.secondary, content: L["secondary-content"] },
-        accent: { DEFAULT: L.accent, content: L["accent-content"] },
+        // accent now differs between light/dark (vermillion desaturates for
+        // dark mode) — variable-driven, not a constant read.
+        accent: { DEFAULT: v("accent"), content: L["accent-content"] },
         neutral: { DEFAULT: v("neutral"), content: L["neutral-content"] },
         success: { DEFAULT: L.success, content: L["success-content"] },
         warning: { DEFAULT: L.warning, content: L["warning-content"] },

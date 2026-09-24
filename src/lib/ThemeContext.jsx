@@ -11,7 +11,7 @@ import {
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colorScheme, vars } from "nativewind";
-import palette from "@kowloon/client/theme/palette.json";
+import palette from "@kowloon/design/tokens/palette.json";
 
 const KEY = "kowloon.themePref";
 const VALID = new Set(["light", "dark", "system"]);
@@ -26,8 +26,8 @@ const VAR_TOKENS = [
   "base-200",
   "base-300",
   "base-content",
-  "field",
   "primary-content",
+  "accent",
   "neutral",
   "post-note",
   "post-article",
