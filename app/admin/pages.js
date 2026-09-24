@@ -4,7 +4,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   RefreshControl,
@@ -18,6 +17,9 @@ import { ChevronRight, FileText, Folder } from "lucide-react-native";
 import { AppHeader, HeaderButton } from "../../src/components/nav/AppHeader.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { useInk } from "../../src/lib/useInk.js";
+import { Spinner } from "../../src/components/ui/Spinner.jsx";
+import { EmptyState } from "../../src/components/ui/EmptyState.jsx";
+import { ErrorState } from "../../src/components/ui/ErrorState.jsx";
 
 const TABS = [
   { key: "active", label: "Active" },
@@ -123,22 +125,17 @@ export default function AdminPages() {
         }
       >
         {loading ? (
-          <View className="py-20 items-center">
-            <ActivityIndicator />
-          </View>
+          <Spinner centered />
         ) : error ? (
-          <Text className="font-ui text-sm text-error px-5 py-6">{error}</Text>
+          <ErrorState message={error} onRetry={() => load(tab)} />
         ) : items.length === 0 ? (
-          <View className="px-6 py-20 items-center">
-            <Text className="font-ui text-base text-base-content/70 text-center mb-1">
-              {isDeleted ? "No deleted pages." : "No pages yet."}
-            </Text>
-            {!isDeleted ? (
-              <Text className="font-ui text-sm text-base-content/45 text-center leading-6">
-                Tap New to create your first page.
-              </Text>
-            ) : null}
-          </View>
+          <EmptyState
+            message={
+              isDeleted
+                ? "No deleted pages."
+                : "No pages yet. Tap New to create your first page."
+            }
+          />
         ) : (
           items.map((page) => {
             const isFolder = page.type === "Folder";
@@ -177,7 +174,7 @@ export default function AdminPages() {
                     android_ripple={{ color: "rgba(0,0,0,0.08)" }}
                   >
                     {busyId === page.id ? (
-                      <ActivityIndicator size="small" />
+                      <Spinner size="sm" />
                     ) : (
                       <Text className="font-ui uppercase tracking-[0.12em] text-[10px] text-base-content">
                         Restore

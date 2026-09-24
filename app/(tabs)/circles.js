@@ -10,7 +10,6 @@ import { useCallback, useState } from "react";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSelector } from "react-redux";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
@@ -26,6 +25,9 @@ import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { TabletColumns } from "../../src/components/layout/TabletColumns.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { selectActiveAccount } from "../../src/state/accountsSlice.js";
+import { Spinner } from "../../src/components/ui/Spinner.jsx";
+import { EmptyState } from "../../src/components/ui/EmptyState.jsx";
+import { ErrorState } from "../../src/components/ui/ErrorState.jsx";
 
 export default function Circles() {
   const router = useRouter();
@@ -184,35 +186,17 @@ export default function Circles() {
         }
         ListEmptyComponent={
           loading ? (
-            <View className="py-20 items-center">
-              <ActivityIndicator />
-            </View>
+            <Spinner centered />
           ) : error ? (
-            <View className="px-6 py-20 items-center">
-              <Text className="font-ui text-base text-error text-center mb-4">
-                {error}
-              </Text>
-              <Pressable
-                onPress={onRefresh}
-                className="  px-5 py-2.5"
-                android_ripple={{ color: "rgba(0,0,0,0.06)" }}
-              >
-                <Text className="font-ui uppercase tracking-[0.16em] text-xs text-base-content">
-                  Retry
-                </Text>
-              </Pressable>
-            </View>
+            <ErrorState message={error} onRetry={onRefresh} />
           ) : (
-            <View className="px-6 py-20 items-center">
-              <Text className="font-ui text-lg text-base-content/70 text-center mb-2">
-                {tab === "mine" ? "No circles yet." : "Nothing to browse."}
-              </Text>
-              <Text className="font-ui text-sm text-base-content/55 text-center leading-6">
-                {tab === "mine"
-                  ? "Circles are curated lists of people whose posts you want to read. Create one, or find one under Browse to copy."
-                  : "No public circles to discover yet. Create your own."}
-              </Text>
-            </View>
+            <EmptyState
+              message={
+                tab === "mine"
+                  ? "No circles yet. Circles are curated lists of people whose posts you want to read. Create one, or find one under Browse to copy."
+                  : "Nothing to browse. No public circles to discover yet. Create your own."
+              }
+            />
           )
         }
         ListFooterComponent={

@@ -6,7 +6,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -30,6 +29,8 @@ import { circleVisibilityLabel } from "../../../src/lib/circles.js";
 import { selectActiveAccount } from "../../../src/state/accountsSlice.js";
 import { useInk } from "../../../src/lib/useInk.js";
 import { useIsAdmin } from "../../../src/lib/useIsAdmin.js";
+import { Spinner } from "../../../src/components/ui/Spinner.jsx";
+import { ErrorState } from "../../../src/components/ui/ErrorState.jsx";
 
 function memberView(m) {
   return {
@@ -239,14 +240,10 @@ export default function CircleDetail() {
       <AppHeader back title={circle?.name || "Circle"} />
       <ScrollView contentContainerStyle={{ paddingBottom: (insets.bottom || 0) + (isOwner ? 100 : 40) }}>
         {loading ? (
-          <View className="py-20 items-center">
-            <ActivityIndicator />
-          </View>
+          <Spinner centered />
         ) : error ? (
-          <View className="py-20 items-center px-6">
-            <Text className="font-ui text-base text-error text-center mb-4">
-              {error}
-            </Text>
+          <View className="items-center">
+            <ErrorState message={error} onRetry={load} />
             <Button label="Back" variant="ghost" onPress={() => router.back()} />
           </View>
         ) : circle ? (
@@ -408,7 +405,7 @@ export default function CircleDetail() {
                 />
                 {addSearching ? (
                   <View className="py-3 items-start">
-                    <ActivityIndicator />
+                    <Spinner size="sm" />
                   </View>
                 ) : addResults.length > 0 ? (
                   <View className="  ">
@@ -438,7 +435,7 @@ export default function CircleDetail() {
                             </Text>
                           </View>
                           {addingId === m.id ? (
-                            <ActivityIndicator size="small" />
+                            <Spinner size="sm" />
                           ) : (
                             <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content/45 ml-2">
                               {already ? "Added" : "Add"}
@@ -534,7 +531,7 @@ export default function CircleDetail() {
                         className="ml-2 p-1"
                       >
                         {removingId === m.id ? (
-                          <ActivityIndicator size="small" />
+                          <Spinner size="sm" />
                         ) : (
                           <X
                             size={18}
