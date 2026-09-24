@@ -421,6 +421,24 @@ export default function Compose() {
     setMediaSheetOpen(true);
   }
 
+  // Auto-open the media chooser the moment Media becomes the selected post
+  // type -- a Media post obviously means adding media next, so skip the
+  // extra tap on "Add media". Guarded so it only fires once per *transition*
+  // into Media (not on every re-render while Media stays selected), and
+  // skipped entirely when attachments are already present -- e.g. share
+  // intake, which seeds `type` to "Media" with files already attached, where
+  // popping the chooser again would be asking for MORE media, not helping.
+  const autoOpenedMediaRef = useRef(false);
+  useEffect(() => {
+    if (type !== "Media") {
+      autoOpenedMediaRef.current = false;
+      return;
+    }
+    if (autoOpenedMediaRef.current || attachments.length > 0) return;
+    autoOpenedMediaRef.current = true;
+    setMediaSheetOpen(true);
+  }, [type, attachments.length]);
+
   function removeAttachment(index) {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
