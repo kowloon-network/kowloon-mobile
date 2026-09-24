@@ -26,6 +26,7 @@ import { PushProvider } from "../src/lib/PushProvider.jsx";
 import { ShareIntentRouter } from "../src/components/ShareIntentRouter.jsx";
 import { ImageViewerProvider } from "../src/components/ImageViewerProvider.jsx";
 import { AudioPlayerProvider } from "../src/lib/AudioPlayerProvider.jsx";
+import ToastStack from "../src/components/ui/ToastStack.jsx";
 import { ThemeProvider, THEME_VARS } from "../src/lib/ThemeContext.jsx";
 import { useColorScheme } from "nativewind";
 import { View } from "react-native";
@@ -82,6 +83,7 @@ export default function RootLayout() {
                             },
                           }}
                         />
+                        <ToastStack />
                       </AudioPlayerProvider>
                     </PushProvider>
                   </ImageViewerProvider>

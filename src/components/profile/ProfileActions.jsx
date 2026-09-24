@@ -22,6 +22,7 @@ import { Ban, BellOff, Check, MoreHorizontal, X } from "lucide-react-native";
 import { sortByPins } from "@kowloon/client";
 
 import { useInk } from "../../lib/useInk.js";
+import { toast } from "../../lib/toast.js";
 
 export function ProfileActions({ client, account, targetId, name }) {
   const ink = useInk();
@@ -78,7 +79,7 @@ export function ProfileActions({ client, account, targetId, name }) {
         await client.activities.addToCircle({ circleId, memberId: targetId });
         setAddedTo((prev) => new Set([...prev, circleId]));
       } catch (e) {
-        Alert.alert("Couldn't add", e?.message || "Please try again.");
+        toast.error("Couldn't add", { detail: e?.message });
       } finally {
         setAddingTo(null);
       }
@@ -111,9 +112,9 @@ export function ProfileActions({ client, account, targetId, name }) {
           onPress: async () => {
             try {
               await client.activities.block({ userId: targetId });
-              Alert.alert("Blocked", `${displayName} has been blocked.`);
+              toast.success("Blocked", { detail: `${displayName} has been blocked.` });
             } catch (e) {
-              Alert.alert("Couldn't block", e?.message || "Please try again.");
+              toast.error("Couldn't block", { detail: e?.message });
             }
           },
         },
@@ -135,9 +136,9 @@ export function ProfileActions({ client, account, targetId, name }) {
           onPress: async () => {
             try {
               await client.activities.mute({ userId: targetId });
-              Alert.alert("Muted", `${displayName} has been muted.`);
+              toast.success("Muted", { detail: `${displayName} has been muted.` });
             } catch (e) {
-              Alert.alert("Couldn't mute", e?.message || "Please try again.");
+              toast.error("Couldn't mute", { detail: e?.message });
             }
           },
         },

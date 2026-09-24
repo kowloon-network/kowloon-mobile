@@ -6,7 +6,7 @@
 // Bookmark/Page: compact link card.
 
 import { useState } from "react";
-import { Alert, Image, Linking, Pressable, Text, View } from "react-native";
+import { Image, Linking, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSelector } from "react-redux";
 import { Bookmark as BookmarkIcon, Copy, ExternalLink, Globe, Newspaper, Play, Users } from "lucide-react-native";
@@ -18,6 +18,7 @@ import { useActiveClient } from "../../lib/useActiveClient.js";
 import { resolveImageUrl } from "../../lib/resolveImageUrl.js";
 import { saveCircle } from "../../lib/saveCircle.js";
 import { selectActiveAccount } from "../../state/accountsSlice.js";
+import { toast } from "../../lib/toast.js";
 import { useInk } from "../../lib/useInk.js";
 
 const CARD_W = 244;
@@ -158,7 +159,7 @@ function CircleCard({ item, baseUrl, onView }) {
       await saveCircle(client, item.id);
       setSaved(true);
     } catch (e) {
-      Alert.alert("Couldn't save", e?.message || "Please try again.");
+      toast.error("Couldn't save", { detail: e?.message });
     } finally {
       setSaving(false);
     }

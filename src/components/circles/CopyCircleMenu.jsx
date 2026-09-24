@@ -8,7 +8,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -25,6 +24,7 @@ import { useActiveClient } from "../../lib/useActiveClient.js";
 import { extractCircleId } from "../../lib/circles.js";
 import { selectActiveAccount } from "../../state/accountsSlice.js";
 import { useInk } from "../../lib/useInk.js";
+import { toast } from "../../lib/toast.js";
 
 export function CopyCircleMenu({ circle, compact = false }) {
   const router = useRouter();
@@ -74,7 +74,7 @@ export function CopyCircleMenu({ circle, compact = false }) {
         router.push(`/circle/${encodeURIComponent(newId)}`);
       }
     } catch (e) {
-      Alert.alert("Couldn't save", e?.message || "Please try again.");
+      toast.error("Couldn't save", { detail: e?.message });
     } finally {
       setBusy(false);
     }
@@ -83,21 +83,23 @@ export function CopyCircleMenu({ circle, compact = false }) {
   async function addMembersTo(target) {
     if (busy) return;
     if (!members.length) {
-      Alert.alert("Nothing to add", "This circle has no members to copy.");
+      toast.info("Nothing to add", { detail: "This circle has no members to copy." });
       return;
     }
     setBusy(true);
     try {
       await client.activities.addToCircle({ circleId: target.id, members });
       setOpen(false);
-      Alert.alert(
+      toast.success(
         "Members added",
-        `Added ${members.length} ${
-          members.length === 1 ? "member" : "members"
-        } to ${target.name}.`
+        {
+          detail: `Added ${members.length} ${
+            members.length === 1 ? "member" : "members"
+          } to ${target.name}.`,
+        }
       );
     } catch (e) {
-      Alert.alert("Couldn't add members", e?.message || "Please try again.");
+      toast.error("Couldn't add members", { detail: e?.message });
     } finally {
       setBusy(false);
     }
