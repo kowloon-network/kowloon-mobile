@@ -6,21 +6,20 @@
 
 import { Linking, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import { Play, Music } from "lucide-react-native";
 
 import { resolveEmbed } from "@kowloon/client";
 import { SmartImage as Image } from "../ui/SmartImage.jsx";
 import { Avatar } from "./Avatar.jsx";
 import { EmbedPlayer } from "./EmbedPlayer.jsx";
-import { AudioAttachment } from "./AudioAttachment.jsx";
-import { VideoAttachment } from "./VideoAttachment.jsx";
 import { LocationLine } from "./LocationLine.jsx";
 import { PostActionBar } from "./PostActionBar.jsx";
 import { ReactSummaryRow } from "./ReactSummaryRow.jsx";
-import { imageDisplayRatio } from "../../lib/imageRatio.js";
 import { HtmlContent } from "../HtmlContent.jsx";
 import { useImageViewer } from "../ImageViewerProvider.jsx";
 import { useActiveClient } from "../../lib/useActiveClient.js";
 import { useTypography } from "../../lib/TypographyContext.js";
+import { useInk } from "../../lib/useInk.js";
 import { openKowloonLink } from "../../lib/parseKowloonUrl.js";
 import { timeAgo } from "@kowloon/client";
 
@@ -60,6 +59,38 @@ const TYPE_META = {
   Link: { label: "Link", accent: "text-post-link", bar: "bg-post-link" },
   Event: { label: "Event", accent: "text-post-event", bar: "bg-post-event" },
 };
+
+// Event calendar tear-off block — ported from web's EventCard.jsx (Card.md
+// decision 3). Month strip in the post-event color, day number in display
+// type, day-of-week below.
+const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+const DAYS = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+
+function formatStartTime(start) {
+  if (!start) return null;
+  return new Date(start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
+function CalendarBlock({ date }) {
+  if (!date) return null;
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return null;
+  return (
+    <View className="w-14 border-2 border-base-300 overflow-hidden">
+      <View className="items-center justify-center py-0.5 bg-post-event">
+        <Text className="font-ui text-[10px] font-bold uppercase tracking-widest text-white">
+          {MONTHS[d.getMonth()]}
+        </Text>
+      </View>
+      <View className="items-center justify-center py-1 bg-base-100">
+        <Text className="font-display text-3xl leading-none text-base-content">{d.getDate()}</Text>
+        <Text className="font-ui text-[9px] uppercase tracking-widest text-base-content/40 mt-0.5">
+          {DAYS[d.getDay()]}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 function hostOf(url) {
   if (!url) return "";
@@ -101,18 +132,13 @@ export function PostCard({ post, onDeleted }) {
     fontSize: Math.round(resolved.fontSize * 1.4),
     lineHeight: Math.round(resolved.fontSize * 1.6),
   };
-  const nameStyle = {
-    fontFamily: resolved.boldFamily,
-    fontSize: Math.round(resolved.fontSize * 0.95),
-  };
-  const handleStyle = {
-    fontFamily: resolved.regularFamily,
-    fontSize: Math.round(resolved.fontSize * 0.8),
-  };
+  const ink = useInk();
 
   const actor = post?.actor || {};
   const handle = actor.id || post?.actorId || "";
   const name = actor.name || handle.replace(/^@/, "");
+  const eventStart = post?.event?.startDate || post?.startTime;
+  const eventSubheader = [formatStartTime(eventStart), post?.location?.name].filter(Boolean).join(" | ");
 
   const title = post?.title?.trim();
   // Articles carry a generated `summary`; Notes don't — their `body` is the
@@ -158,18 +184,13 @@ export function PostCard({ post, onDeleted }) {
           >
             <Avatar actor={actor} size={38} />
             <View className="flex-1 ml-3">
-              <Text
-                className="text-base-content"
-                style={nameStyle}
-                numberOfLines={1}
-              >
+              {/* Byline is chrome, not reader content -- fixed font-ui
+                  regardless of the reader's typography preference
+                  (Card.md decision 1), matching web's PostMeta. */}
+              <Text className="font-ui font-medium text-base text-base-content" numberOfLines={1}>
                 {name}
               </Text>
-              <Text
-                className="text-base-content/50"
-                style={handleStyle}
-                numberOfLines={1}
-              >
+              <Text className="font-ui text-xs text-base-content/50" numberOfLines={1}>
                 {handle}
               </Text>
             </View>
@@ -198,65 +219,52 @@ export function PostCard({ post, onDeleted }) {
               </Text>
             ) : null}
             <LocationLine location={post?.location} />
-            {/* Media above the body — always, like the web card. */}
+            {/* Media above the body — always, like the web card. Capped at 4
+                attachments (2x2); a 5th+ replaces the last cell with a
+                "+N more" link to the full post. Video/audio share the same
+                cap and cell treatment as images here -- full playback lives
+                on the detail screen (Card.md decision 2). */}
             {Array.isArray(post.attachments) && post.attachments.length > 0 ? (
               <View className="mb-3">
-                {/* Images: 2-column grid. Single image stays full width; an
-                    odd-count final image spans both columns so the bottom
-                    edge stays flush. */}
                 {(() => {
-                  const imgs = post.attachments.filter(
-                    (a) => attachmentKind(a) === "image"
-                  );
-                  if (imgs.length === 0) return null;
-                  const items = imgs.map(attItem);
-                  if (imgs.length === 1) {
-                    return (
-                      <Pressable onPress={() => viewer?.open(items, 0)}>
-                        <Image
-                          source={{ uri: attUrl(imgs[0]) }}
-                          className="w-full mb-2 bg-base-200"
-                          style={{ aspectRatio: imageDisplayRatio(imgs[0]) }}
-                          resizeMode="cover"
-                        />
-                      </Pressable>
-                    );
-                  }
+                  const shown = post.attachments.slice(0, 4);
+                  const extra = post.attachments.length - shown.length;
+                  const imageAtts = post.attachments.filter((a) => attachmentKind(a) === "image");
+                  const imageItems = imageAtts.map(attItem);
                   return (
-                    <View className="flex-row flex-wrap mb-1" style={{ gap: 4 }}>
-                      {imgs.map((img, i) => {
-                        const lastOdd =
-                          imgs.length % 2 === 1 && i === imgs.length - 1;
+                    <View className="flex-row flex-wrap" style={{ gap: 4 }}>
+                      {shown.map((att, i) => {
+                        const kind = attachmentKind(att);
+                        const isOverflowCell = i === shown.length - 1 && extra > 0;
+                        const isOddFinal =
+                          !isOverflowCell && shown.length > 1 && shown.length % 2 === 1 && i === shown.length - 1;
+                        const cellWidth = shown.length === 1 || isOddFinal ? "100%" : "49%";
+                        const onPress =
+                          kind === "image"
+                            ? () => viewer?.open(imageItems, imageAtts.findIndex((a) => attUrl(a) === attUrl(att)))
+                            : open;
                         return (
-                          <Pressable
-                            key={`${attUrl(img)}-${i}`}
-                            onPress={() => viewer?.open(items, i)}
-                            style={{ width: lastOdd ? "100%" : "49%" }}
-                          >
-                            <Image
-                              source={{ uri: attUrl(img) }}
-                              className="w-full h-40   bg-base-200"
-                              resizeMode="cover"
-                            />
+                          <Pressable key={`${attUrl(att)}-${i}`} onPress={onPress} style={{ width: cellWidth }}>
+                            <View className="relative w-full h-40 bg-base-200 items-center justify-center overflow-hidden">
+                              {kind === "image" && (
+                                <Image source={{ uri: attUrl(att) }} className="w-full h-full" resizeMode="cover" />
+                              )}
+                              {kind === "video" && <Play size={28} color={ink(0.55)} />}
+                              {kind === "audio" && <Music size={28} color={ink(0.55)} />}
+                              {isOverflowCell && (
+                                <View className="absolute inset-0 bg-black/60 items-center justify-center">
+                                  <Text className="font-ui text-sm uppercase tracking-widest text-white">
+                                    +{extra} more
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
                           </Pressable>
                         );
                       })}
                     </View>
                   );
                 })()}
-
-                {/* Videos and audio render as full-width rows below the grid,
-                    each with its own player. */}
-                {post.attachments
-                  .filter((a) => attachmentKind(a) !== "image")
-                  .map((att, i) => {
-                    const kind = attachmentKind(att);
-                    const key = `${att.url}-${i}`;
-                    if (kind === "video") {
-                      return <VideoAttachment key={key} att={att} />;
-                    }
-                    return <AudioAttachment key={key} att={att} />;
-                  })}
               </View>
             ) : image ? (
               <Pressable onPress={() => viewer?.open([image], 0)}>
@@ -341,9 +349,54 @@ export function PostCard({ post, onDeleted }) {
               </>
             ) : null}
           </>
+        ) : post?.type === "Event" ? (
+          /* Event: calendar tear-off block beside title + subheader
+             (start time | location), ported from web's EventCard.jsx
+             (Card.md decision 3) -- previously fell through the generic
+             branch below with only a `prominent` flag on the location. */
+          <>
+            <View className="flex-row mb-2" style={{ gap: 12 }}>
+              <CalendarBlock date={eventStart} />
+              <View className="flex-1 min-w-0">
+                {title ? (
+                  <Text className="text-base-content" style={titleStyle} numberOfLines={2}>
+                    {title}
+                  </Text>
+                ) : null}
+                {eventSubheader ? (
+                  <Text className="font-ui text-sm font-bold text-base-content mt-1">{eventSubheader}</Text>
+                ) : null}
+              </View>
+            </View>
+
+            {image ? (
+              <Pressable onPress={() => viewer?.open([image], 0)} className="mb-3">
+                <Image source={{ uri: image }} className="w-full h-48   bg-base-200" resizeMode="cover" />
+              </Pressable>
+            ) : null}
+
+            {previewHtml ? (
+              <HtmlContent
+                html={previewHtml}
+                fonts={contentFonts}
+                fontSize={resolved.fontSize}
+                lineHeight={resolved.lineHeight}
+              />
+            ) : plainPreview ? (
+              <Text
+                className="text-base-content/80"
+                style={{ fontFamily: resolved.regularFamily, fontSize: resolved.fontSize, lineHeight: resolved.lineHeight }}
+                numberOfLines={title ? 3 : 5}
+              >
+                {plainPreview}
+              </Text>
+            ) : null}
+
+            <ContinueReading show={!!post?.summary} />
+          </>
         ) : (
           /* Default body — title + HTML preview + optional hero image. Used
-             for Note, Article, and Event. */
+             for Note and Article. */
           <>
             {title ? (
               <Text className="text-base-content mb-1.5" style={titleStyle}>
@@ -353,8 +406,8 @@ export function PostCard({ post, onDeleted }) {
 
             {/* Notes have no title, so the LocationLine here sits directly
                 between the author row and the body. Articles get a tiny
-                line under the title; Events get the prominent treatment. */}
-            <LocationLine location={post?.location} prominent={post?.type === "Event"} />
+                line under the title. */}
+            <LocationLine location={post?.location} />
 
             {/* Featured/hero image above the body — always, like the web. */}
             {image ? (
