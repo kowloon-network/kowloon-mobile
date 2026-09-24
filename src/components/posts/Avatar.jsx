@@ -3,7 +3,9 @@ import { Text, View } from "react-native";
 import { SmartImage } from "../ui/SmartImage.jsx";
 
 // Circular user avatar — person = circle is universal convention.
-// Falls back to a filled initial block when no icon is set or the image fails.
+// Falls back to a filled initial block (primary fill, matches web's
+// UserAvatar -- reconciled per kowloon-design/components/Avatar.md, was
+// secondary here) when no icon is set or the image fails.
 // `baseUrl` resolves server-relative icon paths; absolute URLs are used as-is.
 export function Avatar({ actor, size = 38, baseUrl }) {
   const [failed, setFailed] = useState(false);
@@ -34,10 +36,10 @@ export function Avatar({ actor, size = 38, baseUrl }) {
   return (
     <View
       style={{ width: size, height: size, borderRadius: radius }}
-      className="  bg-secondary items-center justify-center"
+      className="  bg-primary items-center justify-center"
     >
       <Text
-        className="font-ui text-secondary-content"
+        className="font-ui text-primary-content"
         style={{ fontSize: Math.round(size * 0.42) }}
       >
         {initial}
