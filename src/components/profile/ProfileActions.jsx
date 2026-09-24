@@ -18,6 +18,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { Ban, BellOff, Check, MoreHorizontal, X } from "lucide-react-native";
 import { sortByPins } from "@kowloon/client";
 
@@ -26,6 +27,7 @@ import { toast } from "../../lib/toast.js";
 
 export function ProfileActions({ client, account, targetId, name }) {
   const ink = useInk();
+  const router = useRouter();
   const displayName = name || targetId || "this user";
 
   // --- Add to Circle picker --------------------------------------------------
@@ -72,19 +74,23 @@ export function ProfileActions({ client, account, targetId, name }) {
   }, [client, account?.id, circles.length, targetId]);
 
   const addToCircle = useCallback(
-    async (circleId) => {
+    async (circle) => {
       if (!client || addingTo) return;
-      setAddingTo(circleId);
+      setAddingTo(circle.id);
       try {
-        await client.activities.addToCircle({ circleId, memberId: targetId });
-        setAddedTo((prev) => new Set([...prev, circleId]));
+        await client.activities.addToCircle({ circleId: circle.id, memberId: targetId });
+        setAddedTo((prev) => new Set([...prev, circle.id]));
+        // Matches web's AddToCircleButton wording/shape exactly.
+        toast.success(`Added ${displayName} to ${circle.name}`, {
+          action: { label: "View", onPress: () => router.push(`/circle/${encodeURIComponent(circle.id)}`) },
+        });
       } catch (e) {
-        toast.error("Couldn't add", { detail: e?.message });
+        toast.error(`Couldn't add to ${circle.name}`, { detail: e?.message });
       } finally {
         setAddingTo(null);
       }
     },
-    [client, targetId, addingTo]
+    [client, targetId, addingTo, displayName, router]
   );
 
   // --- Overflow menu (Block / Mute) ------------------------------------------
@@ -250,7 +256,7 @@ export function ProfileActions({ client, account, targetId, name }) {
                   return (
                     <Pressable
                       key={circle.id}
-                      onPress={() => !isAdded && addToCircle(circle.id)}
+                      onPress={() => !isAdded && addToCircle(circle)}
                       android_ripple={{ color: "rgba(0,0,0,0.05)" }}
                       className="flex-row items-center justify-between px-5 py-4"
                     >
