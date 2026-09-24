@@ -326,9 +326,12 @@ export default function PostDetail() {
             {/* Replies — a shallow 2-level thread (Facebook-style). */}
             <View className="px-5 pt-2">
               {replyTree.length > 0
-                ? replyTree.map((reply) => (
-                    <Reply
+                ? replyTree.map((reply, i) => (
+                    <View
                       key={reply.id}
+                      className={i < replyTree.length - 1 ? "border-b border-base-300" : ""}
+                    >
+                    <Reply
                       reply={reply}
                       client={client}
                       currentUserId={currentUser?.id}
@@ -366,6 +369,7 @@ export default function PostDetail() {
                         ) : null
                       }
                     />
+                    </View>
                   ))
                 : (
                   <Text className="font-ui text-sm text-base-content/40 py-4">

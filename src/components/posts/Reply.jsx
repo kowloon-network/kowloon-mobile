@@ -3,6 +3,11 @@
 // Renders avatar + author + relative timestamp + body HTML. The author can
 // edit (inline textarea) or delete (with confirm). A small react button sits
 // at the bottom-left of the row.
+//
+// Body respects the reader's chosen typography (kowloon-design/components/
+// Reply.md) -- was a fixed fontSize={14}/lineHeight={20}, same gap PostBody
+// already had fixed for post bodies. Byline (name/timestamp) stays fixed
+// chrome on purpose, that part was already correct.
 
 import { useState } from "react";
 import { Alert, Pressable, Text, TextInput, View } from "react-native";
@@ -12,6 +17,7 @@ import { HtmlContent } from "../HtmlContent.jsx";
 import { ReactButton } from "./ReactButton.jsx";
 import { timeAgo } from "@kowloon/client";
 import { useInk } from "../../lib/useInk.js";
+import { useTypography } from "../../lib/TypographyContext.js";
 
 export function Reply({
   reply,
@@ -26,6 +32,7 @@ export function Reply({
   childComposer = null,
 }) {
   const ink = useInk();
+  const { resolved } = useTypography();
   const actor = reply?.actor || {};
   const html = reply?.body || reply?.source?.content || "";
   const isAuthor = !!currentUserId && reply?.actorId === currentUserId;
@@ -143,7 +150,16 @@ export function Reply({
             </View>
           </View>
         ) : html ? (
-          <HtmlContent html={html} fontSize={14} lineHeight={20} />
+          <HtmlContent
+            html={html}
+            fonts={{
+              regular: resolved.regularFamily,
+              bold: resolved.boldFamily,
+              italic: resolved.italicFamily,
+            }}
+            fontSize={resolved.fontSize}
+            lineHeight={resolved.lineHeight}
+          />
         ) : null}
 
         {!editing ? (
@@ -204,15 +220,19 @@ export function Reply({
           affordance on children). */}
       {childReplies.length > 0 || childComposer ? (
         <View className="ml-11 pl-3 border-l border-base-content/10">
-          {childReplies.map((child) => (
-            <Reply
+          {childReplies.map((child, i) => (
+            <View
               key={child.id}
-              reply={child}
-              client={client}
-              currentUserId={currentUserId}
-              onUpdated={onUpdated}
-              onDeleted={onDeleted}
-            />
+              className={i < childReplies.length - 1 ? "border-b border-base-300" : ""}
+            >
+              <Reply
+                reply={child}
+                client={client}
+                currentUserId={currentUserId}
+                onUpdated={onUpdated}
+                onDeleted={onDeleted}
+              />
+            </View>
           ))}
           {childComposer}
         </View>
