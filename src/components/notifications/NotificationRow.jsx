@@ -1,8 +1,12 @@
 // NotificationRow — single notification.
 //
 // Editorial layout: avatar on the left, summary in serif, type + relative
-// time eyebrow below. A primary-color bar on the left edge marks unread; read
-// rows fade. Tap fires onPress (mark read + navigate). The × dismisses.
+// time eyebrow below. Two independent signals (kowloon-design/components/
+// Notification.md): a left-edge bar colored by notification type, and a
+// small unread dot -- previously this bar itself meant "unread" (one shape
+// doing double duty); now unread is its own dot and the bar always shows
+// type. Read rows fade. Tap fires onPress (mark read + navigate). The ×
+// dismisses.
 
 import { Pressable, Text, View } from "react-native";
 import { X } from "lucide-react-native";
@@ -39,21 +43,26 @@ export function NotificationRow({
         unread ? "" : "opacity-60"
       }`}
     >
-      {/* Unread accent bar */}
+      {/* Type accent bar */}
       <View
         className={`absolute left-0 top-0 bottom-0 w-[3px] ${
-          unread ? "bg-primary" : ""
+          meta.color || "bg-base-content/60"
         }`}
       />
 
       <Avatar actor={actor} size={40} baseUrl={baseUrl} />
       <View className="flex-1 ml-3 min-w-0">
-        <Text
-          className="font-ui text-[15px] text-base-content leading-snug"
-          numberOfLines={3}
-        >
-          {notification?.summary || meta.label}
-        </Text>
+        <View className="flex-row items-center">
+          {unread ? (
+            <View className="w-1.5 h-1.5 rounded-full bg-primary mr-1.5" />
+          ) : null}
+          <Text
+            className="flex-1 font-ui text-[15px] text-base-content leading-snug"
+            numberOfLines={3}
+          >
+            {notification?.summary || meta.label}
+          </Text>
+        </View>
         <View className="flex-row items-center mt-1">
           {Icon ? (
             <Icon

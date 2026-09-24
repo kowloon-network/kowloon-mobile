@@ -8,6 +8,7 @@
 
 import {
   Check,
+  Flag,
   MessageCircle,
   Newspaper,
   Smile,
@@ -17,12 +18,18 @@ import {
 // `follow` is intentionally absent — adding someone to a circle is a private
 // act of curation in Kowloon, the followed person is never notified. See
 // feedback_no_follow_notifications memory.
+//
+// `color` is the left-edge bar's fill (kowloon-design/components/Notification.md)
+// -- type is the bar's signal now, unread state is a separate dot, so the
+// icon itself stays a single muted ink color regardless of type. Mirrors
+// web's NOTIF_COLORS (NotificationsPage.jsx).
 export const NOTIF_TYPES = {
-  reply: { label: "Reply", Icon: MessageCircle },
-  react: { label: "Reaction", Icon: Smile },
-  new_post: { label: "New post", Icon: Newspaper },
-  join_request: { label: "Join request", Icon: Users },
-  join_approved: { label: "Join approved", Icon: Check },
+  reply: { label: "Reply", Icon: MessageCircle, color: "bg-primary" },
+  react: { label: "Reaction", Icon: Smile, color: "bg-error" },
+  new_post: { label: "New post", Icon: Newspaper, color: "bg-base-content/60" },
+  join_request: { label: "Join request", Icon: Users, color: "bg-secondary" },
+  join_approved: { label: "Join approved", Icon: Check, color: "bg-secondary" },
+  moderation: { label: "Moderation", Icon: Flag, color: "bg-warning" },
 };
 
 // Returns the mobile router path for a notification, or null if we can't
