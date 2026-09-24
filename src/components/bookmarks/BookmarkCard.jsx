@@ -4,7 +4,7 @@
 import { Image, Linking, Pressable, Text, View } from "react-native";
 
 import { resolveImageUrl } from "../../lib/resolveImageUrl.js";
-import { timeAgo } from "../../lib/timeAgo.js";
+import { timeAgo } from "@kowloon/client";
 
 function hostOf(url) {
   if (!url) return "";

@@ -9,7 +9,7 @@ import { X } from "lucide-react-native";
 
 import { Avatar } from "../posts/Avatar.jsx";
 import { NOTIF_TYPES } from "../../lib/notifications.js";
-import { timeAgo } from "../../lib/timeAgo.js";
+import { timeAgo } from "@kowloon/client";
 import { useInk } from "../../lib/useInk.js";
 
 export function NotificationRow({

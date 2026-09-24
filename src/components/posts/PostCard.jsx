@@ -22,7 +22,7 @@ import { useImageViewer } from "../ImageViewerProvider.jsx";
 import { useActiveClient } from "../../lib/useActiveClient.js";
 import { useTypography } from "../../lib/TypographyContext.js";
 import { openKowloonLink } from "../../lib/parseKowloonUrl.js";
-import { timeAgo } from "../../lib/timeAgo.js";
+import { timeAgo } from "@kowloon/client";
 
 // Classify an attachment by mediaType, with a fallback for `.m4a` files
 // which Android sometimes labels `video/mp4` even though they're audio.

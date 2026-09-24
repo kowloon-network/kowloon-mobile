@@ -10,7 +10,7 @@ import { Alert, Pressable, Text, TextInput, View } from "react-native";
 import { Avatar } from "./Avatar.jsx";
 import { HtmlContent } from "../HtmlContent.jsx";
 import { ReactButton } from "./ReactButton.jsx";
-import { timeAgo } from "../../lib/timeAgo.js";
+import { timeAgo } from "@kowloon/client";
 import { useInk } from "../../lib/useInk.js";
 
 export function Reply({
