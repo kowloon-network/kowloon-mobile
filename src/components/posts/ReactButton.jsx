@@ -169,10 +169,9 @@ export function ReactButton({ client, post, onReacted, size = "md" }) {
               marginBottom: 8,
               flexDirection: "row",
               width: emojis.length * PICKER_CELL,
-              elevation: 6,
               zIndex: 10,
             }}
-            className="  bg-base-100"
+            className="bg-base-100 border-2 border-primary"
           >
             {emojis.map(({ emoji, name }) => (
               <Pressable
