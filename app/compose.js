@@ -671,14 +671,24 @@ export default function Compose() {
   // Scroll the toolbar (and everything below it) to the top of the visible
   // area the moment the body gets focus, so writing has as much open space
   // as possible instead of competing with the fields above for room.
+  //
+  // Runs on BOTH isFocused and isKeyboardUp, with a short delay -- focus
+  // fires before the keyboard finishes animating in, and Android's own
+  // "scroll the focused view into view" behavior then runs afterward and
+  // can re-scroll past our target, carrying the toolbar off the top of the
+  // viewport with it. Re-asserting once the keyboard settles wins that race
+  // instead of fighting it.
   useEffect(() => {
     if (!editorState.isFocused || !toolbarBlockRef.current || !scrollViewRef.current) return;
-    toolbarBlockRef.current.measureLayout(
-      scrollViewRef.current,
-      (x, y) => scrollViewRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: true }),
-      () => {}
-    );
-  }, [editorState.isFocused]);
+    const t = setTimeout(() => {
+      toolbarBlockRef.current?.measureLayout(
+        scrollViewRef.current,
+        (x, y) => scrollViewRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: true }),
+        () => {}
+      );
+    }, 250);
+    return () => clearTimeout(t);
+  }, [editorState.isFocused, isKeyboardUp]);
 
   // Link preview: when the user types/pastes a URL in the Link composer, fetch
   // its OG metadata from the server (debounced) and auto-populate the title
@@ -1368,7 +1378,7 @@ export default function Compose() {
                 (any post type); featured image only for Article/Event,
                 matching its own preview block above. */}
             <View
-              className="flex-row items-center px-4 py-3 border-t border-base-300"
+              className="flex-row items-center px-4 py-1.5 border-t border-base-300"
               onLayout={(e) => setStickyLayout(e.nativeEvent.layout)}
             >
               <View className="flex-1 mr-2">
