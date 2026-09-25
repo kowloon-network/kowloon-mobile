@@ -29,11 +29,20 @@ import { AudioPlayerProvider } from "../src/lib/AudioPlayerProvider.jsx";
 import ToastStack from "../src/components/ui/ToastStack.jsx";
 import { ThemeProvider, THEME_VARS } from "../src/lib/ThemeContext.jsx";
 import { useColorScheme } from "nativewind";
-import { View } from "react-native";
+import { LogBox, View } from "react-native";
 
 // Hold the native splash screen until fonts are ready — no flash of fallback
 // text. preventAutoHideAsync can reject during fast-refresh; ignore that.
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// This one is NOT purely cosmetic: it fires when @kowloon/client's storage
+// adapter falls back to MemoryStorage because the AsyncStorage native module
+// didn't load, which means auth sessions won't survive a real app restart
+// (see hydrateAccounts() below, which reads from AsyncStorage on mount) --
+// root cause still open, see project_async_storage_native_module_gap memory.
+// Suppressing the on-device LogBox popup only; the underlying console.warn
+// (now including the real error) still prints to the Metro terminal.
+LogBox.ignoreLogs(["React Native detected but AsyncStorage not available"]);
 
 function HydrationBoot() {
   const dispatch = useDispatch();
