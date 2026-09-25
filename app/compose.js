@@ -1104,15 +1104,27 @@ export default function Compose() {
         )}
       </View>
 
-      {/* Formatting toolbar, pinned just above the keyboard. tentap auto-hides
-          it unless the body editor is focused (Toolbar's default `hidden`
-          behaviour), so it appears only while you're writing the body — never
-          over the title fields or when the composer is idle. */}
+      {/* Formatting toolbar, pinned just above the keyboard. Explicitly
+          computed `hidden` from ONLY the editor's own isFocused (reported by
+          tentap's WebView bridge, not an OS keyboard event) -- tentap's
+          default `hidden` calc also factors in its own internal
+          keyboardDidShow/Hide-derived isKeyboardUp, which Android 15+'s
+          edge-to-edge display (default-on as of RN 0.86 / SDK 57) makes
+          unreliable: the legacy adjustResize+keyboardDidShow combo that
+          detector depends on no longer fires the way it used to, so the
+          toolbar could silently stay hidden even with the keyboard up and
+          the body focused. isFocused alone is enough to keep the toolbar
+          off the title/date/location fields and hidden when idle -- the
+          original goal -- without depending on that unreliable signal. */}
       <View
         style={{ position: "absolute", left: 0, right: 0, bottom: keyboardInset }}
         pointerEvents="box-none"
       >
-        <Toolbar editor={editor} items={TOOLBAR_ITEMS} />
+        <Toolbar
+          editor={editor}
+          items={TOOLBAR_ITEMS}
+          hidden={!editorState.isFocused}
+        />
       </View>
 
       {/* Add-media chooser — a centered dialog (not Alert.alert, whose Android
