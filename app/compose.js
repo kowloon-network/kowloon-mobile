@@ -489,24 +489,27 @@ export default function Compose() {
     ],
     // Flat toolbar to match web's — no button-background boxes, no filled
     // active state (tint the icon itself instead, same as web's plain
-    // text-primary active color with no bg). Icon set to 15x15 -- measured
-    // web's actual rendered lucide icons via getBoundingClientRect and they
-    // are exactly 15x15 CSS px (tentap's own default is 28, nearly double).
+    // text-primary active color with no bg). Icon size: NOT an exact px
+    // match to web's measured 15x15 -- that measurement was real but only
+    // valid within two different simulators (a desktop browser, and RN-web
+    // standing in for the phone), neither of which is the actual device
+    // this gets judged on. 22px, closer to tentap's own 28px default,
+    // judged directly against the real app instead of re-measured blind.
     // Tint uses useSolidInk, not ink()'s alpha-carrying rgba() -- Image's
     // tintColor (at least on Android) multiplies the tint's own alpha
     // against the source PNG's per-pixel alpha, so ink(0.6) on an already-
     // antialiased icon edge compounded into a render faint enough to look
-    // blank, independent of the size problem. useSolidInk pre-blends the
-    // same ink color to an opaque equivalent over base-100 instead. Deep-
-    // merged onto tentap's defaults, so unset fields (e.g. toolbarBody.
-    // height) keep their default.
+    // blank, independent of the size question entirely. useSolidInk
+    // pre-blends the same ink color to an opaque equivalent over base-100
+    // instead. Deep-merged onto tentap's defaults, so unset fields (e.g.
+    // toolbarBody.height) keep their default.
     theme: {
       toolbar: {
         toolbarBody: { backgroundColor: "transparent", borderTopWidth: 0, borderBottomWidth: 0 },
         toolbarButton: { backgroundColor: "transparent", paddingHorizontal: 6 },
         iconWrapper: { backgroundColor: "transparent", borderRadius: 0 },
         iconWrapperActive: { backgroundColor: "transparent" },
-        icon: { height: 15, width: 15, tintColor: solidInk(0.6) },
+        icon: { height: 22, width: 22, tintColor: solidInk(0.6) },
         iconActive: { tintColor: "#5588b1" },
       },
     },
