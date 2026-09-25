@@ -599,10 +599,6 @@ export default function Compose() {
   const scrollViewRef = useRef(null);
   const toolbarBlockRef = useRef(null);
 
-  // TEMP DEBUG — remove alongside the debug <Text> above once root-caused.
-  const [containerLayout, setContainerLayout] = useState({ height: 0 });
-  const [stickyLayout, setStickyLayout] = useState({ y: 0, height: 0 });
-
   // Keyboard handoff: a hidden focusable TextInput (rendered below) auto-
   // focuses on mount and raises the soft keyboard. Once the editor's WebView
   // reports ready, move focus into it — the keyboard stays up across the
@@ -919,22 +915,13 @@ export default function Compose() {
   return (
     <SafeAreaView className="flex-1 bg-base-100" edges={["top"]}>
       {/* Content area shrinks to clear the keyboard. */}
-      <View
-        className="flex-1"
-        style={{ paddingBottom: bottomPad }}
-        onLayout={(e) => setContainerLayout(e.nativeEvent.layout)}
-      >
+      <View className="flex-1" style={{ paddingBottom: bottomPad }}>
         {/* Title bar — "Add New [type ▾]" dropdown on the left, Cancel (X) /
             Post (check) icon buttons on the right, replacing the old
             bottom text buttons so they're reachable without scrolling. */}
         <View className="flex-row items-center justify-between px-4 py-3">
           <PostTypeDropdown value={type} onChange={setType} prefix="Add New" />
           <View className="flex-row items-center">
-            {/* TEMP DEBUG — remove once the sticky-bar keyboard issue is
-                root-caused. Shows live values so we don't have to guess. */}
-            <Text className="font-ui text-[8px] text-error mr-2">
-              KB:{String(isKeyboardUp)} in:{Math.round(keyboardInset)} pad:{Math.round(bottomPad)} ch:{Math.round(containerLayout.height)} sy:{Math.round(stickyLayout.y)} sh:{Math.round(stickyLayout.height)}
-            </Text>
             <Pressable
               onPress={() => router.back()}
               disabled={posting}
@@ -1367,20 +1354,20 @@ export default function Compose() {
             {/* Audience + featured image / location icons — sticky, pinned
                 to the bottom of the visible area (above the keyboard, via
                 the parent's paddingBottom: bottomPad) even while scrolling
-                or typing, the way the toolbar used to try to be. Safe here
-                in a way it wasn't for the toolbar: this is a plain flex
-                sibling AFTER the ScrollView, not an absolutely-positioned
-                overlay near the WebView-based editor, so the WebView-
-                covers-siblings issue that broke the toolbar's floating
-                version (see the toolbar's own comment above) never applies
-                -- there's no overlap to begin with. Cancel/Post moved to
-                the header (X / check, top right). Location stays universal
-                (any post type); featured image only for Article/Event,
-                matching its own preview block above. */}
-            <View
-              className="flex-row items-center px-4 py-1.5 border-t border-base-300"
-              onLayout={(e) => setStickyLayout(e.nativeEvent.layout)}
-            >
+                or typing, the way the toolbar used to try to be. Being a
+                plain flex sibling AFTER the ScrollView (not an absolutely-
+                positioned overlay) turned out NOT to be enough on its own --
+                on-device testing showed this bar was correctly positioned
+                but simply unpainted once the keyboard opened, the same
+                WebView-covers-siblings issue that broke the toolbar's
+                floating version, just triggered by the keyboard-open
+                relayout instead of overlap. Fixed via the opacity: 0.99 on
+                the editor's wrapper below, not by anything here -- see that
+                comment for the real explanation. Cancel/Post moved to the
+                header (X / check, top right). Location stays universal (any
+                post type); featured image only for Article/Event, matching
+                its own preview block above. */}
+            <View className="flex-row items-center px-4 py-1.5 border-t border-base-300">
               <View className="flex-1 mr-2">
                 <AudienceSelector
                   value={audience}
