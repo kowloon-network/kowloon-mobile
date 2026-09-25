@@ -23,7 +23,6 @@ import { Image as ExpoImage } from "expo-image";
 import { router } from "expo-router";
 import { MoreVertical, X } from "lucide-react-native";
 import * as FileSystem from "expo-file-system/legacy";
-import * as MediaLibrary from "expo-media-library";
 import * as Sharing from "expo-sharing";
 
 import { setPendingShare } from "../lib/pendingShare.js";
@@ -101,6 +100,12 @@ export function ImageViewerProvider({ children }) {
     setMenuOpen(false);
     setBusy(true);
     try {
+      // Lazy-loaded: expo-media-library's native module binds eagerly at
+      // import time and has no web implementation (there's no camera roll in
+      // a browser) -- a top-level import crashed the entire app on the web
+      // preview target the moment this provider (mounted at app root)
+      // loaded, well before Save was ever tapped.
+      const MediaLibrary = await import("expo-media-library");
       const perm = await MediaLibrary.requestPermissionsAsync();
       if (!perm.granted) {
         Alert.alert("Permission needed", "Allow photo access to save images.");

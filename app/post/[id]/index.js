@@ -21,7 +21,7 @@ import { MorePostsByAuthor } from "../../../src/components/posts/MorePostsByAuth
 import { useActiveClient } from "../../../src/lib/useActiveClient.js";
 import { useKeyboardInset } from "../../../src/lib/useKeyboardInset.js";
 import { useTypography } from "../../../src/lib/TypographyContext.js";
-import { timeAgo } from "../../../src/lib/timeAgo.js";
+import { timeAgo } from "@kowloon/client";
 
 // Same accent palette as the feed card — keep these in sync.
 const TYPE_BAR = {

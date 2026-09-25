@@ -7,17 +7,14 @@
     "orientation": "portrait",
     "icon": "./assets/app-icon-1024.png",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/app-icon-1024.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#002FA7"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.kwln.kowloon",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio"
+        ],
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true,
           "NSAllowsLocalNetworking": true
@@ -90,7 +87,17 @@
           "savePhotosPermission": "Allow Kowloon to save images to your photos.",
           "isAccessMediaLocationEnabled": false
         }
-      ]
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/app-icon-1024.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#002FA7"
+        }
+      ],
+      "expo-status-bar",
+      "expo-asset"
     ],
     "extra": {
       "router": {},

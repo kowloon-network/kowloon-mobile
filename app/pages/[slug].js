@@ -23,9 +23,9 @@ import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { Button } from "../../src/components/ui/Button.jsx";
 import { Eyebrow } from "../../src/components/ui/Heading.jsx";
 import { HtmlContent } from "../../src/components/HtmlContent.jsx";
+import { timeAgo } from "@kowloon/client";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { useTypography } from "../../src/lib/TypographyContext.js";
-import { timeAgo } from "../../src/lib/timeAgo.js";
 import { useInk } from "../../src/lib/useInk.js";
 
 // Resolve the page's `image` field to a displayable URL — handles file IDs
