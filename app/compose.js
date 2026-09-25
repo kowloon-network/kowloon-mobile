@@ -1303,8 +1303,24 @@ export default function Compose() {
                 scrollEnabled/nestedScrollEnabled turn on the WebView's own
                 scroll (10tap disables it by default), so long text scrolls in
                 place instead of the parent stealing the gesture, and the field
-                stays a sensible height instead of growing to thousands of px. */}
-            <View className="mx-4 mt-2" style={{ minHeight: 400 }}>
+                stays a sensible height instead of growing to thousands of px.
+
+                opacity: 0.99 here is deliberate, not a typo -- confirmed via
+                on-device layout measurements that the sticky audience/image/
+                location bar below is positioned EXACTLY where it should be
+                (its measured y/height land precisely at the container's
+                bottom edge, keyboard up or down) but simply isn't painted
+                once the keyboard opens. That's the same underlying Android
+                bug already root-caused for the toolbar (a WebView's
+                hardware-accelerated layer can visually cover sibling views
+                regardless of paint order -- facebook/react-native#11976),
+                just triggered by the keyboard-open relayout instead of an
+                absolute overlay this time. Forcing this View off Android's
+                fast/hardware-layer compositing path (any opacity < 1 does
+                this) is the standard, widely-documented fix -- imperceptible
+                visually, but stops the WebView from punching through its
+                siblings. */}
+            <View className="mx-4 mt-2" style={{ minHeight: 400, opacity: 0.99 }}>
               <RichText
                 editor={editor}
                 scrollEnabled
