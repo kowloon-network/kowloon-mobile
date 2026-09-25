@@ -588,6 +588,10 @@ export default function Compose() {
   const scrollViewRef = useRef(null);
   const toolbarBlockRef = useRef(null);
 
+  // TEMP DEBUG — remove alongside the debug <Text> above once root-caused.
+  const [containerLayout, setContainerLayout] = useState({ height: 0 });
+  const [stickyLayout, setStickyLayout] = useState({ y: 0, height: 0 });
+
   // Keyboard handoff: a hidden focusable TextInput (rendered below) auto-
   // focuses on mount and raises the soft keyboard. Once the editor's WebView
   // reports ready, move focus into it — the keyboard stays up across the
@@ -894,7 +898,11 @@ export default function Compose() {
   return (
     <SafeAreaView className="flex-1 bg-base-100" edges={["top"]}>
       {/* Content area shrinks to clear the keyboard. */}
-      <View className="flex-1" style={{ paddingBottom: bottomPad }}>
+      <View
+        className="flex-1"
+        style={{ paddingBottom: bottomPad }}
+        onLayout={(e) => setContainerLayout(e.nativeEvent.layout)}
+      >
         {/* Title bar — "Add New [type ▾]" dropdown on the left, Cancel (X) /
             Post (check) icon buttons on the right, replacing the old
             bottom text buttons so they're reachable without scrolling. */}
@@ -903,8 +911,8 @@ export default function Compose() {
           <View className="flex-row items-center">
             {/* TEMP DEBUG — remove once the sticky-bar keyboard issue is
                 root-caused. Shows live values so we don't have to guess. */}
-            <Text className="font-ui text-[9px] text-error mr-2">
-              KB:{String(isKeyboardUp)} in:{keyboardInset} pad:{bottomPad}
+            <Text className="font-ui text-[8px] text-error mr-2">
+              KB:{String(isKeyboardUp)} in:{Math.round(keyboardInset)} pad:{Math.round(bottomPad)} ch:{Math.round(containerLayout.height)} sy:{Math.round(stickyLayout.y)} sh:{Math.round(stickyLayout.height)}
             </Text>
             <Pressable
               onPress={() => router.back()}
@@ -1332,7 +1340,10 @@ export default function Compose() {
                 the header (X / check, top right). Location stays universal
                 (any post type); featured image only for Article/Event,
                 matching its own preview block above. */}
-            <View className="flex-row items-center px-4 py-3 border-t border-base-300">
+            <View
+              className="flex-row items-center px-4 py-3 border-t border-base-300"
+              onLayout={(e) => setStickyLayout(e.nativeEvent.layout)}
+            >
               <View className="flex-1 mr-2">
                 <AudienceSelector
                   value={audience}
