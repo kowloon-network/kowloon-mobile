@@ -1,14 +1,22 @@
 // Exact keyboard inset for layouts that must end at the keyboard's top edge.
 //
-// Rather than guessing nav-bar offsets on top of the keyboard's reported
-// height, this measures the distance from the keyboard's top (the event's
-// `endCoordinates.screenY`) to the bottom of the window. That span covers the
-// keyboard body plus anything beneath it (system nav bar, gesture area), so
-// padding a container by it lands the content exactly above the keyboard on
-// any device / keyboard.
+// Was: measure the distance from the keyboard's top (the event's
+// `endCoordinates.screenY`) to the bottom of the window (`Dimensions.get
+// ("window").height`), on the theory that the span covers the keyboard body
+// plus anything beneath it (system nav bar, gesture area). That assumed the
+// window resizes to exclude the keyboard (windowSoftInputMode=adjustResize)
+// -- true pre-Android-15. Android 15+'s edge-to-edge display (default-on as
+// of RN 0.86 / Expo SDK 57) means the window no longer resizes, so
+// `Dimensions.get("window").height` stays the full screen height while
+// `screenY` is reported relative to a window that didn't actually shrink --
+// the subtraction produces a wildly wrong (observed: large enough to push an
+// element positioned `bottom: <that value>` off the top of the screen)
+// number instead of the real keyboard height. `endCoordinates.height` is the
+// keyboard's own reported height, direct from the OS, not derived from a
+// window-resize assumption -- safe under edge-to-edge. Prefer it.
 
 import { useEffect, useState } from "react";
-import { Dimensions, Keyboard } from "react-native";
+import { Keyboard } from "react-native";
 
 export function useKeyboardInset() {
   const [inset, setInset] = useState(0);
@@ -16,10 +24,7 @@ export function useKeyboardInset() {
   useEffect(() => {
     function onShow(e) {
       const coords = e?.endCoordinates;
-      const winH = Dimensions.get("window").height;
-      if (coords && typeof coords.screenY === "number") {
-        setInset(Math.max(0, winH - coords.screenY));
-      } else if (coords?.height) {
+      if (coords && typeof coords.height === "number") {
         setInset(coords.height);
       }
     }

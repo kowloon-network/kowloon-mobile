@@ -1028,13 +1028,35 @@ export default function Compose() {
 
             </ScrollView>
 
+            {/* Formatting toolbar — a STATIC bar in normal layout flow directly
+                above the editor, not a floating overlay pinned above the
+                keyboard. Two independent Android bugs made the floating-overlay
+                version unworkable: (1) the keyboard-visibility signal both
+                tentap's own internal detector and this screen's own
+                useKeyboardInset hook depend on (windowSoftInputMode=adjustResize
+                + keyboardDidShow) is broken by Android 15+'s edge-to-edge
+                display, default-on as of RN 0.86 / Expo SDK 57; (2) even once
+                correctly positioned, a long-standing RN/Android issue (WebView
+                siblings can visually cover other views regardless of document
+                order or zIndex -- facebook/react-native#11976 et al.) meant an
+                absolutely-positioned overlay sitting near the WebView-based
+                editor rendered its border but never its fill or icons. Placing
+                the toolbar in normal flow, pushing the editor down instead of
+                floating over it, sidesteps both -- no overlap with the WebView,
+                no dependency on keyboard-visibility detection at all. Always
+                shown (no hidden/focus logic) since it now costs real screen
+                space only while a body-editor type is open. */}
+            <View className="mt-3" style={{ height: 44 }}>
+              <Toolbar editor={editor} items={TOOLBAR_ITEMS} hidden={false} />
+            </View>
+
             {/* Editor body — fills the space between the fields above and the
-                controls + pinned toolbar below, and scrolls INTERNALLY (issue
-                #76). scrollEnabled/nestedScrollEnabled turn on the WebView's own
+                controls below, and scrolls INTERNALLY (issue #76).
+                scrollEnabled/nestedScrollEnabled turn on the WebView's own
                 scroll (10tap disables it by default), so long text scrolls in
                 place instead of the parent stealing the gesture, and the field
                 stays a sensible height instead of growing to thousands of px. */}
-            <View className="mx-4 mt-3" style={{ flex: 1, minHeight: 140 }}>
+            <View className="mx-4 mt-2" style={{ flex: 1, minHeight: 140 }}>
               <RichText
                 editor={editor}
                 scrollEnabled
@@ -1102,29 +1124,6 @@ export default function Compose() {
             </View>
           </>
         )}
-      </View>
-
-      {/* Formatting toolbar, pinned just above the keyboard. Explicitly
-          computed `hidden` from ONLY the editor's own isFocused (reported by
-          tentap's WebView bridge, not an OS keyboard event) -- tentap's
-          default `hidden` calc also factors in its own internal
-          keyboardDidShow/Hide-derived isKeyboardUp, which Android 15+'s
-          edge-to-edge display (default-on as of RN 0.86 / SDK 57) makes
-          unreliable: the legacy adjustResize+keyboardDidShow combo that
-          detector depends on no longer fires the way it used to, so the
-          toolbar could silently stay hidden even with the keyboard up and
-          the body focused. isFocused alone is enough to keep the toolbar
-          off the title/date/location fields and hidden when idle -- the
-          original goal -- without depending on that unreliable signal. */}
-      <View
-        style={{ position: "absolute", left: 0, right: 0, bottom: keyboardInset }}
-        pointerEvents="box-none"
-      >
-        <Toolbar
-          editor={editor}
-          items={TOOLBAR_ITEMS}
-          hidden={!editorState.isFocused}
-        />
       </View>
 
       {/* Add-media chooser — a centered dialog (not Alert.alert, whose Android
