@@ -1164,11 +1164,9 @@ export default function Compose() {
                   <Pressable
                     onPress={() => setFeaturedImage(null)}
                     hitSlop={6}
-                    className="absolute top-1.5 right-1.5 bg-black/65 px-2 py-1"
+                    className="absolute top-1.5 right-1.5 bg-black/65 rounded-full p-1"
                   >
-                    <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-white">
-                      Remove
-                    </Text>
+                    <X size={14} color="white" strokeWidth={2.5} />
                   </Pressable>
                 </View>
               </View>
@@ -1301,11 +1299,35 @@ export default function Compose() {
               />
             </View>
 
-            {/* Audience + featured image / location icons — Cancel/Post moved
-                to the header (X / check, top right). Location stays
-                universal (any post type); featured image only for
-                Article/Event, matching its own preview block above. */}
-            <View className="flex-row items-center px-4 pt-3">
+            {/* Advanced — reply/react scope. Stays inside the scrollable
+                area (unlike the audience/icons bar below, which is sticky) --
+                this is a secondary, expand-to-see control, not something
+                that needs to stay visible while writing. */}
+            <View className="px-4 pb-3">
+              <ReplyReactScope
+                audience={audience}
+                canReply={canReply}
+                canReact={canReact}
+                onChangeReply={setCanReply}
+                onChangeReact={setCanReact}
+              />
+            </View>
+            </ScrollView>
+
+            {/* Audience + featured image / location icons — sticky, pinned
+                to the bottom of the visible area (above the keyboard, via
+                the parent's paddingBottom: bottomPad) even while scrolling
+                or typing, the way the toolbar used to try to be. Safe here
+                in a way it wasn't for the toolbar: this is a plain flex
+                sibling AFTER the ScrollView, not an absolutely-positioned
+                overlay near the WebView-based editor, so the WebView-
+                covers-siblings issue that broke the toolbar's floating
+                version (see the toolbar's own comment above) never applies
+                -- there's no overlap to begin with. Cancel/Post moved to
+                the header (X / check, top right). Location stays universal
+                (any post type); featured image only for Article/Event,
+                matching its own preview block above. */}
+            <View className="flex-row items-center px-4 py-3 border-t border-base-300">
               <View className="flex-1 mr-2">
                 <AudienceSelector
                   value={audience}
@@ -1328,18 +1350,6 @@ export default function Compose() {
               ) : null}
               <LocationField value={location} onChange={setLocation} iconOnly />
             </View>
-
-            {/* Advanced — reply/react scope, tucked under the To selector */}
-            <View className="px-4 pb-3">
-              <ReplyReactScope
-                audience={audience}
-                canReply={canReply}
-                canReact={canReact}
-                onChangeReply={setCanReply}
-                onChangeReact={setCanReact}
-              />
-            </View>
-            </ScrollView>
           </>
         )}
       </View>
