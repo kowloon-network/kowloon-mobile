@@ -31,14 +31,28 @@ import {
 } from "react-native-safe-area-context";
 import {
   CoreBridge,
-  DEFAULT_TOOLBAR_ITEMS,
-  Images,
   RichText,
   TenTapStartKit,
-  Toolbar,
   useBridgeState,
   useEditorBridge,
 } from "@10play/tentap-editor";
+import {
+  Bold,
+  Italic,
+  Underline as UnderlineIcon,
+  Strikethrough,
+  Heading1,
+  Heading2,
+  Heading3,
+  List,
+  ListOrdered,
+  Quote,
+  Code,
+  Link2,
+  Link2Off,
+  Undo2,
+  Redo2,
+} from "lucide-react-native";
 
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
@@ -72,20 +86,84 @@ async function assetSizeBytes(a) {
   }
 }
 
-// The default editor toolbar minus the task-list (checkbox) button — matched by
-// its checkList image so it survives item-order changes across versions.
-const TOOLBAR_ITEMS = DEFAULT_TOOLBAR_ITEMS.filter(
-  (item) => item.image?.() !== Images.checkList
-);
-
-// tentap's <Toolbar> renders via a horizontal-scrolling FlatList internally
-// (no wrap option exposed) -- to get a two-row layout matching web's
-// flex-wrap toolbar, render two <Toolbar> instances stacked in a column,
-// each holding half the items. Both share the same `editor`, so the actual
-// formatting stays in sync; only which one's Link/Heading sub-view is open
-// (if any) is tracked per-instance, a cosmetic-only difference.
-const TOOLBAR_ROW_1 = TOOLBAR_ITEMS.slice(0, Math.ceil(TOOLBAR_ITEMS.length / 2));
-const TOOLBAR_ROW_2 = TOOLBAR_ITEMS.slice(Math.ceil(TOOLBAR_ITEMS.length / 2));
+// A custom toolbar, not tentap's own <Toolbar> -- replicates web's exact
+// button set, order, icons (lucide, same library as web's lucide-react),
+// and flex-wrap layout. tentap's <Toolbar> hardcodes <Image source={png}>
+// rendering per item (see ToolbarItemComp in its source) with no way to
+// swap in a different icon component, so matching web's icons at all meant
+// bypassing it and calling the editor bridge's own action methods
+// directly -- the same ones tentap's own default items call internally
+// (editor.toggleBold(), editorState.isBoldActive, etc., confirmed by
+// reading node_modules/@10play/tentap-editor's actions.js).
+const TOOLBAR_ACTIONS = [
+  {
+    key: "bold", Icon: Bold,
+    onPress: (editor) => editor.toggleBold(),
+    isActive: (s) => s.isBoldActive, isDisabled: (s) => !s.canToggleBold,
+  },
+  {
+    key: "italic", Icon: Italic,
+    onPress: (editor) => editor.toggleItalic(),
+    isActive: (s) => s.isItalicActive, isDisabled: (s) => !s.canToggleItalic,
+  },
+  {
+    key: "underline", Icon: UnderlineIcon,
+    onPress: (editor) => editor.toggleUnderline(),
+    isActive: (s) => s.isUnderlineActive, isDisabled: (s) => !s.canToggleUnderline,
+  },
+  {
+    key: "strike", Icon: Strikethrough,
+    onPress: (editor) => editor.toggleStrike(),
+    isActive: (s) => s.isStrikeActive, isDisabled: (s) => !s.canToggleStrike,
+  },
+  {
+    key: "h1", Icon: Heading1,
+    onPress: (editor) => editor.toggleHeading(1),
+    isActive: (s) => s.headingLevel === 1, isDisabled: (s) => !s.canToggleHeading,
+  },
+  {
+    key: "h2", Icon: Heading2,
+    onPress: (editor) => editor.toggleHeading(2),
+    isActive: (s) => s.headingLevel === 2, isDisabled: (s) => !s.canToggleHeading,
+  },
+  {
+    key: "h3", Icon: Heading3,
+    onPress: (editor) => editor.toggleHeading(3),
+    isActive: (s) => s.headingLevel === 3, isDisabled: (s) => !s.canToggleHeading,
+  },
+  {
+    key: "bulletList", Icon: List,
+    onPress: (editor) => editor.toggleBulletList(),
+    isActive: (s) => s.isBulletListActive, isDisabled: (s) => !s.canToggleBulletList,
+  },
+  {
+    key: "orderedList", Icon: ListOrdered,
+    onPress: (editor) => editor.toggleOrderedList(),
+    isActive: (s) => s.isOrderedListActive, isDisabled: (s) => !s.canToggleOrderedList,
+  },
+  {
+    key: "blockquote", Icon: Quote,
+    onPress: (editor) => editor.toggleBlockquote(),
+    isActive: (s) => s.isBlockquoteActive, isDisabled: (s) => !s.canToggleBlockquote,
+  },
+  {
+    key: "code", Icon: Code,
+    onPress: (editor) => editor.toggleCode(),
+    isActive: (s) => s.isCodeActive, isDisabled: (s) => !s.canToggleCode,
+  },
+  // link is handled separately below (opens a URL prompt, plus a
+  // conditional unlink button) -- not a plain toggle like the rest.
+  {
+    key: "undo", Icon: Undo2,
+    onPress: (editor) => editor.undo(),
+    isActive: () => false, isDisabled: (s) => !s.canUndo,
+  },
+  {
+    key: "redo", Icon: Redo2,
+    onPress: (editor) => editor.redo(),
+    isActive: () => false, isDisabled: (s) => !s.canRedo,
+  },
+];
 
 // Event date/time helpers — see project_event_datetime_logic memory.
 const pad = (n) => String(n).padStart(2, "0");
@@ -460,6 +538,10 @@ export default function Compose() {
   // Index of the attachment whose title/alt editor is open, or null.
   const [editingIndex, setEditingIndex] = useState(null);
 
+  // Toolbar's Link button prompt (see TOOLBAR_ACTIONS / the toolbar render below).
+  const [linkPromptOpen, setLinkPromptOpen] = useState(false);
+  const [linkPromptValue, setLinkPromptValue] = useState("");
+
   // The Android window doesn't reliably resize for the keyboard under Expo
   // Go, so the content area is padded at the bottom by the measured keyboard
   // inset; keyboard down, it clears the nav-bar safe-area inset instead.
@@ -487,32 +569,6 @@ export default function Compose() {
         .ProseMirror { padding: 10px 16px; }
       `),
     ],
-    // Flat toolbar to match web's — no button-background boxes, no filled
-    // active state (tint the icon itself instead, same as web's plain
-    // text-primary active color with no bg). Icon size: NOT an exact px
-    // match to web's measured 15x15 -- that measurement was real but only
-    // valid within two different simulators (a desktop browser, and RN-web
-    // standing in for the phone), neither of which is the actual device
-    // this gets judged on. 22px, closer to tentap's own 28px default,
-    // judged directly against the real app instead of re-measured blind.
-    // Tint uses useSolidInk, not ink()'s alpha-carrying rgba() -- Image's
-    // tintColor (at least on Android) multiplies the tint's own alpha
-    // against the source PNG's per-pixel alpha, so ink(0.6) on an already-
-    // antialiased icon edge compounded into a render faint enough to look
-    // blank, independent of the size question entirely. useSolidInk
-    // pre-blends the same ink color to an opaque equivalent over base-100
-    // instead. Deep-merged onto tentap's defaults, so unset fields (e.g.
-    // toolbarBody.height) keep their default.
-    theme: {
-      toolbar: {
-        toolbarBody: { backgroundColor: "transparent", borderTopWidth: 0, borderBottomWidth: 0 },
-        toolbarButton: { backgroundColor: "transparent", paddingHorizontal: 6 },
-        iconWrapper: { backgroundColor: "transparent", borderRadius: 0 },
-        iconWrapperActive: { backgroundColor: "transparent" },
-        icon: { height: 22, width: 22, tintColor: solidInk(0.6) },
-        iconActive: { tintColor: "#5588b1" },
-      },
-    },
   });
   const editorState = useBridgeState(editor);
   const handedOff = useRef(false);
@@ -1081,15 +1137,111 @@ export default function Compose() {
                 floating over it, sidesteps both -- no overlap with the WebView,
                 no dependency on keyboard-visibility detection at all. Always
                 shown (no hidden/focus logic) since it now costs real screen
-                space only while a body-editor type is open. */}
-            <View className="mt-3 border-b border-base-300">
-              <View style={{ height: 44 }}>
-                <Toolbar editor={editor} items={TOOLBAR_ROW_1} hidden={false} />
-              </View>
-              <View style={{ height: 44 }}>
-                <Toolbar editor={editor} items={TOOLBAR_ROW_2} hidden={false} />
-              </View>
+                space only while a body-editor type is open.
+
+                Custom-built, not tentap's own <Toolbar> -- see TOOLBAR_ACTIONS
+                above for why. flex-row flex-wrap gives real responsive
+                wrapping (unlike tentap's internal horizontal FlatList, which
+                can't wrap at all), matching web's flex-wrap toolbar exactly
+                rather than a hand-split fixed two-row approximation. */}
+            <View className="mt-3 border-b border-base-300 flex-row flex-wrap items-center">
+              {TOOLBAR_ACTIONS.slice(0, 11).map(({ key, Icon, onPress, isActive, isDisabled }) => {
+                const active = isActive(editorState);
+                const disabled = isDisabled(editorState);
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => onPress(editor)}
+                    disabled={disabled}
+                    hitSlop={4}
+                    className="px-2.5 py-2"
+                    style={{ opacity: disabled ? 0.3 : 1 }}
+                  >
+                    <Icon size={22} color={active ? "#5588b1" : solidInk(0.6)} strokeWidth={2} />
+                  </Pressable>
+                );
+              })}
+
+              {/* Link — opens a URL prompt (RN has no window.prompt), same
+                  as web's window.prompt-then-setLink flow. Unlink button
+                  appears only while a link is active, matching web. */}
+              <Pressable
+                onPress={() => { setLinkPromptValue(editorState.activeLink || ""); setLinkPromptOpen(true); }}
+                hitSlop={4}
+                className="px-2.5 py-2"
+              >
+                <Link2 size={22} color={editorState.isLinkActive ? "#5588b1" : solidInk(0.6)} strokeWidth={2} />
+              </Pressable>
+              {editorState.isLinkActive ? (
+                <Pressable onPress={() => editor.setLink("")} hitSlop={4} className="px-2.5 py-2">
+                  <Link2Off size={22} color={solidInk(0.6)} strokeWidth={2} />
+                </Pressable>
+              ) : null}
+
+              {TOOLBAR_ACTIONS.slice(11).map(({ key, Icon, onPress, isActive, isDisabled }) => {
+                const active = isActive(editorState);
+                const disabled = isDisabled(editorState);
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => onPress(editor)}
+                    disabled={disabled}
+                    hitSlop={4}
+                    className="px-2.5 py-2"
+                    style={{ opacity: disabled ? 0.3 : 1 }}
+                  >
+                    <Icon size={22} color={active ? "#5588b1" : solidInk(0.6)} strokeWidth={2} />
+                  </Pressable>
+                );
+              })}
             </View>
+
+            {/* Link URL prompt — RN has no window.prompt equivalent that
+                works on both platforms (Alert.prompt is iOS-only). */}
+            <Modal
+              visible={linkPromptOpen}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setLinkPromptOpen(false)}
+              statusBarTranslucent
+            >
+              <Pressable
+                onPress={() => setLinkPromptOpen(false)}
+                className="flex-1 bg-black/40 items-center justify-center px-8"
+              >
+                <Pressable onPress={() => {}} className="w-full bg-base-100 p-4">
+                  <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content/55 mb-3">
+                    Enter URL
+                  </Text>
+                  <TextInput
+                    value={linkPromptValue}
+                    onChangeText={setLinkPromptValue}
+                    placeholder="https://"
+                    placeholderTextColor={ink(0.35)}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="url"
+                    autoFocus
+                    className="border-b border-base-300 px-0 py-2.5 font-ui text-base text-base-content mb-4"
+                  />
+                  <View className="flex-row justify-end gap-4">
+                    <Pressable onPress={() => setLinkPromptOpen(false)} className="px-3 py-2">
+                      <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content/60">
+                        Cancel
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => { editor.setLink(linkPromptValue.trim()); setLinkPromptOpen(false); }}
+                      className="px-3 py-2"
+                    >
+                      <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-primary">
+                        Set
+                      </Text>
+                    </Pressable>
+                  </View>
+                </Pressable>
+              </Pressable>
+            </Modal>
 
             {/* Editor body — fills the space between the fields above and the
                 controls below, and scrolls INTERNALLY (issue #76).
