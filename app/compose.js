@@ -488,15 +488,19 @@ export default function Compose() {
     ],
     // Flat toolbar to match web's — no button-background boxes, no filled
     // active state (tint the icon itself instead, same as web's plain
-    // text-primary active color with no bg). Deep-merged onto tentap's
-    // defaults, so unset fields (e.g. toolbarBody.height) keep their default.
+    // text-primary active color with no bg), and icons/spacing sized down
+    // to match web's density (tentap's defaults are a 28px icon in an 8px-
+    // padded button -- nearly double web's 15px icon in a tighter ~10px
+    // button, which read as noticeably coarser side by side). Deep-merged
+    // onto tentap's defaults, so unset fields (e.g. toolbarBody.height)
+    // keep their default.
     theme: {
       toolbar: {
         toolbarBody: { backgroundColor: "transparent", borderTopWidth: 0, borderBottomWidth: 0 },
-        toolbarButton: { backgroundColor: "transparent" },
+        toolbarButton: { backgroundColor: "transparent", paddingHorizontal: 6 },
         iconWrapper: { backgroundColor: "transparent", borderRadius: 0 },
         iconWrapperActive: { backgroundColor: "transparent" },
-        icon: { tintColor: ink(0.6) },
+        icon: { height: 18, width: 18, tintColor: ink(0.6) },
         iconActive: { tintColor: "#5588b1" },
       },
     },
