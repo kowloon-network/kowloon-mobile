@@ -560,7 +560,18 @@ export default function Compose() {
   // inset; keyboard down, it clears the nav-bar safe-area inset instead.
   const { isKeyboardUp, keyboardInset } = useKeyboardInset();
   const insets = useSafeAreaInsets();
-  const bottomPad = isKeyboardUp ? keyboardInset : insets.bottom;
+  // Some Android keyboards (SwiftKey confirmed) render a suggestion-strip row
+  // above the actual keys that isn't included in the WindowInsets-reported
+  // keyboard height -- Keyboard.addListener only sees the key rows, not that
+  // strip. Confirmed on-device: without this buffer, the sticky bar's top
+  // edge lands exactly at the top of the KEYS, with the suggestion strip
+  // still covering most of the bar above that. A fixed estimate, not a
+  // measured value -- there's no JS-visible signal for the strip's real
+  // height, so this may need tuning per-keyboard-app.
+  const KEYBOARD_ACCESSORY_BUFFER = 56;
+  const bottomPad = isKeyboardUp
+    ? keyboardInset + KEYBOARD_ACCESSORY_BUFFER
+    : insets.bottom;
 
   // Stable idempotency key for this composing session.
   const dedupeKey = useRef(
