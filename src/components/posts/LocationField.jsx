@@ -24,15 +24,21 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Location from "expo-location";
+import { MapPin } from "lucide-react-native";
 
 import { placeLabel, reverseLookup, searchPlaces } from "../../lib/geocode.js";
 import { useKeyboardInset } from "../../lib/useKeyboardInset.js";
-import { useInk } from "../../lib/useInk.js";
+import { useInk, useSolidInk } from "../../lib/useInk.js";
 
 const SEARCH_DEBOUNCE_MS = 400;
 
-export function LocationField({ value, onChange }) {
+// iconOnly — a plain MapPin icon trigger (tinted to show set/unset state)
+// instead of the "+ Add location"/"📍 <place name>" chip row, for contexts
+// like the composer's audience bar where a full-width chip doesn't fit.
+// Everything past the trigger (the sheet, search, GPS) is unchanged.
+export function LocationField({ value, onChange, iconOnly = false }) {
   const ink = useInk();
+  const solidInk = useSolidInk();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -122,34 +128,45 @@ export function LocationField({ value, onChange }) {
 
   return (
     <>
-      <Pressable
-        onPress={() => setOpen(true)}
-        android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-        className="flex-row items-center   bg-base-100 px-3 py-2"
-      >
-        <Text className="font-ui text-sm mr-2 text-base-content/70">📍</Text>
-        {value ? (
-          <>
-            <Text
-              className="font-ui text-xs uppercase tracking-[0.12em] text-base-content flex-1"
-              numberOfLines={1}
-            >
-              {value.name}
+      {iconOnly ? (
+        <Pressable onPress={() => setOpen(true)} hitSlop={8} className="p-2">
+          <MapPin
+            size={20}
+            color={value ? "#5588b1" : solidInk(0.6)}
+            strokeWidth={2}
+            fill={value ? "#5588b1" : "transparent"}
+          />
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={() => setOpen(true)}
+          android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+          className="flex-row items-center   bg-base-100 px-3 py-2"
+        >
+          <Text className="font-ui text-sm mr-2 text-base-content/70">📍</Text>
+          {value ? (
+            <>
+              <Text
+                className="font-ui text-xs uppercase tracking-[0.12em] text-base-content flex-1"
+                numberOfLines={1}
+              >
+                {value.name}
+              </Text>
+              <Pressable
+                onPress={clearLocation}
+                hitSlop={8}
+                className="ml-2 px-1"
+              >
+                <Text className="font-ui text-base-content/45 text-sm">×</Text>
+              </Pressable>
+            </>
+          ) : (
+            <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content/55 flex-1">
+              Add location
             </Text>
-            <Pressable
-              onPress={clearLocation}
-              hitSlop={8}
-              className="ml-2 px-1"
-            >
-              <Text className="font-ui text-base-content/45 text-sm">×</Text>
-            </Pressable>
-          </>
-        ) : (
-          <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content/55 flex-1">
-            Add location
-          </Text>
-        )}
-      </Pressable>
+          )}
+        </Pressable>
+      )}
 
       <Modal
         visible={open}

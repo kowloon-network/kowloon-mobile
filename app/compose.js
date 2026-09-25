@@ -52,6 +52,10 @@ import {
   Link2Off,
   Undo2,
   Redo2,
+  X,
+  Check,
+  Image as ImageIcon,
+  MapPin,
 } from "lucide-react-native";
 
 import * as ImagePicker from "expo-image-picker";
@@ -581,6 +585,8 @@ export default function Compose() {
   });
   const editorState = useBridgeState(editor);
   const handedOff = useRef(false);
+  const scrollViewRef = useRef(null);
+  const toolbarBlockRef = useRef(null);
 
   // Keyboard handoff: a hidden focusable TextInput (rendered below) auto-
   // focuses on mount and raises the soft keyboard. Once the editor's WebView
@@ -633,6 +639,31 @@ export default function Compose() {
       }
     }
   }, [editorState.isReady, editor]);
+
+  // Media: focus the body once the user has actually picked something,
+  // instead of on mount (the media picker sheet already auto-opens on
+  // mount for Media -- see the auto-open-media effect below -- so
+  // autofocusing the body too would just compete with it for attention).
+  const mediaFocusedRef = useRef(false);
+  useEffect(() => {
+    if (type !== "Media" || mediaFocusedRef.current) return;
+    if (attachments.length > 0 && editorState.isReady) {
+      mediaFocusedRef.current = true;
+      editor.focus();
+    }
+  }, [type, attachments.length, editorState.isReady, editor]);
+
+  // Scroll the toolbar (and everything below it) to the top of the visible
+  // area the moment the body gets focus, so writing has as much open space
+  // as possible instead of competing with the fields above for room.
+  useEffect(() => {
+    if (!editorState.isFocused || !toolbarBlockRef.current || !scrollViewRef.current) return;
+    toolbarBlockRef.current.measureLayout(
+      scrollViewRef.current,
+      (x, y) => scrollViewRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: true }),
+      () => {}
+    );
+  }, [editorState.isFocused]);
 
   // Link preview: when the user types/pastes a URL in the Link composer, fetch
   // its OG metadata from the server (debounced) and auto-populate the title
@@ -864,9 +895,34 @@ export default function Compose() {
     <SafeAreaView className="flex-1 bg-base-100" edges={["top"]}>
       {/* Content area shrinks to clear the keyboard. */}
       <View className="flex-1" style={{ paddingBottom: bottomPad }}>
-        {/* Title bar — "Add New [type ▾]" dropdown replaces the icon strip */}
-        <View className="flex-row items-center px-4 py-3">
+        {/* Title bar — "Add New [type ▾]" dropdown on the left, Cancel (X) /
+            Post (check) icon buttons on the right, replacing the old
+            bottom text buttons so they're reachable without scrolling. */}
+        <View className="flex-row items-center justify-between px-4 py-3">
           <PostTypeDropdown value={type} onChange={setType} prefix="Add New" />
+          <View className="flex-row items-center">
+            <Pressable
+              onPress={() => router.back()}
+              disabled={posting}
+              hitSlop={8}
+              className="p-2 mr-1"
+            >
+              <X size={20} color={solidInk(0.6)} strokeWidth={2} />
+            </Pressable>
+            <Pressable
+              onPress={handlePost}
+              disabled={posting}
+              hitSlop={8}
+              className="p-2"
+              style={{ opacity: posting ? 0.5 : 1 }}
+            >
+              {posting ? (
+                <ActivityIndicator size="small" color="#5588b1" />
+              ) : (
+                <Check size={20} color="#5588b1" strokeWidth={2.5} />
+              )}
+            </Pressable>
+          </View>
         </View>
 
         {composable && (
@@ -881,13 +937,19 @@ export default function Compose() {
                 style={{ position: "absolute", width: 1, height: 1, opacity: 0 }}
               />
             ) : null}
-            {/* Fields (title / media / featured) scroll in their own region and
-                only take the height their content needs (flexShrink lets a tall
-                attachment list give way to the editor below). The body editor is
-                a separate flex-1 region so it fills the remaining space up to the
-                controls + keyboard toolbar, rather than the fields pushing it off. */}
+            {/* One scrollable region for the WHOLE composable body -- fields,
+                toolbar, editor, audience/icons, advanced -- instead of the
+                fields scrolling separately from a fixed-height toolbar+
+                editor+controls area below them, which made the lower
+                section feel cramped and left Advanced unreachable once the
+                keyboard was up. ref + the scroll-to-toolbar-on-focus effect
+                above bring the toolbar to the top of the visible area the
+                moment the body is focused, so writing gets maximum room;
+                scrolling back up to the fields at the top still works at
+                any time since it's all one ScrollView now. */}
             <ScrollView
-              style={{ flexGrow: 0, flexShrink: 1 }}
+              ref={scrollViewRef}
+              style={{ flex: 1 }}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{ paddingBottom: 4 }}
             >
@@ -974,7 +1036,7 @@ export default function Compose() {
                       : "Optional title"
                   }
                   placeholderTextColor={ink(0.35)}
-                  autoFocus={type !== "Link"}
+                  autoFocus={type === "Article" || type === "Event"}
                   className="  bg-field px-3 py-3 font-ui text-lg text-base-content"
                 />
               </View>
@@ -1088,36 +1150,27 @@ export default function Compose() {
               </View>
             ) : null}
 
-            {type === "Article" || type === "Event" ? (
+            {/* The "add" trigger lives as an icon on the audience bar below
+                (see pickFeaturedImage there) -- this only renders the
+                preview once one's actually picked. */}
+            {(type === "Article" || type === "Event") && featuredImage ? (
               <View className="px-4 pt-3">
-                {featuredImage ? (
-                  <View className="  bg-field">
-                    <Image
-                      source={{ uri: featuredImage.uri }}
-                      className="w-full h-40"
-                      resizeMode="cover"
-                    />
-                    <Pressable
-                      onPress={() => setFeaturedImage(null)}
-                      hitSlop={6}
-                      className="absolute top-1.5 right-1.5 bg-black/65 px-2 py-1"
-                    >
-                      <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-white">
-                        Remove
-                      </Text>
-                    </Pressable>
-                  </View>
-                ) : (
+                <View className="  bg-field">
+                  <Image
+                    source={{ uri: featuredImage.uri }}
+                    className="w-full h-40"
+                    resizeMode="cover"
+                  />
                   <Pressable
-                    onPress={pickFeaturedImage}
-                    android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-                    className="  bg-field py-5 items-center"
+                    onPress={() => setFeaturedImage(null)}
+                    hitSlop={6}
+                    className="absolute top-1.5 right-1.5 bg-black/65 px-2 py-1"
                   >
-                    <Text className="font-ui uppercase tracking-[0.14em] text-xs text-base-content/55">
-                      + Add featured image
+                    <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-white">
+                      Remove
                     </Text>
                   </Pressable>
-                )}
+                </View>
               </View>
             ) : null}
 
@@ -1126,8 +1179,6 @@ export default function Compose() {
                 {error}
               </Text>
             ) : null}
-
-            </ScrollView>
 
             {/* Formatting toolbar — a STATIC bar in normal layout flow directly
                 above the editor, not a floating overlay pinned above the
@@ -1153,7 +1204,7 @@ export default function Compose() {
                 wrapping (unlike tentap's internal horizontal FlatList, which
                 can't wrap at all), matching web's flex-wrap toolbar exactly
                 rather than a hand-split fixed two-row approximation. */}
-            <View className="mt-3 border-b border-base-300 flex-row flex-wrap items-center">
+            <View ref={toolbarBlockRef} className="mt-3 border-b border-base-300 flex-row flex-wrap items-center">
               {TOOLBAR_ACTIONS.map(({ key, Icon, onPress, isActive, isDisabled }) => {
                 const active = isActive(editorState);
                 const disabled = isDisabled(editorState);
@@ -1242,7 +1293,7 @@ export default function Compose() {
                 scroll (10tap disables it by default), so long text scrolls in
                 place instead of the parent stealing the gesture, and the field
                 stays a sensible height instead of growing to thousands of px. */}
-            <View className="mx-4 mt-2" style={{ flex: 1, minHeight: 140 }}>
+            <View className="mx-4 mt-2" style={{ minHeight: 400 }}>
               <RichText
                 editor={editor}
                 scrollEnabled
@@ -1250,15 +1301,11 @@ export default function Compose() {
               />
             </View>
 
-            {/* Universal location picker — pinned above the controls so a
-                geotag is always one tap away regardless of post type. */}
-            <View className="px-4 pt-2">
-              <LocationField value={location} onChange={setLocation} />
-            </View>
-
-            {/* Audience + Cancel/Post — below the editor body. Changing the
-                audience resets the reply/react scope to match it. */}
-            <View className="flex-row items-stretch px-4 pt-3">
+            {/* Audience + featured image / location icons — Cancel/Post moved
+                to the header (X / check, top right). Location stays
+                universal (any post type); featured image only for
+                Article/Event, matching its own preview block above. */}
+            <View className="flex-row items-center px-4 pt-3">
               <View className="flex-1 mr-2">
                 <AudienceSelector
                   value={audience}
@@ -1270,32 +1317,16 @@ export default function Compose() {
                   }}
                 />
               </View>
-              <Pressable
-                onPress={() => router.back()}
-                disabled={posting}
-                className="  px-4 justify-center mr-2"
-                android_ripple={{ color: "rgba(0,0,0,0.06)" }}
-              >
-                <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content">
-                  Cancel
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={handlePost}
-                disabled={posting}
-                className={`  px-5 justify-center ${
-                  posting ? "bg-primary/60" : "bg-primary"
-                }`}
-                android_ripple={{ color: "rgba(255,255,255,0.15)" }}
-              >
-                {posting ? (
-                  <ActivityIndicator color="#FAF4E8" />
-                ) : (
-                  <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-primary-content">
-                    Post
-                  </Text>
-                )}
-              </Pressable>
+              {type === "Article" || type === "Event" ? (
+                <Pressable onPress={pickFeaturedImage} hitSlop={8} className="p-2">
+                  <ImageIcon
+                    size={20}
+                    color={featuredImage ? "#5588b1" : solidInk(0.6)}
+                    strokeWidth={2}
+                  />
+                </Pressable>
+              ) : null}
+              <LocationField value={location} onChange={setLocation} iconOnly />
             </View>
 
             {/* Advanced — reply/react scope, tucked under the To selector */}
@@ -1308,6 +1339,7 @@ export default function Compose() {
                 onChangeReact={setCanReact}
               />
             </View>
+            </ScrollView>
           </>
         )}
       </View>
