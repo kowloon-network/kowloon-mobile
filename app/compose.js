@@ -78,6 +78,15 @@ const TOOLBAR_ITEMS = DEFAULT_TOOLBAR_ITEMS.filter(
   (item) => item.image?.() !== Images.checkList
 );
 
+// tentap's <Toolbar> renders via a horizontal-scrolling FlatList internally
+// (no wrap option exposed) -- to get a two-row layout matching web's
+// flex-wrap toolbar, render two <Toolbar> instances stacked in a column,
+// each holding half the items. Both share the same `editor`, so the actual
+// formatting stays in sync; only which one's Link/Heading sub-view is open
+// (if any) is tracked per-instance, a cosmetic-only difference.
+const TOOLBAR_ROW_1 = TOOLBAR_ITEMS.slice(0, Math.ceil(TOOLBAR_ITEMS.length / 2));
+const TOOLBAR_ROW_2 = TOOLBAR_ITEMS.slice(Math.ceil(TOOLBAR_ITEMS.length / 2));
+
 // Event date/time helpers — see project_event_datetime_logic memory.
 const pad = (n) => String(n).padStart(2, "0");
 function addOneHourToTime(time) {
@@ -1060,8 +1069,13 @@ export default function Compose() {
                 no dependency on keyboard-visibility detection at all. Always
                 shown (no hidden/focus logic) since it now costs real screen
                 space only while a body-editor type is open. */}
-            <View className="mt-3 border-b border-base-300" style={{ height: 44 }}>
-              <Toolbar editor={editor} items={TOOLBAR_ITEMS} hidden={false} />
+            <View className="mt-3 border-b border-base-300">
+              <View style={{ height: 44 }}>
+                <Toolbar editor={editor} items={TOOLBAR_ROW_1} hidden={false} />
+              </View>
+              <View style={{ height: 44 }}>
+                <Toolbar editor={editor} items={TOOLBAR_ROW_2} hidden={false} />
+              </View>
             </View>
 
             {/* Editor body — fills the space between the fields above and the
