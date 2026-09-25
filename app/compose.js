@@ -95,6 +95,13 @@ async function assetSizeBytes(a) {
 // directly -- the same ones tentap's own default items call internally
 // (editor.toggleBold(), editorState.isBoldActive, etc., confirmed by
 // reading node_modules/@10play/tentap-editor's actions.js).
+//
+// ICON_SIZE matches web's RichTextEditor.jsx ICON_SIZE exactly (15) --
+// unlike tentap's raster PNG icons, lucide-react-native renders real SVG
+// (react-native-svg) the same way lucide-react does on web, so a literal
+// same-number size match is meaningful here in a way it wasn't for the
+// PNG toolbar this replaced.
+const ICON_SIZE = 15;
 const TOOLBAR_ACTIONS = [
   {
     key: "bold", Icon: Bold,
@@ -1157,7 +1164,7 @@ export default function Compose() {
                     className="px-2.5 py-2"
                     style={{ opacity: disabled ? 0.3 : 1 }}
                   >
-                    <Icon size={22} color={active ? "#5588b1" : solidInk(0.6)} strokeWidth={2} />
+                    <Icon size={ICON_SIZE} color={active ? "#5588b1" : solidInk(0.6)} strokeWidth={2} />
                   </Pressable>
                 );
               })}
@@ -1170,11 +1177,11 @@ export default function Compose() {
                 hitSlop={4}
                 className="px-2.5 py-2"
               >
-                <Link2 size={22} color={editorState.isLinkActive ? "#5588b1" : solidInk(0.6)} strokeWidth={2} />
+                <Link2 size={ICON_SIZE} color={editorState.isLinkActive ? "#5588b1" : solidInk(0.6)} strokeWidth={2} />
               </Pressable>
               {editorState.isLinkActive ? (
                 <Pressable onPress={() => editor.setLink("")} hitSlop={4} className="px-2.5 py-2">
-                  <Link2Off size={22} color={solidInk(0.6)} strokeWidth={2} />
+                  <Link2Off size={ICON_SIZE} color={solidInk(0.6)} strokeWidth={2} />
                 </Pressable>
               ) : null}
 
@@ -1190,7 +1197,7 @@ export default function Compose() {
                     className="px-2.5 py-2"
                     style={{ opacity: disabled ? 0.3 : 1 }}
                   >
-                    <Icon size={22} color={active ? "#5588b1" : solidInk(0.6)} strokeWidth={2} />
+                    <Icon size={ICON_SIZE} color={active ? "#5588b1" : solidInk(0.6)} strokeWidth={2} />
                   </Pressable>
                 );
               })}
