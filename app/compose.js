@@ -477,6 +477,20 @@ export default function Compose() {
         .ProseMirror { padding: 10px 16px; }
       `),
     ],
+    // Flat toolbar to match web's — no button-background boxes, no filled
+    // active state (tint the icon itself instead, same as web's plain
+    // text-primary active color with no bg). Deep-merged onto tentap's
+    // defaults, so unset fields (e.g. toolbarBody.height) keep their default.
+    theme: {
+      toolbar: {
+        toolbarBody: { backgroundColor: "transparent", borderTopWidth: 0, borderBottomWidth: 0 },
+        toolbarButton: { backgroundColor: "transparent" },
+        iconWrapper: { backgroundColor: "transparent", borderRadius: 0 },
+        iconWrapperActive: { backgroundColor: "transparent" },
+        icon: { tintColor: ink(0.6) },
+        iconActive: { tintColor: "#5588b1" },
+      },
+    },
   });
   const editorState = useBridgeState(editor);
   const handedOff = useRef(false);
@@ -1046,7 +1060,7 @@ export default function Compose() {
                 no dependency on keyboard-visibility detection at all. Always
                 shown (no hidden/focus logic) since it now costs real screen
                 space only while a body-editor type is open. */}
-            <View className="mt-3" style={{ height: 44 }}>
+            <View className="mt-3 border-b border-base-300" style={{ height: 44 }}>
               <Toolbar editor={editor} items={TOOLBAR_ITEMS} hidden={false} />
             </View>
 
