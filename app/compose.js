@@ -102,7 +102,21 @@ async function assetSizeBytes(a) {
 // same-number size match is meaningful here in a way it wasn't for the
 // PNG toolbar this replaced.
 const ICON_SIZE = 15;
+// Order matches web's RichTextEditor.jsx exactly: undo, redo, bold, italic,
+// underline, strike, h1-h3, bulletList, orderedList, blockquote, code --
+// link (handled separately below, opens a URL prompt plus a conditional
+// unlink button, not a plain toggle like the rest) comes last on both.
 const TOOLBAR_ACTIONS = [
+  {
+    key: "undo", Icon: Undo2,
+    onPress: (editor) => editor.undo(),
+    isActive: () => false, isDisabled: (s) => !s.canUndo,
+  },
+  {
+    key: "redo", Icon: Redo2,
+    onPress: (editor) => editor.redo(),
+    isActive: () => false, isDisabled: (s) => !s.canRedo,
+  },
   {
     key: "bold", Icon: Bold,
     onPress: (editor) => editor.toggleBold(),
@@ -157,18 +171,6 @@ const TOOLBAR_ACTIONS = [
     key: "code", Icon: Code,
     onPress: (editor) => editor.toggleCode(),
     isActive: (s) => s.isCodeActive, isDisabled: (s) => !s.canToggleCode,
-  },
-  // link is handled separately below (opens a URL prompt, plus a
-  // conditional unlink button) -- not a plain toggle like the rest.
-  {
-    key: "undo", Icon: Undo2,
-    onPress: (editor) => editor.undo(),
-    isActive: () => false, isDisabled: (s) => !s.canUndo,
-  },
-  {
-    key: "redo", Icon: Redo2,
-    onPress: (editor) => editor.redo(),
-    isActive: () => false, isDisabled: (s) => !s.canRedo,
   },
 ];
 
@@ -1152,7 +1154,7 @@ export default function Compose() {
                 can't wrap at all), matching web's flex-wrap toolbar exactly
                 rather than a hand-split fixed two-row approximation. */}
             <View className="mt-3 border-b border-base-300 flex-row flex-wrap items-center">
-              {TOOLBAR_ACTIONS.slice(0, 11).map(({ key, Icon, onPress, isActive, isDisabled }) => {
+              {TOOLBAR_ACTIONS.map(({ key, Icon, onPress, isActive, isDisabled }) => {
                 const active = isActive(editorState);
                 const disabled = isDisabled(editorState);
                 return (
@@ -1169,9 +1171,10 @@ export default function Compose() {
                 );
               })}
 
-              {/* Link — opens a URL prompt (RN has no window.prompt), same
-                  as web's window.prompt-then-setLink flow. Unlink button
-                  appears only while a link is active, matching web. */}
+              {/* Link — comes last, matching web. Opens a URL prompt (RN
+                  has no window.prompt), same as web's window.prompt-then-
+                  setLink flow. Unlink button appears only while a link is
+                  active, matching web's conditional Link2Off button. */}
               <Pressable
                 onPress={() => { setLinkPromptValue(editorState.activeLink || ""); setLinkPromptOpen(true); }}
                 hitSlop={4}
@@ -1184,23 +1187,6 @@ export default function Compose() {
                   <Link2Off size={ICON_SIZE} color={solidInk(0.6)} strokeWidth={2} />
                 </Pressable>
               ) : null}
-
-              {TOOLBAR_ACTIONS.slice(11).map(({ key, Icon, onPress, isActive, isDisabled }) => {
-                const active = isActive(editorState);
-                const disabled = isDisabled(editorState);
-                return (
-                  <Pressable
-                    key={key}
-                    onPress={() => onPress(editor)}
-                    disabled={disabled}
-                    hitSlop={4}
-                    className="px-2.5 py-2"
-                    style={{ opacity: disabled ? 0.3 : 1 }}
-                  >
-                    <Icon size={ICON_SIZE} color={active ? "#5588b1" : solidInk(0.6)} strokeWidth={2} />
-                  </Pressable>
-                );
-              })}
             </View>
 
             {/* Link URL prompt — RN has no window.prompt equivalent that
