@@ -7,9 +7,28 @@ import { useColorScheme } from "nativewind";
 
 const LIGHT_RGB = "26,26,32"; // #1A1A20
 const DARK_RGB = "233,233,236"; // #E9E9EC
+const LIGHT_BG = [255, 255, 255]; // base-100 light
+const DARK_BG = [22, 23, 29]; // base-100 dark
 
 export function useInk() {
   const { colorScheme } = useColorScheme();
   const rgb = colorScheme === "dark" ? DARK_RGB : LIGHT_RGB;
   return (alpha = 1) => `rgba(${rgb},${alpha})`;
+}
+
+// useSolidInk — same ink color, pre-blended to an OPAQUE hex over base-100
+// instead of returned as an alpha-carrying rgba(). For props like Image's
+// tintColor, which (on at least Android) multiply the tint's own alpha
+// against the source image's per-pixel alpha rather than compositing it
+// like a View/Text color would -- an icon PNG's already-antialiased edges
+// tinted with, say, ink(0.6) compound into a much fainter render than a
+// solid 60%-equivalent gray, to the point of reading as nearly blank.
+export function useSolidInk() {
+  const { colorScheme } = useColorScheme();
+  const fg = (colorScheme === "dark" ? DARK_RGB : LIGHT_RGB).split(",").map(Number);
+  const bg = colorScheme === "dark" ? DARK_BG : LIGHT_BG;
+  return (alpha = 1) => {
+    const [r, g, b] = fg.map((f, i) => Math.round(alpha * f + (1 - alpha) * bg[i]));
+    return `rgb(${r},${g},${b})`;
+  };
 }

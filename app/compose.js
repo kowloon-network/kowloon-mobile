@@ -57,7 +57,7 @@ import { parseKowloonUrl } from "../src/lib/parseKowloonUrl.js";
 import { pmToMarkdown } from "../src/lib/pmToMarkdown.js";
 import { uploadFile } from "../src/lib/uploadFile.js";
 import { COMPOSABLE_TYPES, POST_TYPES } from "../src/lib/postTypes.js";
-import { useInk } from "../src/lib/useInk.js";
+import { useInk, useSolidInk } from "../src/lib/useInk.js";
 
 // Bytes for a picked asset — ImagePicker gives fileSize, DocumentPicker gives
 // size; fall back to a filesystem stat when neither is present.
@@ -155,6 +155,7 @@ export default function Compose() {
   const router = useRouter();
   const client = useActiveClient();
   const ink = useInk();
+  const solidInk = useSolidInk();
   // Repost / share-as-Link prefill: the action bar's Repost button navigates
   // here with `?type=Link&href=...&title=...&featuredImage=...` so the user
   // can edit before posting.
@@ -488,19 +489,24 @@ export default function Compose() {
     ],
     // Flat toolbar to match web's — no button-background boxes, no filled
     // active state (tint the icon itself instead, same as web's plain
-    // text-primary active color with no bg), and icons/spacing sized down
-    // to match web's density (tentap's defaults are a 28px icon in an 8px-
-    // padded button -- nearly double web's 15px icon in a tighter ~10px
-    // button, which read as noticeably coarser side by side). Deep-merged
-    // onto tentap's defaults, so unset fields (e.g. toolbarBody.height)
-    // keep their default.
+    // text-primary active color with no bg). Icon set to 15x15 -- measured
+    // web's actual rendered lucide icons via getBoundingClientRect and they
+    // are exactly 15x15 CSS px (tentap's own default is 28, nearly double).
+    // Tint uses useSolidInk, not ink()'s alpha-carrying rgba() -- Image's
+    // tintColor (at least on Android) multiplies the tint's own alpha
+    // against the source PNG's per-pixel alpha, so ink(0.6) on an already-
+    // antialiased icon edge compounded into a render faint enough to look
+    // blank, independent of the size problem. useSolidInk pre-blends the
+    // same ink color to an opaque equivalent over base-100 instead. Deep-
+    // merged onto tentap's defaults, so unset fields (e.g. toolbarBody.
+    // height) keep their default.
     theme: {
       toolbar: {
         toolbarBody: { backgroundColor: "transparent", borderTopWidth: 0, borderBottomWidth: 0 },
         toolbarButton: { backgroundColor: "transparent", paddingHorizontal: 6 },
         iconWrapper: { backgroundColor: "transparent", borderRadius: 0 },
         iconWrapperActive: { backgroundColor: "transparent" },
-        icon: { height: 18, width: 18, tintColor: ink(0.6) },
+        icon: { height: 15, width: 15, tintColor: solidInk(0.6) },
         iconActive: { tintColor: "#5588b1" },
       },
     },
