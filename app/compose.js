@@ -901,6 +901,11 @@ export default function Compose() {
         <View className="flex-row items-center justify-between px-4 py-3">
           <PostTypeDropdown value={type} onChange={setType} prefix="Add New" />
           <View className="flex-row items-center">
+            {/* TEMP DEBUG — remove once the sticky-bar keyboard issue is
+                root-caused. Shows live values so we don't have to guess. */}
+            <Text className="font-ui text-[9px] text-error mr-2">
+              KB:{String(isKeyboardUp)} in:{keyboardInset} pad:{bottomPad}
+            </Text>
             <Pressable
               onPress={() => router.back()}
               disabled={posting}
