@@ -65,10 +65,18 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) {
-    return null; // splash stays up
-  }
-
+  // NOT gated behind fontsLoaded -- this used to `return null` here (render
+  // nothing at all, no Stack) until fonts resolved, on the theory that the
+  // native splash screen (still up via preventAutoHideAsync) covers it either
+  // way. It does cover it visually, but withholding the Stack/navigator also
+  // delayed when Expo Router actually has anything mounted to route into. A
+  // share or deep link arriving during that window raced ahead of the
+  // navigator's mount and hit Expo Router's own hard assertion -- "Attempted
+  // to navigate before mounting the Root Layout component" -- a real crash,
+  // not a caught error, confirmed via an on-device Feedly share. Rendering
+  // the tree immediately (still hidden behind the native splash until
+  // hideAsync() below fires) gives the navigator somewhere to land from the
+  // very first frame.
   return (
     <ThemeProvider>
       <ShareIntentProvider options={{ resetOnBackground: false }}>
