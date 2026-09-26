@@ -20,8 +20,8 @@
 //   * A persisted content key dedupes Android's recents-replay across cold
 //     starts; it's cleared on a clean launch so re-sharing works later.
 
-import { useEffect, useRef } from "react";
-import { AppState } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { AppState, Platform, Text, View } from "react-native";
 import { router, useRootNavigationState } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { useSelector } from "react-redux";
@@ -73,6 +73,11 @@ function targetFor(shareIntent) {
   return null;
 }
 
+// TEMP DEBUG — remove once the Android "share does nothing" bug is
+// root-caused. handleShare's outer catch deliberately swallows every error
+// ("never let a share crash the app") which means a real thrown error would
+// look EXACTLY like "nothing happens" with zero visibility into why. This
+// surfaces what's actually happening on-screen instead of guessing blind.
 export function ShareIntentRouter() {
   const { hasShareIntent, shareIntent, resetShareIntent } =
     useShareIntentContext();
@@ -80,6 +85,7 @@ export function ShareIntentRouter() {
   const navReady = !!navState?.key;
   const accountsStatus = useSelector(selectAccountsStatus);
   const hydrated = accountsStatus === "ready" || accountsStatus === "error";
+  const [debug, setDebug] = useState(null);
 
   // Latest values behind a ref so the (stable) AppState listener never sees
   // stale data and doesn't need to re-subscribe.
@@ -94,6 +100,20 @@ export function ShareIntentRouter() {
   handleShare.current = () => {
     try {
       const d = dataRef.current || {};
+      setDebug({
+        step: "entry",
+        navReady: d.navReady,
+        hasShareIntent: d.hasShareIntent,
+        shareIntentSummary: d.shareIntent
+          ? {
+              webUrl: d.shareIntent.webUrl,
+              text: typeof d.shareIntent.text === "string" ? d.shareIntent.text.slice(0, 40) : d.shareIntent.text,
+              filesCount: Array.isArray(d.shareIntent.files) ? d.shareIntent.files.length : null,
+              mimeType: d.shareIntent.meta?.mimeType,
+            }
+          : null,
+        hydrated: d.hydrated,
+      });
       if (!d.navReady) return;
 
       // Clean launch (no share present): after a short settle delay, clear the
@@ -119,26 +139,35 @@ export function ShareIntentRouter() {
       }
 
       let key = "";
-      try { key = shareKey(d.shareIntent); } catch { key = ""; }
-      if (!key) { try { d.resetShareIntent?.(); } catch {} return; }
+      try { key = shareKey(d.shareIntent); } catch (e) { setDebug((p) => ({ ...p, error: `shareKey: ${e?.message}` })); key = ""; }
+      if (!key) {
+        setDebug((p) => ({ ...p, step: "no-key", note: "shareKey() returned empty — shareIntent shape not matched" }));
+        try { d.resetShareIntent?.(); } catch {} return;
+      }
 
       // Replay of an already-delivered share (Android recents re-fires the
       // launch intent). Drop it.
       if (key === lastConsumedRef.current) {
+        setDebug((p) => ({ ...p, step: "dropped-replay", key }));
         try { d.resetShareIntent?.(); } catch {}
         return;
       }
 
       // Wait for accounts to finish hydrating so we never route into a screen
       // that bounces to /welcome. The effect re-runs when hydration completes.
-      if (!d.hydrated) return;
+      if (!d.hydrated) { setDebug((p) => ({ ...p, step: "waiting-hydration" })); return; }
 
       // One delivery scheduled/in-flight at a time.
-      if (deliveringRef.current) return;
+      if (deliveringRef.current) { setDebug((p) => ({ ...p, step: "already-delivering" })); return; }
 
       let target = null;
-      try { target = targetFor(d.shareIntent); } catch { target = null; }
-      if (!target) { try { d.resetShareIntent?.(); } catch {} return; }
+      try { target = targetFor(d.shareIntent); } catch (e) { setDebug((p) => ({ ...p, error: `targetFor: ${e?.message}` })); target = null; }
+      if (!target) {
+        setDebug((p) => ({ ...p, step: "no-target", note: "targetFor() returned null" }));
+        try { d.resetShareIntent?.(); } catch {} return;
+      }
+
+      setDebug((p) => ({ ...p, step: "navigating", target }));
 
       // DEFER the navigate to the next tick. A synchronous navigate right as the
       // navigator mounts on a cold-start share silently no-ops (no throw), which
@@ -148,16 +177,18 @@ export function ShareIntentRouter() {
       deliveringRef.current = true;
       setTimeout(() => {
         let ok = false;
-        try { router.navigate(target); ok = true; } catch { ok = false; }
+        try { router.navigate(target); ok = true; } catch (e) { ok = false; setDebug((p) => ({ ...p, error: `navigate: ${e?.message}` })); }
         if (ok) {
+          setDebug((p) => ({ ...p, step: "delivered" }));
           lastConsumedRef.current = key;
           setLastConsumedShare(key);
           try { d.resetShareIntent?.(); } catch {}
         }
         deliveringRef.current = false;
       }, 0);
-    } catch {
-      /* never let a share crash the app */
+    } catch (e) {
+      // never let a share crash the app -- but DO surface what happened.
+      setDebug({ step: "outer-catch", error: e?.message || String(e) });
     }
   };
 
@@ -186,5 +217,19 @@ export function ShareIntentRouter() {
     return () => sub.remove();
   }, []);
 
-  return null;
+  // TEMP DEBUG overlay — Android only (Josh confirmed iOS sharing works).
+  // Floats at the top of whatever screen is showing so it survives
+  // navigation into the composer. Remove alongside the setDebug calls above
+  // once this is root-caused.
+  if (Platform.OS !== "android" || !debug) return null;
+  return (
+    <View
+      pointerEvents="none"
+      style={{ position: "absolute", top: 40, left: 8, right: 8, zIndex: 9999 }}
+    >
+      <Text style={{ fontSize: 9, color: "red", backgroundColor: "rgba(255,255,255,0.9)" }}>
+        SHARE DEBUG: {JSON.stringify(debug)}
+      </Text>
+    </View>
+  );
 }
