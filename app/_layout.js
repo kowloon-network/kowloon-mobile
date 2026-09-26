@@ -44,6 +44,51 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 // (now including the real error) still prints to the Metro terminal.
 LogBox.ignoreLogs(["React Native detected but AsyncStorage not available"]);
 
+// Root-level error boundary (Expo Router's file-based convention: exporting
+// ErrorBoundary from a layout file registers it for that segment -- here,
+// the whole app). Exists specifically for one confirmed, non-deterministic,
+// timing-based crash: a cold-start-via-share can hit Expo Router's own
+// "Attempted to navigate before mounting the Root Layout component" /
+// "action ... was not handled by any navigator" failures, thrown from deep
+// inside a passive effect (NOT catchable by any try/catch around the
+// triggering call -- confirmed across SIX different readiness-gating
+// attempts, each disproven on-device: navReady, routeNames inclusion,
+// navigationRef.isReady(), useSegments() resolving, sibling render order,
+// and combinations of these). What IS confirmed, repeatedly, on-device: a
+// retry from a settled state always succeeds immediately after. This isn't
+// a generic "swallow all errors" boundary -- it specifically matches this
+// error's own message and retries a bounded number of times with a short
+// delay; anything else, or exceeding the retry budget, shows the real error
+// so a genuinely different bug is never hidden.
+const NAV_RACE_PATTERNS = [
+  "before mounting the Root Layout",
+  "was not handled by any navigator",
+];
+let navRaceRetries = 0;
+const MAX_NAV_RACE_RETRIES = 5;
+
+export function ErrorBoundary({ error, retry }) {
+  const isNavRace = NAV_RACE_PATTERNS.some((p) => error?.message?.includes(p));
+  useEffect(() => {
+    if (!isNavRace || navRaceRetries >= MAX_NAV_RACE_RETRIES) return;
+    navRaceRetries += 1;
+    const t = setTimeout(retry, 200 * navRaceRetries);
+    return () => clearTimeout(t);
+  }, [isNavRace, retry]);
+
+  if (isNavRace && navRaceRetries <= MAX_NAV_RACE_RETRIES) {
+    // Same visual as the font-loading gate below -- a brief, expected beat,
+    // not an error state the user should ever really perceive.
+    return (
+      <View className="flex-1 items-center justify-center bg-base-100" />
+    );
+  }
+
+  // Anything else (or retries exhausted): a real error, not our nav race --
+  // fall through to Expo Router's own default error view by re-throwing.
+  throw error;
+}
+
 function HydrationBoot() {
   const dispatch = useDispatch();
   useEffect(() => {
