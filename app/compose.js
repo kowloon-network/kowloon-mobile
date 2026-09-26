@@ -18,6 +18,7 @@ import {
   Alert,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -568,7 +569,13 @@ export default function Compose() {
   // still covering most of the bar above that. A fixed estimate, not a
   // measured value -- there's no JS-visible signal for the strip's real
   // height, so this may need tuning per-keyboard-app.
-  const KEYBOARD_ACCESSORY_BUFFER = 56;
+  //
+  // Android-only: iOS's reported keyboard height already includes its own
+  // QuickType suggestion bar, so this buffer only added dead space below the
+  // sticky bar there (confirmed on-device -- "three line heights' worth" of
+  // empty space between the bar and the keyboard on iOS, while Android's own
+  // height was already correct).
+  const KEYBOARD_ACCESSORY_BUFFER = Platform.OS === "android" ? 56 : 0;
   const bottomPad = isKeyboardUp
     ? keyboardInset + KEYBOARD_ACCESSORY_BUFFER
     : insets.bottom;
