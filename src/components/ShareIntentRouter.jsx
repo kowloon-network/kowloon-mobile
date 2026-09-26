@@ -50,7 +50,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AppState, Platform, Text, View } from "react-native";
-import { useRootNavigationState, useRouter } from "expo-router";
+import { usePathname, useRootNavigationState, useRouter } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { useSelector } from "react-redux";
 
@@ -89,11 +89,15 @@ export function ShareIntentRouter() {
   // dispatch), is consistent with the singleton not correctly reaching the
   // real nested Stack at all -- not a timing or bubbling issue.
   const router = useRouter();
+  // TEMP DIAGNOSTIC -- the actual current path, re-read a moment after
+  // calling navigate() to confirm definitively whether it changed at all,
+  // rather than inferring success/failure from the absence of an error.
+  const pathname = usePathname();
 
   // Latest values behind a ref so the (stable) AppState listener never sees
   // stale data and doesn't need to re-subscribe.
   const dataRef = useRef(null);
-  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, hydrated, routeNames: navState?.routeNames, router };
+  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, hydrated, routeNames: navState?.routeNames, router, pathname };
 
   const lastConsumedRef = useRef(null); // persisted key of the last delivered share
   const deliveringRef = useRef(false); // a navigate is scheduled/in-flight
@@ -189,6 +193,7 @@ export function ShareIntentRouter() {
       // dataRef) -- NOT the bare `router` singleton import. See the
       // component-level comment on why: the singleton isn't tethered to
       // this component's actual place in the navigation tree.
+      const pathnameBefore = dataRef.current?.pathname;
       try { d.router.navigate(target); ok = true; } catch (e) { ok = false; setDebug((p) => ({ ...p, error: `navigate: ${e?.message}` })); }
       if (ok) {
         setDebug((p) => ({ ...p, step: "delivered" }));
@@ -197,6 +202,12 @@ export function ShareIntentRouter() {
         try { d.resetShareIntent?.(); } catch {}
       }
       deliveringRef.current = false;
+      // Re-check the actual path shortly after -- did it change at all?
+      setTimeout(() => {
+        const pathnameAfter = dataRef.current?.pathname;
+        console.log("[ShareIntentRouter] path check", { pathnameBefore, pathnameAfter, changed: pathnameBefore !== pathnameAfter });
+        setDebug((p) => ({ ...p, pathnameBefore, pathnameAfter }));
+      }, 500);
     } catch (e) {
       // never let a share crash the app -- but DO surface what happened.
       setDebug({ step: "outer-catch", error: e?.message || String(e) });
