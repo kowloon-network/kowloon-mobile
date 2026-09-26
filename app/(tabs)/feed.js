@@ -25,6 +25,7 @@ import { UserMenu } from "../../src/components/UserMenu.jsx";
 import { LeftDrawer } from "../../src/components/drawer/LeftDrawer.jsx";
 import { TabletColumns } from "../../src/components/layout/TabletColumns.jsx";
 import { ComposeFab } from "../../src/components/nav/ComposeFab.jsx";
+import { ShareIntentRouter } from "../../src/components/ShareIntentRouter.jsx";
 import { FeedDiscoverRow } from "../../src/components/discover/FeedDiscoverRow.jsx";
 import { Globe, Menu, Search } from "lucide-react-native";
 import { useFeed } from "../../src/lib/useFeed.js";
@@ -395,6 +396,19 @@ export default function Feed() {
         }
       />
       </TabletColumns>
+
+      {/* Renders nothing visible -- mounted here (matching ComposeFab's own
+          position a few lines up) because this is a genuine Tabs.Screen's
+          own content, not merely "somewhere inside the (tabs) layout".
+          Confirmed live that a sibling of <Tabs> itself (one level up, in
+          (tabs)/_layout.jsx) STILL produced the same state/paint desync as
+          every other position tried -- only a component actually rendered
+          as a Tabs.Screen's own content has a proven track record
+          (ComposeFab). All tabs stay mounted simultaneously (see this
+          layout's own top comment), so this keeps running regardless of
+          which tab is currently visible, the same as ComposeFab's own
+          effects would. */}
+      <ShareIntentRouter />
     </View>
   );
 }
