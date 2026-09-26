@@ -12,17 +12,26 @@
 //   files -> Media, added as attachments
 //
 // Reliability (a share is delivery-once, never dropped, never replayed):
-//   * We only consume/reset a share AFTER a confirmed-successful navigate — a
-//     failed nav is retried, not silently thrown away (the old code reset even
-//     when navigate threw, dropping the share).
-//   * Delivery waits for BOTH the navigator (root nav key) AND account
-//     hydration, so a share never lands on a screen that bounces to /welcome.
+//   * We only consume/reset a share AFTER a confirmed-successful navigate --
+//     gated on navigationRef.isReady() (via useRootNavigation(), NOT
+//     useRootNavigationState()) immediately before firing, polling with a
+//     bounded retry if it isn't ready yet. Two things this ISN'T gated on,
+//     confirmed wrong on-device: routeNames including "share"/"compose" --
+//     Expo Router lazily registers routes only once actually visited, so
+//     that's an unsatisfiable condition, not a "not ready yet" signal;  and
+//     <Redirect> -- it isn't actually exported from this version of
+//     expo-router (only from build/link/Redirect.js, not re-exported via
+//     build/link/index.js), and its own internal implementation is just
+//     router.replace() wrapped in useFocusEffect anyway, which doesn't apply
+//     to a global always-mounted component that isn't itself a routed screen.
+//   * Delivery waits for account hydration, so a share never lands on a
+//     screen that bounces to /welcome.
 //   * A persisted content key dedupes Android's recents-replay across cold
 //     starts; it's cleared on a clean launch so re-sharing works later.
 
 import { useEffect, useRef, useState } from "react";
 import { AppState, Platform, Text, View } from "react-native";
-import { router, useRootNavigation, useRootNavigationState } from "expo-router";
+import { router, useRootNavigation } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { useSelector } from "react-redux";
 
@@ -81,34 +90,20 @@ function targetFor(shareIntent) {
 export function ShareIntentRouter() {
   const { hasShareIntent, shareIntent, resetShareIntent } =
     useShareIntentContext();
-  const navState = useRootNavigationState();
-  const navReady = !!navState?.key;
-  // Root nav state existing (navReady) only means SOME navigator mounted --
-  // not that the SPECIFIC route we're about to navigate to is registered in
-  // its route table yet. Confirmed live: navReady was true, router.navigate()
-  // ran with no throw, and Expo Router still logged "action NAVIGATE... was
-  // not handled by any navigator -- do you have a route named 'share'?" (a
-  // dev-only warning, but the navigate silently no-ops in production too --
-  // this is likely the real cause of "nothing happens" on a cold-start
-  // share). routeNames is what we actually need to gate on.
-  const routeNames = navState?.routeNames || [];
-  // Still not enough on its own -- confirmed live a SECOND time: navReady
-  // true, routeNames included "share", router.navigate() still hit Expo
-  // Router's own hard assertion ("Attempted to navigate before mounting the
-  // Root Layout component"), which checks navigationRef.isReady() directly
-  // -- a live method call, not something reconstructable from state
-  // snapshots like navState. useRootNavigation() (NOT useRootNavigationState)
-  // exposes that same ref, so we can ask the exact same source of truth Expo
-  // Router's own internal check uses, at the exact moment before navigating.
-  const rootNavigation = useRootNavigation();
   const accountsStatus = useSelector(selectAccountsStatus);
   const hydrated = accountsStatus === "ready" || accountsStatus === "error";
   const [debug, setDebug] = useState(null);
+  // navigationRef.isReady() -- the exact live check Expo Router's own
+  // internal assertion uses -- is the ONLY reliable readiness signal found
+  // across four attempts. useRootNavigationState()?.key (some navigator
+  // exists) and routeNames inclusion (a specific route is registered) both
+  // proved unreliable or unsatisfiable; see the file-header comment.
+  const rootNavigation = useRootNavigation();
 
   // Latest values behind a ref so the (stable) AppState listener never sees
   // stale data and doesn't need to re-subscribe.
   const dataRef = useRef(null);
-  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, navReady, hydrated, routeNames, rootNavigation };
+  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, hydrated, rootNavigation };
 
   const lastConsumedRef = useRef(null); // persisted key of the last delivered share
   const deliveringRef = useRef(false); // a navigate is scheduled/in-flight
@@ -120,7 +115,6 @@ export function ShareIntentRouter() {
       const d = dataRef.current || {};
       setDebug({
         step: "entry",
-        navReady: d.navReady,
         hasShareIntent: d.hasShareIntent,
         shareIntentSummary: d.shareIntent
           ? {
@@ -132,7 +126,6 @@ export function ShareIntentRouter() {
           : null,
         hydrated: d.hydrated,
       });
-      if (!d.navReady) return;
 
       // Clean launch (no share present): after a short settle delay, clear the
       // dedupe marker so re-sharing the same URL later works. The delay guards
@@ -185,43 +178,30 @@ export function ShareIntentRouter() {
         try { d.resetShareIntent?.(); } catch {} return;
       }
 
-      // The route name Expo Router expects in routeNames -- "/share?url=..."
-      // -> "share", "/compose?fromShare=1" -> "compose".
-      const targetRouteName = target.split("?")[0].replace(/^\//, "");
-      setDebug((p) => ({ ...p, step: "navigating", target, targetRouteName }));
+      setDebug((p) => ({ ...p, step: "navigating", target }));
 
-      // DEFER the navigate, and don't fire until the target route actually
-      // shows up in the root navigator's own route table -- navReady alone
-      // (some navigator exists) isn't enough; confirmed live that Expo
-      // Router can report ready and still not have "share"/"compose"
-      // registered yet a tick later, silently dropping the navigate (a
-      // dev-only warning, but the same silent no-op happens in production).
-      // Bounded poll, not indefinite -- if the route genuinely never shows up
-      // (unexpected route naming, etc.) we still attempt once at the end
-      // rather than hang forever on a share we already committed to.
+      // Poll navigationRef.isReady() -- NOT routeNames, NOT navState?.key --
+      // and only fire router.replace() once it's genuinely true. Bounded,
+      // not indefinite: if it never becomes ready (shouldn't happen, but a
+      // share we already committed to shouldn't hang forever either), fire
+      // once anyway at the end as a last resort.
       deliveringRef.current = true;
       let attempts = 0;
-      const MAX_ATTEMPTS = 20; // ~2s at 100ms apiece
+      const MAX_ATTEMPTS = 30; // ~3s at 100ms apiece
       const tryNavigate = () => {
         const timedOut = attempts >= MAX_ATTEMPTS;
-        const routeReady =
-          timedOut ||
-          (dataRef.current?.routeNames?.includes(targetRouteName) &&
-            dataRef.current?.rootNavigation?.isReady?.() === true);
-        if (!routeReady) {
+        const ready = timedOut || dataRef.current?.rootNavigation?.isReady?.() === true;
+        if (!ready) {
           attempts += 1;
-          setDebug((p) => ({
-            ...p,
-            step: "waiting-for-route",
-            attempts,
-            routeNames: dataRef.current?.routeNames,
-            isReady: dataRef.current?.rootNavigation?.isReady?.(),
-          }));
+          setDebug((p) => ({ ...p, step: "waiting-isReady", attempts }));
           setTimeout(tryNavigate, 100);
           return;
         }
         let ok = false;
-        try { router.navigate(target); ok = true; } catch (e) { ok = false; setDebug((p) => ({ ...p, error: `navigate: ${e?.message}` })); }
+        // .replace(), not .navigate() -- matches Expo Router's own Redirect
+        // component's choice; a share landing the user on the chooser/
+        // composer shouldn't leave the pre-share screen behind in history.
+        try { router.replace(target); ok = true; } catch (e) { ok = false; setDebug((p) => ({ ...p, error: `replace: ${e?.message}` })); }
         if (ok) {
           setDebug((p) => ({ ...p, step: "delivered", attempts }));
           lastConsumedRef.current = key;
@@ -247,11 +227,11 @@ export function ShareIntentRouter() {
     return () => { cancelled = true; };
   }, []);
 
-  // Fires whenever the share context changes (warm share), the navigator becomes
-  // ready (cold start), or accounts finish hydrating.
+  // Fires whenever the share context changes (warm share) or accounts finish
+  // hydrating.
   useEffect(() => {
     handleShare.current?.();
-  }, [navReady, hasShareIntent, shareIntent, hydrated]);
+  }, [hasShareIntent, shareIntent, hydrated]);
 
   // Belt-and-suspenders: some devices deliver a warm share as the app returns
   // to the foreground without the context effect re-firing.
