@@ -83,6 +83,15 @@ export function ShareIntentRouter() {
     useShareIntentContext();
   const navState = useRootNavigationState();
   const navReady = !!navState?.key;
+  // Root nav state existing (navReady) only means SOME navigator mounted --
+  // not that the SPECIFIC route we're about to navigate to is registered in
+  // its route table yet. Confirmed live: navReady was true, router.navigate()
+  // ran with no throw, and Expo Router still logged "action NAVIGATE... was
+  // not handled by any navigator -- do you have a route named 'share'?" (a
+  // dev-only warning, but the navigate silently no-ops in production too --
+  // this is likely the real cause of "nothing happens" on a cold-start
+  // share). routeNames is what we actually need to gate on.
+  const routeNames = navState?.routeNames || [];
   const accountsStatus = useSelector(selectAccountsStatus);
   const hydrated = accountsStatus === "ready" || accountsStatus === "error";
   const [debug, setDebug] = useState(null);
@@ -90,7 +99,7 @@ export function ShareIntentRouter() {
   // Latest values behind a ref so the (stable) AppState listener never sees
   // stale data and doesn't need to re-subscribe.
   const dataRef = useRef(null);
-  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, navReady, hydrated };
+  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, navReady, hydrated, routeNames };
 
   const lastConsumedRef = useRef(null); // persisted key of the last delivered share
   const deliveringRef = useRef(false); // a navigate is scheduled/in-flight
@@ -167,25 +176,43 @@ export function ShareIntentRouter() {
         try { d.resetShareIntent?.(); } catch {} return;
       }
 
-      setDebug((p) => ({ ...p, step: "navigating", target }));
+      // The route name Expo Router expects in routeNames -- "/share?url=..."
+      // -> "share", "/compose?fromShare=1" -> "compose".
+      const targetRouteName = target.split("?")[0].replace(/^\//, "");
+      setDebug((p) => ({ ...p, step: "navigating", target, targetRouteName }));
 
-      // DEFER the navigate to the next tick. A synchronous navigate right as the
-      // navigator mounts on a cold-start share silently no-ops (no throw), which
-      // then consumed the share and did nothing — the regression. Consume/reset
-      // ONLY after the navigate actually runs; if it throws, clear the in-flight
-      // flag and let the next trigger retry (never reset a share we didn't route).
+      // DEFER the navigate, and don't fire until the target route actually
+      // shows up in the root navigator's own route table -- navReady alone
+      // (some navigator exists) isn't enough; confirmed live that Expo
+      // Router can report ready and still not have "share"/"compose"
+      // registered yet a tick later, silently dropping the navigate (a
+      // dev-only warning, but the same silent no-op happens in production).
+      // Bounded poll, not indefinite -- if the route genuinely never shows up
+      // (unexpected route naming, etc.) we still attempt once at the end
+      // rather than hang forever on a share we already committed to.
       deliveringRef.current = true;
-      setTimeout(() => {
+      let attempts = 0;
+      const MAX_ATTEMPTS = 20; // ~2s at 100ms apiece
+      const tryNavigate = () => {
+        const routeReady =
+          dataRef.current?.routeNames?.includes(targetRouteName) || attempts >= MAX_ATTEMPTS;
+        if (!routeReady) {
+          attempts += 1;
+          setDebug((p) => ({ ...p, step: "waiting-for-route", attempts, routeNames: dataRef.current?.routeNames }));
+          setTimeout(tryNavigate, 100);
+          return;
+        }
         let ok = false;
         try { router.navigate(target); ok = true; } catch (e) { ok = false; setDebug((p) => ({ ...p, error: `navigate: ${e?.message}` })); }
         if (ok) {
-          setDebug((p) => ({ ...p, step: "delivered" }));
+          setDebug((p) => ({ ...p, step: "delivered", attempts }));
           lastConsumedRef.current = key;
           setLastConsumedShare(key);
           try { d.resetShareIntent?.(); } catch {}
         }
         deliveringRef.current = false;
-      }, 0);
+      };
+      setTimeout(tryNavigate, 0);
     } catch (e) {
       // never let a share crash the app -- but DO surface what happened.
       setDebug({ step: "outer-catch", error: e?.message || String(e) });
