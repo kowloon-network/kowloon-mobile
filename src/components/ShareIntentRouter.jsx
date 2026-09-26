@@ -54,7 +54,7 @@
 //     starts; it's cleared on a clean launch so re-sharing works later.
 
 import { useEffect, useRef, useState } from "react";
-import { AppState, Platform, Text, View } from "react-native";
+import { AppState, InteractionManager, Platform, Text, View } from "react-native";
 import { usePathname, useRootNavigationState, useRouter } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { useSelector } from "react-redux";
@@ -199,29 +199,32 @@ export function ShareIntentRouter() {
       // component-level comment on why: the singleton isn't tethered to
       // this component's actual place in the navigation tree.
       const pathnameBefore = dataRef.current?.pathname;
-      // .push(), NOT .navigate() -- confirmed via ComposeFab (a plain
-      // button that reliably pushes "/compose", a root-level sibling of
-      // "(tabs)", from deep within a tab screen every day) that .push() is
-      // the one method with an actual working track record in this app's
-      // nested tabs+stack structure. .navigate() proved genuinely
-      // dangerous here: confirmed live that usePathname() correctly
-      // reported "/share" as current after calling it, yet the visible
-      // screen never changed from the feed -- a real state/paint desync,
-      // not something a try/catch or a readiness check could have caught.
-      try { d.router.push(target); ok = true; } catch (e) { ok = false; setDebug((p) => ({ ...p, error: `push: ${e?.message}` })); }
-      if (ok) {
-        setDebug((p) => ({ ...p, step: "delivered" }));
-        lastConsumedRef.current = key;
-        setLastConsumedShare(key);
-        try { d.resetShareIntent?.(); } catch {}
-      }
-      deliveringRef.current = false;
-      // Re-check the actual path shortly after -- did it change at all?
-      setTimeout(() => {
-        const pathnameAfter = dataRef.current?.pathname;
-        console.log("[ShareIntentRouter] path check", { pathnameBefore, pathnameAfter, changed: pathnameBefore !== pathnameAfter });
-        setDebug((p) => ({ ...p, pathnameBefore, pathnameAfter }));
-      }, 500);
+      // d.router.push() confirmed correctly UPDATES React Navigation's own
+      // real state (onStateChange fires, usePathname() reports "/share"),
+      // but the SCREEN never visually changes -- a pure native paint bug,
+      // not a routing bug: react-native-screens' native Fragment-based
+      // transitions on Android are known to sometimes not actually trigger
+      // when a push is dispatched from OUTSIDE a direct touch gesture (our
+      // case: a setTimeout callback reacting to a context change). The
+      // documented workaround is deferring the dispatch until the native
+      // side is idle via InteractionManager, giving it a real transaction
+      // window instead of trying to interrupt whatever it's mid-doing.
+      InteractionManager.runAfterInteractions(() => {
+        try { d.router.push(target); ok = true; } catch (e) { ok = false; setDebug((p) => ({ ...p, error: `push: ${e?.message}` })); }
+        if (ok) {
+          setDebug((p) => ({ ...p, step: "delivered" }));
+          lastConsumedRef.current = key;
+          setLastConsumedShare(key);
+          try { d.resetShareIntent?.(); } catch {}
+        }
+        deliveringRef.current = false;
+        // Re-check the actual path shortly after -- did it change at all?
+        setTimeout(() => {
+          const pathnameAfter = dataRef.current?.pathname;
+          console.log("[ShareIntentRouter] path check", { pathnameBefore, pathnameAfter, changed: pathnameBefore !== pathnameAfter });
+          setDebug((p) => ({ ...p, pathnameBefore, pathnameAfter }));
+        }, 500);
+      });
     } catch (e) {
       // never let a share crash the app -- but DO surface what happened.
       setDebug({ step: "outer-catch", error: e?.message || String(e) });
