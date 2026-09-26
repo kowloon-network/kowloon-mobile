@@ -1,11 +1,27 @@
-// ShareIntentRouter — routes an inbound OS share into the composer.
+// ShareIntentRouter — routes a WARM inbound OS share into the composer (the
+// app already running, on some other screen).
+//
+// The COLD-START case (a share LAUNCHES the app) is deliberately NOT handled
+// here anymore -- it's handled in app/index.js, the app's actual entry
+// screen, using the exact same <Redirect> mechanism that file already uses
+// for its normal /welcome-vs-/feed boot choice. That distinction exists
+// because of a real, confirmed bug: on Android, a share arrives with
+// hasShareIntent already true on the very first render, and navigating from
+// THIS component (a global sibling of <Stack/>, not a routed screen itself)
+// raced ahead of Expo Router's own navigator readiness -- confirmed on-device
+// across five separate readiness-gating attempts (navReady, routeNames
+// inclusion, navigationRef.isReady(), useSegments() resolving, and various
+// combinations), each replaced in turn as on-device testing disproved it.
+// expo-share-intent's own official Expo Router example handles this the same
+// way we now do -- redirecting from inside the app's real entry screen,
+// where a screen's own effect can only run once the Stack has already
+// resolved and rendered it. shareTarget.js holds the shared shareKey/
+// targetFor logic both paths use, so a given share payload resolves to the
+// exact same target regardless of which path handles it.
 //
 // Uses expo-share-intent's CONTEXT (fed by <ShareIntentProvider> in the root
-// layout), which is the supported way to receive the share on cold start via
-// the deeplink. Mounted globally inside the provider + navigation + Redux
-// context, so it catches cold launches (share opens the app) and warm shares
-// (app already running). Safe in Expo Go — the native module is optional there,
-// so hasShareIntent simply stays false.
+// layout). Safe in Expo Go — the native module is optional there, so
+// hasShareIntent simply stays false.
 //
 //   URL   -> /share?url=...   (chooser: Link post or bookmark — issue #82)
 //   text  -> Note, editor seeded with the text
@@ -13,17 +29,10 @@
 //
 // Reliability (a share is delivery-once, never dropped, never replayed):
 //   * We only consume/reset a share AFTER a confirmed-successful navigate --
-//     gated on navigationRef.isReady() (via useRootNavigation(), NOT
-//     useRootNavigationState()) immediately before firing, polling with a
-//     bounded retry if it isn't ready yet. Two things this ISN'T gated on,
-//     confirmed wrong on-device: routeNames including "share"/"compose" --
-//     Expo Router lazily registers routes only once actually visited, so
-//     that's an unsatisfiable condition, not a "not ready yet" signal;  and
-//     <Redirect> -- it isn't actually exported from this version of
-//     expo-router (only from build/link/Redirect.js, not re-exported via
-//     build/link/index.js), and its own internal implementation is just
-//     router.replace() wrapped in useFocusEffect anyway, which doesn't apply
-//     to a global always-mounted component that isn't itself a routed screen.
+//     gated on navigationRef.isReady() AND useSegments() resolving, polling
+//     with a bounded retry if not yet true. For a WARM share both are
+//     already true by the time this fires, so this is a safety net here,
+//     not the load-bearing fix it would have needed to be for cold start.
 //   * Delivery waits for account hydration, so a share never lands on a
 //     screen that bounces to /welcome.
 //   * A persisted content key dedupes Android's recents-replay across cold
@@ -35,52 +44,13 @@ import { router, useRootNavigation, useSegments } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { useSelector } from "react-redux";
 
-import { setPendingShare } from "../lib/pendingShare.js";
 import {
   getLastConsumedShare,
   setLastConsumedShare,
   clearLastConsumedShare,
 } from "../lib/shareDedupe.js";
+import { shareKey, targetFor } from "../lib/shareTarget.js";
 import { selectAccountsStatus } from "../state/accountsSlice.js";
-
-const URL_RE = /https?:\/\/\S+/i;
-
-// A stable content key so a NEW share is always handled but the SAME one isn't
-// re-handled.
-function shareKey(si) {
-  if (!si) return "";
-  if (si.webUrl) return `url:${si.webUrl}`;
-  if (typeof si.text === "string" && si.text) return `text:${si.text}`;
-  if (Array.isArray(si.files) && si.files.length)
-    return `files:${si.files.map((f) => f.path).join("|")}`;
-  return "";
-}
-
-// Build the navigation target from a share payload; stashes text/files for the
-// composer to consume, returns the route to navigate to (or null).
-function targetFor(shareIntent) {
-  const textMatch =
-    typeof shareIntent.text === "string" ? shareIntent.text.match(URL_RE) : null;
-  const url = shareIntent.webUrl || (textMatch ? textMatch[0] : null);
-  // A shared URL goes to the chooser (Link post vs. bookmark).
-  if (url) return `/share?url=${encodeURIComponent(url)}`;
-  if (Array.isArray(shareIntent.files) && shareIntent.files.length) {
-    setPendingShare({
-      kind: "files",
-      files: shareIntent.files.map((f) => ({
-        uri: f.path,
-        name: f.fileName,
-        mimeType: f.mimeType,
-      })),
-    });
-    return "/compose?fromShare=1";
-  }
-  if (shareIntent.text) {
-    setPendingShare({ kind: "text", text: shareIntent.text });
-    return "/compose?fromShare=1";
-  }
-  return null;
-}
 
 // TEMP DEBUG — remove once the Android "share does nothing" bug is
 // root-caused. handleShare's outer catch deliberately swallows every error
