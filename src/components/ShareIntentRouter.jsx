@@ -28,18 +28,23 @@
 //   files -> Media, added as attachments
 //
 // Reliability (a share is delivery-once, never dropped, never replayed):
-//   * Navigates via useRouter()'s returned instance, NOT the bare `router`
-//     singleton import -- confirmed live that BOTH .replace() and
-//     .navigate() failed identically ("not handled by any navigator") from
-//     the singleton, even from a fully healthy, fully-rendered warm screen,
-//     ruling out timing, readiness, and parent-bubbling theories alike (a
-//     direct URL load of the same route resolved it fine, via Expo Router's
-//     separate linking/initial-state mechanism -- proving the ROUTE itself
-//     was never the problem). app/index.js's <Redirect> -- which has always
-//     worked -- uses useRouter() internally too (confirmed by reading its
-//     source); the singleton dispatches against a global nav ref that isn't
-//     tethered to any specific screen's actual place in the tree the way a
-//     hook resolved through this component's own render is.
+//   * Navigates via useRouter()'s returned instance (not the bare `router`
+//     singleton import -- see below), calling .push() (not .replace() or
+//     .navigate()). All three of these were confirmed wrong in turn, each
+//     with a DIFFERENT failure signature -- not the same bug wearing
+//     different masks:
+//       - bare singleton + .replace()/.navigate(): "not handled by any
+//         navigator", from a fully healthy warm screen, ruling out timing/
+//         readiness/bubbling (a direct URL load of the same route worked
+//         fine, proving the route itself was never broken).
+//       - useRouter() + .navigate(): no error at all, usePathname()
+//         correctly reported "/share" as current -- yet the visible screen
+//         never changed from the feed. A genuine state/paint desync.
+//       - useRouter() + .push(): matches ComposeFab, a plain button that
+//         reliably pushes "/compose" (also root-level, also from deep
+//         within a tab screen) every day in normal use -- the one method
+//         in this codebase with an actual proven track record for exactly
+//         this navigation shape.
 //   * No readiness polling -- confirmed on-device that navigationRef.
 //     isReady() can stay false indefinitely even from an obviously healthy,
 //     fully-rendered screen, so it was never a usable gate regardless.
@@ -194,7 +199,16 @@ export function ShareIntentRouter() {
       // component-level comment on why: the singleton isn't tethered to
       // this component's actual place in the navigation tree.
       const pathnameBefore = dataRef.current?.pathname;
-      try { d.router.navigate(target); ok = true; } catch (e) { ok = false; setDebug((p) => ({ ...p, error: `navigate: ${e?.message}` })); }
+      // .push(), NOT .navigate() -- confirmed via ComposeFab (a plain
+      // button that reliably pushes "/compose", a root-level sibling of
+      // "(tabs)", from deep within a tab screen every day) that .push() is
+      // the one method with an actual working track record in this app's
+      // nested tabs+stack structure. .navigate() proved genuinely
+      // dangerous here: confirmed live that usePathname() correctly
+      // reported "/share" as current after calling it, yet the visible
+      // screen never changed from the feed -- a real state/paint desync,
+      // not something a try/catch or a readiness check could have caught.
+      try { d.router.push(target); ok = true; } catch (e) { ok = false; setDebug((p) => ({ ...p, error: `push: ${e?.message}` })); }
       if (ok) {
         setDebug((p) => ({ ...p, step: "delivered" }));
         lastConsumedRef.current = key;
