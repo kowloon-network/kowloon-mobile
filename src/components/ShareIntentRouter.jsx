@@ -31,7 +31,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AppState, Platform, Text, View } from "react-native";
-import { router, useRootNavigation } from "expo-router";
+import { router, useRootNavigation, useSegments } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { useSelector } from "react-redux";
 
@@ -93,17 +93,33 @@ export function ShareIntentRouter() {
   const accountsStatus = useSelector(selectAccountsStatus);
   const hydrated = accountsStatus === "ready" || accountsStatus === "error";
   const [debug, setDebug] = useState(null);
-  // navigationRef.isReady() -- the exact live check Expo Router's own
-  // internal assertion uses -- is the ONLY reliable readiness signal found
-  // across four attempts. useRootNavigationState()?.key (some navigator
-  // exists) and routeNames inclusion (a specific route is registered) both
-  // proved unreliable or unsatisfiable; see the file-header comment.
+  // navigationRef.isReady() avoids the hard CRASH (confirmed: this attempt's
+  // isReady()-only gate no longer throws "Attempted to navigate before
+  // mounting"), but isReady() alone doesn't mean "share" is dispatchable --
+  // confirmed live, a FOURTH time: isReady() true, router.replace() ran with
+  // no throw, still got "action REPLACE... was not handled by any navigator
+  // -- do you have a route named 'share'?".
+  //
+  // expo-share-intent's own official Expo Router example (example/expo-
+  // router in their repo) does this exact redirect from INSIDE the app's
+  // actual home screen component, in a plain useEffect -- which only ever
+  // runs once the Stack has already resolved and rendered a real initial
+  // screen. Our ShareIntentRouter is a global SIBLING of <Stack/>, not a
+  // screen within it, so it structurally can't get that same guarantee from
+  // isReady() alone (isReady() just means the ref exists and IS mounted --
+  // not that the Stack has finished resolving its OWN default initial
+  // route yet). useSegments() returning a non-empty array is the closest
+  // available proxy for "a real screen has already resolved and rendered",
+  // matching what the working reference implementation gets for free by
+  // living inside one.
   const rootNavigation = useRootNavigation();
+  const segments = useSegments();
+  const screenResolved = Array.isArray(segments) && segments.length > 0;
 
   // Latest values behind a ref so the (stable) AppState listener never sees
   // stale data and doesn't need to re-subscribe.
   const dataRef = useRef(null);
-  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, hydrated, rootNavigation };
+  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, hydrated, rootNavigation, screenResolved };
 
   const lastConsumedRef = useRef(null); // persisted key of the last delivered share
   const deliveringRef = useRef(false); // a navigate is scheduled/in-flight
@@ -180,20 +196,30 @@ export function ShareIntentRouter() {
 
       setDebug((p) => ({ ...p, step: "navigating", target }));
 
-      // Poll navigationRef.isReady() -- NOT routeNames, NOT navState?.key --
-      // and only fire router.replace() once it's genuinely true. Bounded,
-      // not indefinite: if it never becomes ready (shouldn't happen, but a
-      // share we already committed to shouldn't hang forever either), fire
-      // once anyway at the end as a last resort.
+      // Poll BOTH navigationRef.isReady() (avoids the hard crash) AND
+      // useSegments().length > 0 (confirms the Stack has actually resolved
+      // and rendered its own initial screen -- isReady() alone doesn't mean
+      // that, confirmed live). Bounded, not indefinite: if it never
+      // resolves (shouldn't happen, but a share we already committed to
+      // shouldn't hang forever either), fire once anyway at the end as a
+      // last resort.
       deliveringRef.current = true;
       let attempts = 0;
       const MAX_ATTEMPTS = 30; // ~3s at 100ms apiece
       const tryNavigate = () => {
         const timedOut = attempts >= MAX_ATTEMPTS;
-        const ready = timedOut || dataRef.current?.rootNavigation?.isReady?.() === true;
+        const ready =
+          timedOut ||
+          (dataRef.current?.rootNavigation?.isReady?.() === true && dataRef.current?.screenResolved === true);
         if (!ready) {
           attempts += 1;
-          setDebug((p) => ({ ...p, step: "waiting-isReady", attempts }));
+          setDebug((p) => ({
+            ...p,
+            step: "waiting-isReady",
+            attempts,
+            isReady: dataRef.current?.rootNavigation?.isReady?.(),
+            screenResolved: dataRef.current?.screenResolved,
+          }));
           setTimeout(tryNavigate, 100);
           return;
         }
