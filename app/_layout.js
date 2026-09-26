@@ -55,11 +55,22 @@ LogBox.ignoreLogs(["React Native detected but AsyncStorage not available"]);
 // attempts, each disproven on-device: navReady, routeNames inclusion,
 // navigationRef.isReady(), useSegments() resolving, sibling render order,
 // and combinations of these). What IS confirmed, repeatedly, on-device: a
-// retry from a settled state always succeeds immediately after. This isn't
-// a generic "swallow all errors" boundary -- it specifically matches this
-// error's own message and retries a bounded number of times with a short
-// delay; anything else, or exceeding the retry budget, shows the real error
-// so a genuinely different bug is never hidden.
+// retry from a settled/WARM state always succeeds immediately after.
+//
+// retry() (React re-rendering this same broken segment) was NOT enough on
+// its own -- confirmed on-device, it left a blank white screen, meaning
+// whatever's actually broken lives inside ExpoRoot/NavigationContainer's own
+// internals (above/outside what a route-level boundary's retry re-renders),
+// not something merely re-rendering our own component tree can fix.
+// DevSettings.reload() forces a genuinely fresh JS boot instead -- without
+// restarting the native Activity/process, so the OS-delivered share Intent
+// is still there for expo-share-intent to read again on the new boot, but
+// hopefully landing in the warm-equivalent state that's always worked.
+// DEV/DEV-CLIENT ONLY -- DevSettings.reload() is a no-op in a stripped
+// production build; a real production-safe equivalent needs expo-updates
+// (not currently installed) via Updates.reloadAsync(), a separate follow-up.
+import { DevSettings } from "react-native";
+
 const NAV_RACE_PATTERNS = [
   "before mounting the Root Layout",
   "was not handled by any navigator",
@@ -67,14 +78,14 @@ const NAV_RACE_PATTERNS = [
 let navRaceRetries = 0;
 const MAX_NAV_RACE_RETRIES = 5;
 
-export function ErrorBoundary({ error, retry }) {
+export function ErrorBoundary({ error }) {
   const isNavRace = NAV_RACE_PATTERNS.some((p) => error?.message?.includes(p));
   useEffect(() => {
     if (!isNavRace || navRaceRetries >= MAX_NAV_RACE_RETRIES) return;
     navRaceRetries += 1;
-    const t = setTimeout(retry, 200 * navRaceRetries);
+    const t = setTimeout(() => DevSettings.reload(), 200 * navRaceRetries);
     return () => clearTimeout(t);
-  }, [isNavRace, retry]);
+  }, [isNavRace]);
 
   if (isNavRace && navRaceRetries <= MAX_NAV_RACE_RETRIES) {
     // Same visual as the font-loading gate below -- a brief, expected beat,
