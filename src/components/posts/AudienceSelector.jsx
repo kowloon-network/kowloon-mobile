@@ -17,6 +17,11 @@ import { Sheet } from "../ui/Sheet.jsx";
 
 // `allowPrivate` opts in to a self-only ("Only Me") tier, addressed to the
 // user's own ID. Off by default — bookmarks enable it; the post composer does not.
+// `compact` shrinks the trigger's own padding to just its text line-height --
+// for the composer's sticky audience/image/location bar, where the outer bar
+// already carries its own (already-reduced) padding and this control's
+// normal py-2.5 was stacking on top of it, making the whole bar much taller
+// than the icon buttons next to it.
 export function AudienceSelector({
   value,
   onChange,
@@ -24,6 +29,7 @@ export function AudienceSelector({
   constrainTo = null,
   label = "To",
   title = "Post audience",
+  compact = false,
 }) {
   const account = useSelector(selectActiveAccount);
   const client = useActiveClient();
@@ -117,7 +123,7 @@ export function AudienceSelector({
           refreshGroups?.(); // pick up newly-joined groups on open
           setOpen(true);
         }}
-        className="flex-row items-center   px-3 py-2.5"
+        className={`flex-row items-center ${compact ? "px-1 py-0" : "px-3 py-2.5"}`}
         android_ripple={{ color: "rgba(0,0,0,0.06)" }}
       >
         <Text className="font-ui uppercase tracking-[0.12em] text-[11px] text-base-content/50 mr-2">

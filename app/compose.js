@@ -1377,6 +1377,7 @@ export default function Compose() {
                     setCanReply(v);
                     setCanReact(v);
                   }}
+                  compact
                 />
               </View>
               {type === "Article" || type === "Event" ? (
