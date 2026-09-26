@@ -45,7 +45,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AppState, Platform, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useRootNavigationState } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { useSelector } from "react-redux";
 
@@ -68,11 +68,18 @@ export function ShareIntentRouter() {
   const accountsStatus = useSelector(selectAccountsStatus);
   const hydrated = accountsStatus === "ready" || accountsStatus === "error";
   const [debug, setDebug] = useState(null);
+  // TEMP DIAGNOSTIC ONLY -- not a gate, just logged alongside the failure so
+  // we can see the actual routeNames Expo Router is working with at the
+  // exact moment "not handled by any navigator" fires, since neither
+  // .replace() nor .navigate() finding "share" rules out the bubbling
+  // theory and points at "share" maybe not being a registered route at all
+  // in the currently mounted tree.
+  const navState = useRootNavigationState();
 
   // Latest values behind a ref so the (stable) AppState listener never sees
   // stale data and doesn't need to re-subscribe.
   const dataRef = useRef(null);
-  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, hydrated };
+  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, hydrated, routeNames: navState?.routeNames };
 
   const lastConsumedRef = useRef(null); // persisted key of the last delivered share
   const deliveringRef = useRef(false); // a navigate is scheduled/in-flight
@@ -147,7 +154,7 @@ export function ShareIntentRouter() {
         try { d.resetShareIntent?.(); } catch {} return;
       }
 
-      setDebug((p) => ({ ...p, step: "navigating", target }));
+      setDebug((p) => ({ ...p, step: "navigating", target, routeNames: dataRef.current?.routeNames }));
 
       // No readiness polling anymore -- confirmed on-device that
       // navigationRef.isReady() can stay false indefinitely even from an
