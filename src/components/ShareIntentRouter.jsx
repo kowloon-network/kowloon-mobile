@@ -28,17 +28,16 @@
 //   files -> Media, added as attachments
 //
 // Reliability (a share is delivery-once, never dropped, never replayed):
-//   * We only consume/reset a share AFTER a confirmed-successful navigate --
-//     gated on navigationRef.isReady(), polling with a bounded retry. If it
-//     never becomes ready within that bound, we give up SILENTLY (no forced
-//     navigate) rather than fire a call we can't confirm is safe -- a share
-//     that doesn't deliver instantly is far better than one that crashes
-//     the app. Confirmed on-device: a bounded "fire anyway" fallback here
-//     used to crash even from an obviously healthy, fully-rendered screen,
-//     because the OTHER signal it was ANDed with (useSegments() resolving)
-//     turned out to never reliably become true at all in this app -- not
-//     "eventually", genuinely never, so the fallback always ended up being
-//     the thing that fired, and it wasn't actually safe.
+//   * Navigates via router.navigate() (not .replace() -- confirmed
+//     .replace() only resolves within the NEAREST navigator and doesn't
+//     bubble up through parents, so it failed to find "/share" whenever the
+//     user's current screen was nested inside the (tabs) group, which is
+//     "/share"'s sibling at the ROOT stack level). No readiness polling --
+//     confirmed on-device that navigationRef.isReady() can stay false
+//     indefinitely even from an obviously healthy, fully-rendered screen, so
+//     it was never a usable gate. Also not needed: cold start is handled
+//     entirely by app/index.js now, so this component only ever fires for a
+//     share arriving while the app is already fully mounted and running.
 //   * Delivery waits for account hydration, so a share never lands on a
 //     screen that bounces to /welcome.
 //   * A persisted content key dedupes Android's recents-replay across cold
@@ -46,7 +45,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AppState, Platform, Text, View } from "react-native";
-import { router, useRootNavigation } from "expo-router";
+import { router } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { useSelector } from "react-redux";
 
@@ -69,17 +68,11 @@ export function ShareIntentRouter() {
   const accountsStatus = useSelector(selectAccountsStatus);
   const hydrated = accountsStatus === "ready" || accountsStatus === "error";
   const [debug, setDebug] = useState(null);
-  // navigationRef.isReady() -- the live check Expo Router's own internal
-  // assertion uses. Not a perfect guarantee (isReady() true doesn't always
-  // mean a specific route name is dispatchable), but it's the best signal
-  // available from outside the screen tree, and -- critically -- NEVER
-  // forced past when it's false (see tryNavigate below for why).
-  const rootNavigation = useRootNavigation();
 
   // Latest values behind a ref so the (stable) AppState listener never sees
   // stale data and doesn't need to re-subscribe.
   const dataRef = useRef(null);
-  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, hydrated, rootNavigation };
+  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, hydrated };
 
   const lastConsumedRef = useRef(null); // persisted key of the last delivered share
   const deliveringRef = useRef(false); // a navigate is scheduled/in-flight
@@ -156,55 +149,36 @@ export function ShareIntentRouter() {
 
       setDebug((p) => ({ ...p, step: "navigating", target }));
 
-      // Poll navigationRef.isReady(). Deliberately NO forced-fire fallback
-      // anymore -- confirmed on-device (screenshots showing a fully
-      // rendered, working feed) that useSegments() can stay empty forever
-      // even from an obviously healthy, fully-functional screen, meaning a
-      // bounded "give up and fire anyway" fallback would ALWAYS eventually
-      // fire regardless of real readiness, and this exact call is the one
-      // that crashes when it isn't genuinely ready. A share that can't be
-      // delivered promptly is far better than a crash: give up silently
-      // (leave hasShareIntent/shareIntent untouched) and let the next
-      // trigger -- another context change, or the AppState "active"
-      // listener below -- retry from scratch.
+      // No readiness polling anymore -- confirmed on-device that
+      // navigationRef.isReady() can stay false indefinitely even from an
+      // obviously healthy, fully-rendered screen, so it was never a usable
+      // gate here (previously: 30 attempts, ~3s, isReady never true, on a
+      // warm share fired from an already-fully-loaded feed). It's also not
+      // NEEDED here anymore: cold start is handled entirely by
+      // app/index.js now, so by definition this component only ever fires
+      // for a share arriving while the app is ALREADY fully mounted and
+      // running -- there's nothing left to wait for.
       deliveringRef.current = true;
-      let attempts = 0;
-      const MAX_ATTEMPTS = 30; // ~3s at 100ms apiece
-      const tryNavigate = () => {
-        const isReady = dataRef.current?.rootNavigation?.isReady?.() === true;
-        if (!isReady) {
-          attempts += 1;
-          if (attempts > MAX_ATTEMPTS) {
-            setDebug((p) => ({ ...p, step: "gave-up", attempts }));
-            deliveringRef.current = false;
-            return;
-          }
-          setDebug((p) => ({ ...p, step: "waiting-isReady", attempts, isReady }));
-          setTimeout(tryNavigate, 100);
-          return;
-        }
-        let ok = false;
-        // .navigate(), NOT .replace() -- confirmed the real cause of "not
-        // handled by any navigator" for a WARM share: .replace() only
-        // resolves within the NEAREST navigator, it doesn't bubble up
-        // through parents the way .navigate() does. The user's current
-        // screen when a warm share arrives is almost always nested inside
-        // the (tabs) group; "/share" is a sibling of that whole group at
-        // the ROOT stack level, so .replace() tried (and failed) to find it
-        // within the tabs navigator's own scope. app/index.js's <Redirect>
-        // (which always uses .replace() internally) never hit this because
-        // "index" itself is a direct ROOT-level sibling of "/share", not
-        // nested inside tabs -- no bubbling needed there.
-        try { router.navigate(target); ok = true; } catch (e) { ok = false; setDebug((p) => ({ ...p, error: `navigate: ${e?.message}` })); }
-        if (ok) {
-          setDebug((p) => ({ ...p, step: "delivered", attempts }));
-          lastConsumedRef.current = key;
-          setLastConsumedShare(key);
-          try { d.resetShareIntent?.(); } catch {}
-        }
-        deliveringRef.current = false;
-      };
-      setTimeout(tryNavigate, 0);
+      let ok = false;
+      // .navigate(), NOT .replace() -- confirmed the real cause of "not
+      // handled by any navigator" for a warm share: .replace() only
+      // resolves within the NEAREST navigator, it doesn't bubble up
+      // through parents the way .navigate() does. The user's current
+      // screen when a warm share arrives is almost always nested inside
+      // the (tabs) group; "/share" is a sibling of that whole group at
+      // the ROOT stack level, so .replace() tried (and failed) to find it
+      // within the tabs navigator's own scope. app/index.js's <Redirect>
+      // (which always uses .replace() internally) never hit this because
+      // "index" itself is a direct ROOT-level sibling of "/share", not
+      // nested inside tabs -- no bubbling needed there.
+      try { router.navigate(target); ok = true; } catch (e) { ok = false; setDebug((p) => ({ ...p, error: `navigate: ${e?.message}` })); }
+      if (ok) {
+        setDebug((p) => ({ ...p, step: "delivered" }));
+        lastConsumedRef.current = key;
+        setLastConsumedShare(key);
+        try { d.resetShareIntent?.(); } catch {}
+      }
+      deliveringRef.current = false;
     } catch (e) {
       // never let a share crash the app -- but DO surface what happened.
       setDebug({ step: "outer-catch", error: e?.message || String(e) });
