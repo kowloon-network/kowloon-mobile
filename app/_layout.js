@@ -91,7 +91,18 @@ export default function RootLayout() {
                       <AudioPlayerProvider>
                         <StatusBar style={isDark ? "light" : "dark"} />
                         <HydrationBoot />
-                        <ShareIntentRouter />
+                        {/* Stack (and app/index.js nested inside it) MUST come
+                            before ShareIntentRouter in this sibling order --
+                            React fires an entire sibling subtree's passive
+                            effects before moving to the next sibling, so with
+                            ShareIntentRouter first (as it was), its effect ran
+                            BEFORE index.js's own effect ever got a chance to
+                            consume a cold-start share first, and it kept
+                            racing/crashing on the exact scenario index.js was
+                            supposed to own. Confirmed on-device: index.js's
+                            fix alone didn't help until this ordering flipped
+                            too -- ShareIntentRouter's debug overlay was still
+                            the one firing. */}
                         <Stack
                           screenOptions={{
                             headerShown: false,
@@ -100,6 +111,7 @@ export default function RootLayout() {
                             },
                           }}
                         />
+                        <ShareIntentRouter />
                         <ToastStack />
                       </AudioPlayerProvider>
                     </PushProvider>
