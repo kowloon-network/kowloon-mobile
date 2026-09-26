@@ -28,16 +28,21 @@
 //   files -> Media, added as attachments
 //
 // Reliability (a share is delivery-once, never dropped, never replayed):
-//   * Navigates via router.navigate() (not .replace() -- confirmed
-//     .replace() only resolves within the NEAREST navigator and doesn't
-//     bubble up through parents, so it failed to find "/share" whenever the
-//     user's current screen was nested inside the (tabs) group, which is
-//     "/share"'s sibling at the ROOT stack level). No readiness polling --
-//     confirmed on-device that navigationRef.isReady() can stay false
-//     indefinitely even from an obviously healthy, fully-rendered screen, so
-//     it was never a usable gate. Also not needed: cold start is handled
-//     entirely by app/index.js now, so this component only ever fires for a
-//     share arriving while the app is already fully mounted and running.
+//   * Navigates via useRouter()'s returned instance, NOT the bare `router`
+//     singleton import -- confirmed live that BOTH .replace() and
+//     .navigate() failed identically ("not handled by any navigator") from
+//     the singleton, even from a fully healthy, fully-rendered warm screen,
+//     ruling out timing, readiness, and parent-bubbling theories alike (a
+//     direct URL load of the same route resolved it fine, via Expo Router's
+//     separate linking/initial-state mechanism -- proving the ROUTE itself
+//     was never the problem). app/index.js's <Redirect> -- which has always
+//     worked -- uses useRouter() internally too (confirmed by reading its
+//     source); the singleton dispatches against a global nav ref that isn't
+//     tethered to any specific screen's actual place in the tree the way a
+//     hook resolved through this component's own render is.
+//   * No readiness polling -- confirmed on-device that navigationRef.
+//     isReady() can stay false indefinitely even from an obviously healthy,
+//     fully-rendered screen, so it was never a usable gate regardless.
 //   * Delivery waits for account hydration, so a share never lands on a
 //     screen that bounces to /welcome.
 //   * A persisted content key dedupes Android's recents-replay across cold
@@ -45,7 +50,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AppState, Platform, Text, View } from "react-native";
-import { router, useRootNavigationState } from "expo-router";
+import { useRootNavigationState, useRouter } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { useSelector } from "react-redux";
 
@@ -70,16 +75,25 @@ export function ShareIntentRouter() {
   const [debug, setDebug] = useState(null);
   // TEMP DIAGNOSTIC ONLY -- not a gate, just logged alongside the failure so
   // we can see the actual routeNames Expo Router is working with at the
-  // exact moment "not handled by any navigator" fires, since neither
-  // .replace() nor .navigate() finding "share" rules out the bubbling
-  // theory and points at "share" maybe not being a registered route at all
-  // in the currently mounted tree.
+  // exact moment "not handled by any navigator" fires.
   const navState = useRootNavigationState();
+  // useRouter() (a HOOK, resolved via this component's own position in the
+  // React tree) instead of the bare `router` singleton import. This is
+  // almost certainly the real fix: app/index.js's <Redirect> -- which has
+  // worked reliably this whole time -- uses useRouter() internally too
+  // (confirmed by reading its source). The bare singleton dispatches
+  // against a global nav ref that isn't tethered to any specific screen's
+  // place in the tree; neither .replace() nor .navigate() ever finding
+  // "share" from THIS component, while a direct URL load resolves it fine
+  // (Expo Router's separate linking/initial-state mechanism, not runtime
+  // dispatch), is consistent with the singleton not correctly reaching the
+  // real nested Stack at all -- not a timing or bubbling issue.
+  const router = useRouter();
 
   // Latest values behind a ref so the (stable) AppState listener never sees
   // stale data and doesn't need to re-subscribe.
   const dataRef = useRef(null);
-  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, hydrated, routeNames: navState?.routeNames };
+  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, hydrated, routeNames: navState?.routeNames, router };
 
   const lastConsumedRef = useRef(null); // persisted key of the last delivered share
   const deliveringRef = useRef(false); // a navigate is scheduled/in-flight
@@ -171,18 +185,11 @@ export function ShareIntentRouter() {
       // running -- there's nothing left to wait for.
       deliveringRef.current = true;
       let ok = false;
-      // .navigate(), NOT .replace() -- confirmed the real cause of "not
-      // handled by any navigator" for a warm share: .replace() only
-      // resolves within the NEAREST navigator, it doesn't bubble up
-      // through parents the way .navigate() does. The user's current
-      // screen when a warm share arrives is almost always nested inside
-      // the (tabs) group; "/share" is a sibling of that whole group at
-      // the ROOT stack level, so .replace() tried (and failed) to find it
-      // within the tabs navigator's own scope. app/index.js's <Redirect>
-      // (which always uses .replace() internally) never hit this because
-      // "index" itself is a direct ROOT-level sibling of "/share", not
-      // nested inside tabs -- no bubbling needed there.
-      try { router.navigate(target); ok = true; } catch (e) { ok = false; setDebug((p) => ({ ...p, error: `navigate: ${e?.message}` })); }
+      // d.router (useRouter() hook instance, captured fresh every render via
+      // dataRef) -- NOT the bare `router` singleton import. See the
+      // component-level comment on why: the singleton isn't tethered to
+      // this component's actual place in the navigation tree.
+      try { d.router.navigate(target); ok = true; } catch (e) { ok = false; setDebug((p) => ({ ...p, error: `navigate: ${e?.message}` })); }
       if (ok) {
         setDebug((p) => ({ ...p, step: "delivered" }));
         lastConsumedRef.current = key;
