@@ -154,6 +154,10 @@ export function ShareIntentRouter() {
         try { d.resetShareIntent?.(); } catch {} return;
       }
 
+      // Plain console.log (not just setDebug) -- shows up directly in the
+      // Metro terminal, so this can be checked without relaying a
+      // screenshot each time.
+      console.log("[ShareIntentRouter] navigating", { target, routeNames: dataRef.current?.routeNames });
       setDebug((p) => ({ ...p, step: "navigating", target, routeNames: dataRef.current?.routeNames }));
 
       // No readiness polling anymore -- confirmed on-device that
