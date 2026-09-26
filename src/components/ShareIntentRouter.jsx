@@ -22,7 +22,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AppState, Platform, Text, View } from "react-native";
-import { router, useRootNavigationState } from "expo-router";
+import { router, useRootNavigation, useRootNavigationState } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { useSelector } from "react-redux";
 
@@ -92,6 +92,15 @@ export function ShareIntentRouter() {
   // this is likely the real cause of "nothing happens" on a cold-start
   // share). routeNames is what we actually need to gate on.
   const routeNames = navState?.routeNames || [];
+  // Still not enough on its own -- confirmed live a SECOND time: navReady
+  // true, routeNames included "share", router.navigate() still hit Expo
+  // Router's own hard assertion ("Attempted to navigate before mounting the
+  // Root Layout component"), which checks navigationRef.isReady() directly
+  // -- a live method call, not something reconstructable from state
+  // snapshots like navState. useRootNavigation() (NOT useRootNavigationState)
+  // exposes that same ref, so we can ask the exact same source of truth Expo
+  // Router's own internal check uses, at the exact moment before navigating.
+  const rootNavigation = useRootNavigation();
   const accountsStatus = useSelector(selectAccountsStatus);
   const hydrated = accountsStatus === "ready" || accountsStatus === "error";
   const [debug, setDebug] = useState(null);
@@ -99,7 +108,7 @@ export function ShareIntentRouter() {
   // Latest values behind a ref so the (stable) AppState listener never sees
   // stale data and doesn't need to re-subscribe.
   const dataRef = useRef(null);
-  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, navReady, hydrated, routeNames };
+  dataRef.current = { hasShareIntent, shareIntent, resetShareIntent, navReady, hydrated, routeNames, rootNavigation };
 
   const lastConsumedRef = useRef(null); // persisted key of the last delivered share
   const deliveringRef = useRef(false); // a navigate is scheduled/in-flight
@@ -194,11 +203,20 @@ export function ShareIntentRouter() {
       let attempts = 0;
       const MAX_ATTEMPTS = 20; // ~2s at 100ms apiece
       const tryNavigate = () => {
+        const timedOut = attempts >= MAX_ATTEMPTS;
         const routeReady =
-          dataRef.current?.routeNames?.includes(targetRouteName) || attempts >= MAX_ATTEMPTS;
+          timedOut ||
+          (dataRef.current?.routeNames?.includes(targetRouteName) &&
+            dataRef.current?.rootNavigation?.isReady?.() === true);
         if (!routeReady) {
           attempts += 1;
-          setDebug((p) => ({ ...p, step: "waiting-for-route", attempts, routeNames: dataRef.current?.routeNames }));
+          setDebug((p) => ({
+            ...p,
+            step: "waiting-for-route",
+            attempts,
+            routeNames: dataRef.current?.routeNames,
+            isReady: dataRef.current?.rootNavigation?.isReady?.(),
+          }));
           setTimeout(tryNavigate, 100);
           return;
         }
