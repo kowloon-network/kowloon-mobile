@@ -23,7 +23,6 @@ import { FONT_ASSETS } from "../src/lib/typography.js";
 import { TypographyProvider } from "../src/lib/TypographyContext.js";
 import { UnreadCountProvider } from "../src/lib/UnreadCountContext.js";
 import { PushProvider } from "../src/lib/PushProvider.jsx";
-import { ShareIntentRouter } from "../src/components/ShareIntentRouter.jsx";
 import { ImageViewerProvider } from "../src/components/ImageViewerProvider.jsx";
 import { AudioPlayerProvider } from "../src/lib/AudioPlayerProvider.jsx";
 import ToastStack from "../src/components/ui/ToastStack.jsx";
@@ -147,18 +146,17 @@ export default function RootLayout() {
                       <AudioPlayerProvider>
                         <StatusBar style={isDark ? "light" : "dark"} />
                         <HydrationBoot />
-                        {/* Stack (and app/index.js nested inside it) MUST come
-                            before ShareIntentRouter in this sibling order --
-                            React fires an entire sibling subtree's passive
-                            effects before moving to the next sibling, so with
-                            ShareIntentRouter first (as it was), its effect ran
-                            BEFORE index.js's own effect ever got a chance to
-                            consume a cold-start share first, and it kept
-                            racing/crashing on the exact scenario index.js was
-                            supposed to own. Confirmed on-device: index.js's
-                            fix alone didn't help until this ordering flipped
-                            too -- ShareIntentRouter's debug overlay was still
-                            the one firing. */}
+                        {/* ShareIntentRouter (warm shares) moved to
+                            app/(tabs)/_layout.jsx -- confirmed live that
+                            mounting it here, a SIBLING of <Stack/> rather
+                            than a descendant of any of its actual screens,
+                            resolves useRouter() against the wrong navigator
+                            context (usePathname() updated correctly, but the
+                            visible screen never did, across every dispatch
+                            method tried). See that file's comment for the
+                            full story. Cold-start shares are handled
+                            entirely by app/index.js, a real Stack screen,
+                            which was never affected by this. */}
                         <Stack
                           screenOptions={{
                             headerShown: false,
@@ -167,7 +165,6 @@ export default function RootLayout() {
                             },
                           }}
                         />
-                        <ShareIntentRouter />
                         <ToastStack />
                       </AudioPlayerProvider>
                     </PushProvider>
