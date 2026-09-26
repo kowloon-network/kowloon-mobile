@@ -184,10 +184,18 @@ export function ShareIntentRouter() {
           return;
         }
         let ok = false;
-        // .replace(), not .navigate() -- matches Expo Router's own Redirect
-        // component's choice; a share landing the user on the chooser/
-        // composer shouldn't leave the pre-share screen behind in history.
-        try { router.replace(target); ok = true; } catch (e) { ok = false; setDebug((p) => ({ ...p, error: `replace: ${e?.message}` })); }
+        // .navigate(), NOT .replace() -- confirmed the real cause of "not
+        // handled by any navigator" for a WARM share: .replace() only
+        // resolves within the NEAREST navigator, it doesn't bubble up
+        // through parents the way .navigate() does. The user's current
+        // screen when a warm share arrives is almost always nested inside
+        // the (tabs) group; "/share" is a sibling of that whole group at
+        // the ROOT stack level, so .replace() tried (and failed) to find it
+        // within the tabs navigator's own scope. app/index.js's <Redirect>
+        // (which always uses .replace() internally) never hit this because
+        // "index" itself is a direct ROOT-level sibling of "/share", not
+        // nested inside tabs -- no bubbling needed there.
+        try { router.navigate(target); ok = true; } catch (e) { ok = false; setDebug((p) => ({ ...p, error: `navigate: ${e?.message}` })); }
         if (ok) {
           setDebug((p) => ({ ...p, step: "delivered", attempts }));
           lastConsumedRef.current = key;
