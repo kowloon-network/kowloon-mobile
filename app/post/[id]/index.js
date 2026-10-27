@@ -304,8 +304,8 @@ export default function PostDetail() {
               <PostBody post={post} typography={typography} />
             </View>
 
-            {/* Reactions summary (read-only) */}
-            <ReactsBar reactCounts={post.reactCounts} />
+            {/* Reactions summary — tap any emoji to see who reacted (#63) */}
+            <ReactsBar reactCounts={post.reactCounts} postId={post.id} />
 
             {/* Action bar — reply / react / repost / share / bookmark / more */}
             <View className="px-5 pt-5">
