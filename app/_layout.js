@@ -18,7 +18,8 @@ import { Provider, useDispatch } from "react-redux";
 import { ShareIntentProvider } from "expo-share-intent";
 
 import { store } from "../src/state/store.js";
-import { hydrateAccounts } from "../src/state/accountsSlice.js";
+import { hydrateAccounts, signOutAccount } from "../src/state/accountsSlice.js";
+import { setUnauthorizedHandler } from "../src/lib/client.js";
 import { FONT_ASSETS } from "../src/lib/typography.js";
 import { TypographyProvider } from "../src/lib/TypographyContext.js";
 import { UnreadCountProvider } from "../src/lib/UnreadCountContext.js";
@@ -34,6 +35,14 @@ import { Sentry, reportNearMiss } from "../src/lib/sentry.js";
 // Hold the native splash screen until fonts are ready — no flash of fallback
 // text. preventAutoHideAsync can reject during fast-refresh; ignore that.
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// A revoked/deleted-account session (401 on a request that carried a token --
+// see the server-side account-deletion work) should self-clean the same way
+// a manual sign-out does, not throw an unhandled error into whatever screen
+// was mid-request. Wired once at module scope -- every ensureClient() call
+// happens from a screen, which only ever renders after this module has
+// loaded, so the handler is always set before any request can fire.
+setUnauthorizedHandler((accountId) => store.dispatch(signOutAccount(accountId)));
 
 // This one is NOT purely cosmetic: it fires when @kowloon/client's storage
 // adapter falls back to MemoryStorage because the AsyncStorage native module

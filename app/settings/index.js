@@ -4,7 +4,7 @@
 
 import { useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Avatar } from "../../src/components/posts/Avatar.jsx";
@@ -130,6 +130,21 @@ export default function Settings() {
     router.replace("/feed");
   }
 
+  function confirmDeleteAccount() {
+    Alert.alert(
+      "Delete your account?",
+      "This permanently removes your account and your content. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Continue",
+          style: "destructive",
+          onPress: () => router.push("/settings/delete-account"),
+        },
+      ]
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-base-100" edges={["left", "right", "bottom"]}>
       <AppHeader back title="Settings" />
@@ -183,6 +198,18 @@ export default function Settings() {
             hint="Change the password for this account"
             onPress={() => router.push("/settings/password")}
           />
+          <Pressable
+            onPress={confirmDeleteAccount}
+            className="  bg-base-100 px-4 py-4 mb-3 flex-row items-center justify-between"
+            android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+          >
+            <View className="flex-1">
+              <Text className="font-ui text-lg text-error">Delete Account</Text>
+              <Text className="font-ui text-xs text-base-content/40 mt-0.5">
+                Permanently remove this account and its content
+              </Text>
+            </View>
+          </Pressable>
         </View>
 
         {/* ── Appearance (app-level, per device) ── */}

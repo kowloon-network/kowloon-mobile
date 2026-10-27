@@ -12,6 +12,18 @@ import { registerKowloonHost } from "./parseKowloonUrl.js";
 const clients = new Map();
 const serversSynced = new Set(); // account ids we've pulled the known-servers list for
 
+// Fired when ANY account's client gets a 401 on a request that carried a
+// token -- a revoked/deleted-account session (see #84's companion account-
+// deletion work: the server now actually invalidates tokens). Set once from
+// app/_layout.js, which has the Redux store; kept as a plain setter here
+// instead of importing the store/accountsSlice directly, to avoid a circular
+// import with accountsSlice.js (which already imports forgetClient from this
+// file).
+let unauthorizedHandler = null;
+export function setUnauthorizedHandler(fn) {
+  unauthorizedHandler = fn;
+}
+
 // Learn the network's OTHER known Kowloon servers (from our server's
 // FederatedServer cache) so remote page links — whose slugs aren't self-
 // identifying — route in-app instead of the browser. Fire-and-forget, once per
@@ -46,6 +58,7 @@ export function ensureClient(account) {
     client = new KowloonClient({
       baseUrl: account.baseUrl,
       storage: makeAccountStorage(account.id),
+      onUnauthorized: () => unauthorizedHandler?.(account.id),
     });
     clients.set(account.id, client);
   }
