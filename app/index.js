@@ -30,6 +30,7 @@ import {
 } from "../src/state/accountsSlice.js";
 import { shareKey, targetFor } from "../src/lib/shareTarget.js";
 import { setLastConsumedShare } from "../src/lib/shareDedupe.js";
+import { useNavigatorReady } from "../src/lib/navigatorReady.js";
 
 export default function Index() {
   const status = useSelector(selectAccountsStatus);
@@ -37,6 +38,14 @@ export default function Index() {
   const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntentContext();
   const [shareTarget, setShareTarget] = useState(null);
   const handledRef = useRef(false);
+  // This is the very first screen the Stack ever renders, so it's the most
+  // likely place to race the root navigator's own readiness -- see
+  // navigatorReady.js and ShareIntentRouter.jsx's header comment for the
+  // full story of why an unready dispatch is an uncaught crash no try/catch
+  // can reach. <Redirect>'s own dispatch isn't ours to gate directly, so
+  // withhold rendering it at all until the navigator genuinely reports
+  // ready.
+  const navigatorReady = useNavigatorReady();
 
   // targetFor() has its own side effects (stashing text/files for the
   // composer via setPendingShare) -- keep it in an effect, not computed
@@ -53,7 +62,7 @@ export default function Index() {
     try { resetShareIntent?.(); } catch {}
   }, [hasShareIntent, shareIntent, resetShareIntent]);
 
-  if (status === "idle" || status === "loading") {
+  if (status === "idle" || status === "loading" || !navigatorReady) {
     return (
       <View className="flex-1 items-center justify-center bg-base-100">
         <ActivityIndicator />

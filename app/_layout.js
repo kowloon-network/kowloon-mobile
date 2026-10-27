@@ -74,13 +74,31 @@ const NAV_RACE_PATTERNS = [
   "before mounting the Root Layout",
   "was not handled by any navigator",
 ];
+// A genuine root-cause fix is still pending (routingQueue's flush is a
+// separate, decoupled effect from wherever router.push()/replace() was
+// actually called -- see ShareIntentRouter.jsx's header comment -- so no
+// try/catch at any call site can ever catch this); this stays the real
+// safety net. navRaceRetries/lastNavRaceAt are module-level and survive
+// Fast Refresh, resetting only on a true Metro restart -- so a LIFETIME cap
+// silently exhausts across a long testing session: every recovered crash
+// (invisible to Josh by design -- a brief blank beat, then normal render)
+// spends the same budget as a visible one, so by the Nth occurrence in one
+// session it can run out and re-throw for real, looking like a regression
+// when it's actually just the counter running dry. Counting only retries
+// within a rolling window, instead of ever, fixes that.
 let navRaceRetries = 0;
+let lastNavRaceAt = 0;
 const MAX_NAV_RACE_RETRIES = 5;
+const NAV_RACE_WINDOW_MS = 10000;
 
 export function ErrorBoundary({ error }) {
   const isNavRace = NAV_RACE_PATTERNS.some((p) => error?.message?.includes(p));
   useEffect(() => {
-    if (!isNavRace || navRaceRetries >= MAX_NAV_RACE_RETRIES) return;
+    if (!isNavRace) return;
+    const now = Date.now();
+    if (now - lastNavRaceAt > NAV_RACE_WINDOW_MS) navRaceRetries = 0;
+    lastNavRaceAt = now;
+    if (navRaceRetries >= MAX_NAV_RACE_RETRIES) return;
     navRaceRetries += 1;
     const t = setTimeout(() => DevSettings.reload(), 200 * navRaceRetries);
     return () => clearTimeout(t);
