@@ -323,6 +323,7 @@ export default function Compose() {
     audienceFromParam ? audience : prefs.defaultcanReact || audience
   );
   const [posting, setPosting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({}); // att.uri → percent (#69)
   const [error, setError] = useState(null);
 
   // This server's upload ceiling, from its public `maxUploadSize` setting (MB).
@@ -813,6 +814,7 @@ export default function Compose() {
     }
 
     setPosting(true);
+    setUploadProgress({});
     try {
       // Upload Article's featured image first (if any). The returned file ID
       // is what gets stored on the post — the server presigns a serve URL
@@ -855,6 +857,8 @@ export default function Compose() {
                 summary: a.alt?.trim() || undefined,
                 to: audience,
                 generateThumbnail: a.kind === "image",
+                onProgress: ({ percent }) =>
+                  setUploadProgress((prev) => ({ ...prev, [a.uri]: percent })),
               })
             )
           );
@@ -1145,6 +1149,16 @@ export default function Compose() {
                               <Text className="font-ui text-[9px] tracking-wider text-white">
                                 ALT?
                               </Text>
+                            </View>
+                          ) : null}
+                          {posting &&
+                          uploadProgress[att.uri] != null &&
+                          uploadProgress[att.uri] < 100 ? (
+                            <View className="absolute inset-x-0 bottom-0 h-1 bg-black/30">
+                              <View
+                                className="h-full bg-primary"
+                                style={{ width: `${uploadProgress[att.uri]}%` }}
+                              />
                             </View>
                           ) : null}
                         </Pressable>

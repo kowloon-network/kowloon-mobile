@@ -22,6 +22,7 @@ export async function uploadFile(
     parentObject,
     generateThumbnail,
     thumbnailSizes,
+    onProgress,
   }
 ) {
   if (!client) throw new Error("uploadFile: no client");
@@ -51,5 +52,6 @@ export async function uploadFile(
     parentObject,
     generateThumbnail,
     thumbnailSizes,
+    onProgress,
   });
 }
