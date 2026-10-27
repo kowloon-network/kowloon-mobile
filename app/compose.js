@@ -243,6 +243,38 @@ async function makeVideoThumb(uri) {
   }
 }
 
+// On-device video transcode (#80) needs the react-native-compressor native
+// module. Guard the require the same way as VideoThumbnails above, so a dev
+// client that wasn't rebuilt with it just skips straight to the original file
+// -- which then falls back to the existing oversize-reject Alert below.
+let VideoCompressor;
+try {
+  VideoCompressor = require("react-native-compressor").Video;
+} catch {
+  VideoCompressor = null;
+}
+
+// Downscale to 1080p long edge at a bitrate that lands a typical clip
+// comfortably under the server's upload ceiling (a 74s 4K clip at ~383MB
+// compresses to roughly 30MB at these settings). Falls back to the original
+// asset untouched on any failure -- keepUnderLimit's existing Alert is the
+// safety net for anything still oversized afterward.
+async function compressVideoAsset(asset, onProgress) {
+  if (!VideoCompressor?.compress) return asset;
+  try {
+    const compressedUri = await VideoCompressor.compress(
+      asset.uri,
+      { compressionMethod: "manual", maxSize: 1080, bitrate: 3000000 },
+      (progress) => onProgress?.(Math.round(progress * 100))
+    );
+    if (!compressedUri) return asset;
+    return { ...asset, uri: compressedUri, fileSize: undefined, size: undefined };
+  } catch (e) {
+    console.warn("Video compression failed, uploading original:", e?.message);
+    return asset;
+  }
+}
+
 export default function Compose() {
   const router = useRouter();
   const client = useActiveClient();
@@ -324,6 +356,7 @@ export default function Compose() {
   );
   const [posting, setPosting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({}); // att.uri → percent (#69)
+  const [compressProgress, setCompressProgress] = useState({}); // att.pickId → percent (#80)
   const [error, setError] = useState(null);
 
   // This server's upload ceiling, from its public `maxUploadSize` setting (MB).
@@ -439,6 +472,26 @@ export default function Compose() {
     }
   }
 
+  function buildAttachment(a, pickId) {
+    const isVideo = a.type === "video";
+    return {
+      pickId,
+      uri: a.uri,
+      name:
+        a.fileName ||
+        `${isVideo ? "video" : "image"}-${Date.now()}.${
+          isVideo ? "mp4" : "jpg"
+        }`,
+      title: "",
+      alt: "",
+      mimeType: a.mimeType || (isVideo ? "video/mp4" : "image/jpeg"),
+      kind: isVideo ? "video" : "image",
+      // Images use their own uri as the thumbnail; video thumbs are
+      // generated below (native module) and patched in.
+      thumbUri: isVideo ? null : a.uri,
+    };
+  }
+
   async function pickPhotosOrVideos() {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -450,40 +503,71 @@ export default function Compose() {
         quality: 1,
       });
       if (result.canceled || !result.assets?.length) return;
-      const assets = await keepUnderLimit(result.assets);
-      if (!assets.length) return;
-      const next = assets.map((a) => {
-        const isVideo = a.type === "video";
-        return {
-          uri: a.uri,
-          name:
-            a.fileName ||
-            `${isVideo ? "video" : "image"}-${Date.now()}.${
-              isVideo ? "mp4" : "jpg"
-            }`,
-          title: "",
-          alt: "",
-          mimeType: a.mimeType || (isVideo ? "video/mp4" : "image/jpeg"),
-          kind: isVideo ? "video" : "image",
-          // Images use their own uri as the thumbnail; video thumbs are
-          // generated below (native module) and patched in.
-          thumbUri: isVideo ? null : a.uri,
-        };
-      });
-      setAttachments((prev) => [...prev, ...next]);
-      for (const item of next) {
-        if (item.kind === "video") {
-          makeVideoThumb(item.uri).then((thumb) => {
-            if (!thumb) return;
-            setAttachments((prev) =>
-              prev.map((att) =>
-                att.uri === item.uri && att.kind === "video"
-                  ? { ...att, thumbUri: thumb }
-                  : att
-              )
-            );
-          });
+
+      const picked = result.assets.map((a) => ({
+        asset: a,
+        pickId: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        isVideo: a.type === "video",
+      }));
+      const images = picked.filter((p) => !p.isVideo);
+      const videos = picked.filter((p) => p.isVideo);
+
+      // Images: unchanged -- size-check up front.
+      if (images.length) {
+        const accepted = await keepUnderLimit(images.map((p) => p.asset));
+        const acceptedPicks = images.filter((p) => accepted.includes(p.asset));
+        if (acceptedPicks.length) {
+          setAttachments((prev) => [
+            ...prev,
+            ...acceptedPicks.map((p) => buildAttachment(p.asset, p.pickId)),
+          ]);
         }
+      }
+      if (!videos.length) return;
+
+      // Videos (#80): show the tile right away in a "compressing" state --
+      // transcoding a long clip takes seconds -- then run the on-device
+      // compress BEFORE the size check, so a large 4K pick gets a chance to
+      // shrink under the limit instead of being rejected outright. A thumb
+      // is generated from the original file immediately, independent of how
+      // long compression takes.
+      setAttachments((prev) => [
+        ...prev,
+        ...videos.map((p) => ({ ...buildAttachment(p.asset, p.pickId), compressing: true })),
+      ]);
+      for (const p of videos) {
+        makeVideoThumb(p.asset.uri).then((thumb) => {
+          if (!thumb) return;
+          setAttachments((prev) =>
+            prev.map((att) =>
+              att.pickId === p.pickId ? { ...att, thumbUri: thumb } : att
+            )
+          );
+        });
+      }
+      for (const p of videos) {
+        const compressed = await compressVideoAsset(p.asset, (percent) =>
+          setCompressProgress((prev) => ({ ...prev, [p.pickId]: percent }))
+        );
+        setCompressProgress((prev) => {
+          const next = { ...prev };
+          delete next[p.pickId];
+          return next;
+        });
+        const [accepted] = await keepUnderLimit([compressed]);
+        if (!accepted) {
+          // Still over the limit after compression (or compression wasn't
+          // available) -- keepUnderLimit already alerted; drop the tile.
+          setAttachments((prev) => prev.filter((att) => att.pickId !== p.pickId));
+          continue;
+        }
+        setAttachments((prev) =>
+          prev.map((att) =>
+            att.pickId === p.pickId
+              ? { ...att, uri: accepted.uri, compressing: false }
+              : att
+          )
+        );
       }
     } catch (e) {
       setError(pickerErrorMessage(e, "Couldn't open the photo library."));
@@ -1114,7 +1198,7 @@ export default function Compose() {
                 ) : (
                   <View className="flex-row flex-wrap -mx-1">
                     {attachments.map((att, i) => (
-                      <View key={`${att.uri}-${i}`} className="w-1/2 p-1">
+                      <View key={att.pickId || `${att.uri}-${i}`} className="w-1/2 p-1">
                         <Pressable
                           onPress={() => setEditingIndex(i)}
                           android_ripple={{ color: "rgba(0,0,0,0.06)" }}
@@ -1159,6 +1243,18 @@ export default function Compose() {
                                 className="h-full bg-primary"
                                 style={{ width: `${uploadProgress[att.uri]}%` }}
                               />
+                            </View>
+                          ) : null}
+                          {/* #80: on-device compression runs while the tile is
+                              already showing (picking a long clip takes seconds). */}
+                          {att.compressing ? (
+                            <View className="absolute inset-0 bg-black/45 items-center justify-center">
+                              <ActivityIndicator color="#fff" />
+                              <Text className="font-ui uppercase tracking-[0.14em] text-[10px] text-white mt-1">
+                                {compressProgress[att.pickId] != null
+                                  ? `Compressing ${compressProgress[att.pickId]}%`
+                                  : "Compressing…"}
+                              </Text>
                             </View>
                           ) : null}
                         </Pressable>

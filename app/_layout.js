@@ -29,6 +29,7 @@ import ToastStack from "../src/components/ui/ToastStack.jsx";
 import { ThemeProvider, THEME_VARS } from "../src/lib/ThemeContext.jsx";
 import { useColorScheme } from "nativewind";
 import { LogBox, View } from "react-native";
+import { Sentry, reportNearMiss } from "../src/lib/sentry.js";
 
 // Hold the native splash screen until fonts are ready — no flash of fallback
 // text. preventAutoHideAsync can reject during fast-refresh; ignore that.
@@ -98,6 +99,9 @@ export function ErrorBoundary({ error }) {
     const now = Date.now();
     if (now - lastNavRaceAt > NAV_RACE_WINDOW_MS) navRaceRetries = 0;
     lastNavRaceAt = now;
+    // Recovered, not a real crash -- but a near-miss worth seeing trends on
+    // (#84), since this is the exact bug class that motivated adding Sentry.
+    reportNearMiss("nav-race", error?.message, { retryCount: navRaceRetries + 1 });
     if (navRaceRetries >= MAX_NAV_RACE_RETRIES) return;
     navRaceRetries += 1;
     const t = setTimeout(() => DevSettings.reload(), 200 * navRaceRetries);
@@ -113,7 +117,9 @@ export function ErrorBoundary({ error }) {
   }
 
   // Anything else (or retries exhausted): a real error, not our nav race --
-  // fall through to Expo Router's own default error view by re-throwing.
+  // report it, then fall through to Expo Router's own default error view by
+  // re-throwing.
+  Sentry.captureException(error);
   throw error;
 }
 
@@ -125,7 +131,7 @@ function HydrationBoot() {
   return null;
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(FONT_ASSETS);
   const { colorScheme: scheme } = useColorScheme();
   const isDark = scheme === "dark";
@@ -197,3 +203,8 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
+
+// Sentry.wrap is a safe no-op passthrough when the SDK isn't initialized
+// (no DSN) -- see src/lib/sentry.js. When it is, this adds the root-level
+// native crash handler plus touch/gesture breadcrumbs.
+export default Sentry.wrap(RootLayout);
