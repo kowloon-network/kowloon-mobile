@@ -30,9 +30,20 @@ export function extractCircleId(res) {
 
 // The picker options for the circle form. `serverDomain` is "<domain>",
 // `ownerId` is the current user's Kowloon ID (used for the self-only tier).
-export function circleVisibilityOptions(serverDomain, serverName, ownerId) {
+// systemCircleName: pass the circle's name ("Blocked"/"Muted") when editing
+// one of those System circles, so the "Public" option can explain what
+// public actually means there -- it's not a display setting, it's letting
+// anyone (including the people/servers on the list) browse who you've
+// blocked/muted. Everything else about visibility works identically.
+export function circleVisibilityOptions(serverDomain, serverName, ownerId, systemCircleName) {
+  const publicSummary =
+    systemCircleName === "Blocked"
+      ? "Anyone, including the people and servers on this list, can browse who you've blocked. Some people do this on purpose as a community-defense signal."
+      : systemCircleName === "Muted"
+        ? "Anyone can browse who you've muted."
+        : "Anyone on the network.";
   return [
-    { value: "@public", label: "Public", summary: "Anyone on the network." },
+    { value: "@public", label: "Public", summary: publicSummary },
     {
       value: serverDomain ? `@${serverDomain}` : "@public",
       label: "Server",

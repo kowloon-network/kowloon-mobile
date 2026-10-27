@@ -86,7 +86,8 @@ export function CircleForm({
   const visibilityOptions = circleVisibilityOptions(
     account?.server,
     account?.serverName,
-    account?.id
+    account?.id,
+    initialValues.type === "System" ? initialValues.name : null
   );
   const memberIds = new Set(members.map((m) => m.id));
 
