@@ -51,7 +51,6 @@
       "expo-video",
       "expo-audio",
       "react-native-compressor",
-      "@sentry/react-native/expo",
       [
         "expo-notifications",
         {
