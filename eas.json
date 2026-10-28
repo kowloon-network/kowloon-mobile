@@ -22,14 +22,18 @@
       },
       "env": {
         "EXPO_PUBLIC_SENTRY_DSN": "https://0595fe4f3e494e4898f1d3ff8b1cc52d@errors.kowloon.network/1",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_URL": "https://errors.kowloon.network/",
+        "SENTRY_ORG": "joshua-ellis",
+        "SENTRY_PROJECT": "kowloon-mobile"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_SENTRY_DSN": "https://0595fe4f3e494e4898f1d3ff8b1cc52d@errors.kowloon.network/1",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_URL": "https://errors.kowloon.network/",
+        "SENTRY_ORG": "joshua-ellis",
+        "SENTRY_PROJECT": "kowloon-mobile"
       }
     }
   },
