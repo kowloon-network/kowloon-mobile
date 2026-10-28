@@ -19,6 +19,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useDispatch } from "react-redux";
 import {
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   Text,
@@ -68,6 +69,7 @@ export default function Register() {
     typeof params.inviteCode === "string" ? params.inviteCode : ""
   );
   const [acknowledged, setAcknowledged] = useState({}); // ruleId -> bool
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -155,6 +157,9 @@ export default function Register() {
     if (!allRulesAcknowledged) {
       return setError("Tick every rule to continue.");
     }
+    if (!acceptTerms) {
+      return setError("Accept the Terms of Service and Privacy Policy to continue.");
+    }
 
     const cleanDomain = domain.trim().toLowerCase();
     const accountId = `@${username.trim()}@${cleanDomain}`;
@@ -175,6 +180,7 @@ export default function Register() {
         email: email.trim() || undefined,
         inviteCode: inviteCode.trim() || undefined,
         acknowledgedRules: rules.map((r) => r.id),
+        acceptTerms,
       });
 
       if (result?.requiresVerification) {
@@ -372,6 +378,43 @@ export default function Register() {
                   </View>
                 ) : null}
 
+                {/* Legal agreement -- distinct from the community rules above.
+                    Those are behavioural; this is the agreement with the
+                    server operator, and the server records it
+                    (User.acceptedTerms). Opens the server's own hosted pages. */}
+                <View className="mt-2 mb-4">
+                  <Eyebrow className="mb-2">Terms</Eyebrow>
+                  <View className="  bg-base-100 px-3 py-1">
+                    <Checkbox
+                      checked={acceptTerms}
+                      onToggle={() => setAcceptTerms((v) => !v)}
+                      label="I have read and agree to the Terms of Service and Privacy Policy."
+                    />
+                  </View>
+                  <View className="flex-row mt-2" style={{ gap: 16 }}>
+                    <Text
+                      onPress={() =>
+                        Linking.openURL(
+                          `https://${domain.trim().toLowerCase()}/pages/terms`
+                        )
+                      }
+                      className="font-ui text-xs uppercase tracking-[0.14em] text-primary"
+                    >
+                      Terms of Service
+                    </Text>
+                    <Text
+                      onPress={() =>
+                        Linking.openURL(
+                          `https://${domain.trim().toLowerCase()}/pages/privacy`
+                        )
+                      }
+                      className="font-ui text-xs uppercase tracking-[0.14em] text-primary"
+                    >
+                      Privacy Policy
+                    </Text>
+                  </View>
+                </View>
+
                 {error ? (
                   <Text className="font-ui text-sm text-error mt-2 mb-2">
                     {error}
@@ -383,7 +426,7 @@ export default function Register() {
                     label={submitting ? "Creating account" : "Create account"}
                     onPress={handleRegister}
                     loading={submitting}
-                    disabled={!allRulesAcknowledged}
+                    disabled={!allRulesAcknowledged || !acceptTerms}
                   />
                   <Button
                     label="Pick a different server"
