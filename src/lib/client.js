@@ -98,14 +98,47 @@ function makeMemoryStorage() {
   };
 }
 
+// One shared in-flight client.init() per client instance. Several mount-time
+// hooks (feed, FeedViewSelector, TypographyContext, useJoinedGroups) each
+// called client.init() on startup, sending 4 duplicate GET /auth/me. Keyed by
+// the client object, so a new client (account change / forgetClient) gets a
+// fresh init. A failed init is dropped so the next caller retries.
+const initPromises = new WeakMap();
+export function sharedInit(client) {
+  if (!client) return Promise.resolve(null);
+  let p = initPromises.get(client);
+  if (!p) {
+    p = client.init();
+    initPromises.set(client, p);
+    p.catch(() => initPromises.delete(client));
+  }
+  return p;
+}
+
 export async function initClient(account) {
   const client = ensureClient(account);
-  await client.init();
+  await sharedInit(client);
   return client;
 }
 
 export function forgetClient(accountId) {
+  const client = clients.get(accountId);
+  if (client) initPromises.delete(client);
   clients.delete(accountId);
+}
+
+// Move a session obtained by an ephemeral login client onto the real,
+// storage-backed client for this account. If a cached client exists for the
+// account but points at a different server (the user corrected the server
+// URL), drop it so the new baseUrl takes effect.
+export async function adoptSession(account, token, user) {
+  const cached = clients.get(account.id);
+  if (cached && cached.http?.baseUrl !== account.baseUrl) forgetClient(account.id);
+  const client = ensureClient(account);
+  await client.auth.setSession(token, user);
+  // The session changed; a cached init result is now stale.
+  initPromises.delete(client);
+  return client;
 }
 
 export function getCachedClient(accountId) {

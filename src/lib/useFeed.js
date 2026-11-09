@@ -135,10 +135,13 @@ export function useFeed({ viewKey = "public", activeTypes = [], accountId, enabl
           });
           items = res?.orderedItems || res?.items || [];
           if (!isLatest()) return; // superseded -- see `generation`
+          // Prefer the server's opaque cursor: since 2026-11-09 it pages on
+          // fan-out time ("<ISO>_<id>"), so the oldest item's publishedAt can
+          // skip remote posts that arrived late. Fall back for older servers.
           const oldest = items[items.length - 1]?.publishedAt;
-          cursor.current = oldest || cursor.current;
+          cursor.current = res?.nextCursor || oldest || cursor.current;
           // No total available — assume more if we got a full-ish page.
-          setHasMore(items.length >= 15);
+          setHasMore(items.length > 0 && (res?.nextCursor ? true : items.length >= 15));
         } else if (viewKey === "mine") {
           // My Posts — the viewer's own posts across every audience they
           // authored (the server returns all of an author's own posts). Page-based.

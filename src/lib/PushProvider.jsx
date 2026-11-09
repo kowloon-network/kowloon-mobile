@@ -17,11 +17,15 @@
 // route until the root navigation state has a key, then navigate.
 
 import { useEffect, useRef } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { router, useRootNavigationState } from "expo-router";
 import Constants from "expo-constants";
 
-import { selectActiveAccount } from "../state/accountsSlice.js";
+import {
+  selectAccounts,
+  selectActiveAccount,
+  setActiveAndPersist,
+} from "../state/accountsSlice.js";
 import { useActiveClient } from "./useActiveClient.js";
 import { notificationRoute } from "./notifications.js";
 import { makeAccountStorage, PUSH_TOKEN_KEY } from "./storage.js";
@@ -37,6 +41,12 @@ export function PushProvider({ children }) {
   const client = useActiveClient();
   const navState = useRootNavigationState();
   const navReady = !!navState?.key;
+  const dispatch = useDispatch();
+  const accounts = useSelector(selectAccounts);
+  const accountsRef = useRef(accounts);
+  accountsRef.current = accounts;
+  const activeIdRef = useRef(account?.id);
+  activeIdRef.current = account?.id;
 
   // Latest nav readiness + a route waiting on the navigator, behind refs so the
   // (once-registered) notification listener always sees current values.
@@ -59,6 +69,18 @@ export function PushProvider({ children }) {
   const handleResponse = (response) => {
     const data = response?.notification?.request?.content?.data;
     if (!data) return;
+    // A push for account B tapped while A is active must open in B's context.
+    // The server doesn't send a recipient id yet (see server
+    // methods/notifications/create.js sendPush data); until it does this is a
+    // no-op and the tap opens under the active account as before.
+    const recipientId = data.recipientId || data.recipient || null;
+    if (
+      recipientId &&
+      recipientId !== activeIdRef.current &&
+      accountsRef.current.some((a) => a.id === recipientId)
+    ) {
+      dispatch(setActiveAndPersist(recipientId));
+    }
     const path = notificationRoute(data) || "/notifications";
     if (navReadyRef.current) navigate(path);
     else pendingRouteRef.current = path; // flush once the navigator is ready

@@ -4,23 +4,26 @@
 // circle named in the `adminCircle` setting). The client caches it on
 // `client.auth._user` after session restore. On a fresh login that snapshot may
 // not have it yet, so we fall back to a one-time /auth/me fetch, cached per
-// server so we don't re-ask on every mount.
+// ACCOUNT (not per server: two accounts on one server can differ in admin
+// status) so we don't re-ask on every mount.
 
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { useActiveClient } from "./useActiveClient.js";
+import { selectActiveId } from "../state/accountsSlice.js";
 
-const cache = new Map(); // baseUrl -> boolean
+const cache = new Map(); // accountId -> boolean
 
 export function useIsAdmin() {
   const client = useActiveClient();
-  const baseUrl = client?.http?.baseUrl;
+  const accountId = useSelector(selectActiveId);
 
   const known = client?.auth?._user?.isServerAdmin;
   const seeded =
     typeof known === "boolean"
       ? known
-      : baseUrl && cache.has(baseUrl)
-      ? cache.get(baseUrl)
+      : accountId && cache.has(accountId)
+      ? cache.get(accountId)
       : false;
 
   const [isAdmin, setIsAdmin] = useState(!!seeded);
@@ -31,12 +34,12 @@ export function useIsAdmin() {
 
     const live = client.auth?._user?.isServerAdmin;
     if (typeof live === "boolean") {
-      if (baseUrl) cache.set(baseUrl, live);
+      if (accountId) cache.set(accountId, live);
       setIsAdmin(live);
       return;
     }
-    if (baseUrl && cache.has(baseUrl)) {
-      setIsAdmin(cache.get(baseUrl));
+    if (accountId && cache.has(accountId)) {
+      setIsAdmin(cache.get(accountId));
       return;
     }
     // Unknown — ask the server once.
@@ -44,7 +47,7 @@ export function useIsAdmin() {
       .get("/auth/me")
       .then((res) => {
         const v = !!res?.user?.isServerAdmin;
-        if (baseUrl) cache.set(baseUrl, v);
+        if (accountId) cache.set(accountId, v);
         if (!cancelled) setIsAdmin(v);
       })
       .catch(() => {});
@@ -52,7 +55,7 @@ export function useIsAdmin() {
     return () => {
       cancelled = true;
     };
-  }, [client, baseUrl]);
+  }, [client, accountId]);
 
   return isAdmin;
 }

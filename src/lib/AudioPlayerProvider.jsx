@@ -6,7 +6,7 @@
 // next/ff + close) and the play-now/add-to-queue prompt. Consume via
 // useAudioBar(): { requestTrack, current, ... }.
 
-import { Component, createContext, useContext, useEffect, useReducer, useRef, useState } from "react";
+import { Component, createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Animated, LogBox, Modal, Pressable, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
@@ -37,9 +37,36 @@ if (__DEV__) {
   LogBox.ignoreLogs([/Received \d+ arguments, but \d+ (was|were) expected/]);
 }
 
-const Ctx = createContext(null);
+// Two contexts so consumers don't re-render on every playback-position tick
+// (useAudioPlayerStatus updates several times a second):
+//   ActionsCtx    -- stable functions; identity never changes.
+//   NowPlayingCtx -- { current, playing, queue, index }; changes only when the
+//                    track / play state / queue changes, NOT on position.
+// Position/duration are only needed by the bar itself, which gets them directly.
+const ActionsCtx = createContext(null);
+const NowPlayingCtx = createContext(null);
+
+// { requestTrack, current, playing, ... } -- same shape as before minus the
+// per-tick position/duration. Re-renders on track/play-state changes only.
 export function useAudioBar() {
-  return useContext(Ctx);
+  const actions = useContext(ActionsCtx);
+  const now = useContext(NowPlayingCtx);
+  return useMemo(
+    () => (actions ? { ...actions, ...now } : null),
+    [actions, now]
+  );
+}
+
+// Actions only -- never re-renders the consumer on playback changes.
+export function useAudioActions() {
+  return useContext(ActionsCtx);
+}
+
+// Stop playback + clear the queue from outside React (sign-out). Registered by
+// the mounted real provider; a no-op otherwise.
+let globalStop = null;
+export function stopGlobalAudio() {
+  try { globalStop?.(); } catch {}
 }
 
 const SEEK = 15; // seconds for rw/ff
@@ -270,16 +297,41 @@ function RealAudioPlayerProvider({ children }) {
     setState([], -1);
   }
 
-  const api = {
-    requestTrack, playNow, enqueue, toggle, next, prev, seekBy, stop,
-    current, playing, position, duration,
-    queue: queueRef.current, index: indexRef.current,
-  };
+  // Latest action implementations; the stable `actions` wrappers below call
+  // through this ref so their identity never changes across renders.
+  const implRef = useRef(null);
+  implRef.current = { requestTrack, playNow, enqueue, toggle, next, prev, seekBy, stop };
+  const actions = useMemo(() => {
+    const call = (name) => (...args) => implRef.current[name](...args);
+    return {
+      requestTrack: call("requestTrack"), playNow: call("playNow"), enqueue: call("enqueue"),
+      toggle: call("toggle"), next: call("next"), prev: call("prev"),
+      seekBy: call("seekBy"), stop: call("stop"),
+    };
+  }, []);
+
+  useEffect(() => {
+    globalStop = actions.stop;
+    return () => {
+      if (globalStop === actions.stop) globalStop = null;
+    };
+  }, [actions]);
+
+  const queue = queueRef.current;
+  const index = indexRef.current;
+  const nowPlaying = useMemo(
+    () => ({ current, playing, queue, index }),
+    [current, playing, queue, index]
+  );
+
+  // The bar needs the per-tick position; it's rendered here, not via context.
+  const api = { ...actions, ...nowPlaying, position, duration };
 
   const prompt = promptRef.current;
 
   return (
-    <Ctx.Provider value={api}>
+    <ActionsCtx.Provider value={actions}>
+    <NowPlayingCtx.Provider value={nowPlaying}>
       {children}
 
       {/* Right-edge slide-out player */}
@@ -316,7 +368,8 @@ function RealAudioPlayerProvider({ children }) {
           </Pressable>
         </Pressable>
       </Modal>
-    </Ctx.Provider>
+    </NowPlayingCtx.Provider>
+    </ActionsCtx.Provider>
   );
 }
 
@@ -332,25 +385,26 @@ const IS_EXPO_GO =
   Constants.executionEnvironment === "storeClient";
 const NOOP = () => {};
 
+// Module-level constants so the stub's context values are stable too.
+const STUB_ACTIONS = {
+  requestTrack: NOOP,
+  playNow: NOOP,
+  enqueue: NOOP,
+  toggle: NOOP,
+  next: NOOP,
+  prev: NOOP,
+  seekBy: NOOP,
+  stop: NOOP,
+  unavailable: true,
+};
+const STUB_NOW = { current: null, playing: false, queue: [], index: -1 };
+
 function StubAudioPlayerProvider({ children }) {
-  const api = {
-    requestTrack: NOOP,
-    playNow: NOOP,
-    enqueue: NOOP,
-    toggle: NOOP,
-    next: NOOP,
-    prev: NOOP,
-    seekBy: NOOP,
-    stop: NOOP,
-    current: null,
-    playing: false,
-    position: 0,
-    duration: 0,
-    queue: [],
-    index: -1,
-    unavailable: true,
-  };
-  return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
+  return (
+    <ActionsCtx.Provider value={STUB_ACTIONS}>
+      <NowPlayingCtx.Provider value={STUB_NOW}>{children}</NowPlayingCtx.Provider>
+    </ActionsCtx.Provider>
+  );
 }
 
 // Backstop: if the real provider throws at render anyway (e.g. the expo-audio

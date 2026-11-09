@@ -14,6 +14,8 @@ import {
   PUSH_TOKEN_KEY,
 } from "../lib/storage.js";
 import { forgetClient, getCachedClient, ensureClient } from "../lib/client.js";
+import { Image } from "expo-image";
+import { stopGlobalAudio } from "../lib/AudioPlayerProvider.jsx";
 
 const initialState = {
   // Loaded from AsyncStorage on app boot.
@@ -154,6 +156,14 @@ export const signOutAccount = (id) => async (dispatch, getState) => {
     await unregisterPush(id, getState);
     forgetClient(id);
     await purgeAccountStorage(id);
+    // Don't leave the signed-out account's media behind: restricted images sit
+    // in expo-image's disk/memory cache, and its audio may still be playing or
+    // queued in the global player. The image cache is app-wide (not
+    // per-account), so this also clears other accounts' cache -- it just
+    // re-downloads.
+    stopGlobalAudio();
+    try { Image.clearMemoryCache(); } catch {}
+    await Image.clearDiskCache().catch(() => {});
     dispatch(removeAccount(id));
     await persist(getState().accounts);
   } finally {

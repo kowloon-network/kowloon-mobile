@@ -4,6 +4,7 @@
 // Post types: Note, Article, Media, Link, Event. Each gets an accent color
 // and type-appropriate treatment.
 
+import { memo, useCallback, useMemo } from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Play, Music } from "lucide-react-native";
@@ -112,7 +113,10 @@ function ContinueReading({ show }) {
   );
 }
 
-export function PostCard({ post, onDeleted }) {
+// memo'd: feed lists re-render often (pagination, refresh, provider updates);
+// with stable props (feed passes the stable removePost via onRemove instead of
+// a per-render closure) unchanged cards skip re-rendering.
+export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
   const router = useRouter();
   const viewer = useImageViewer();
   const client = useActiveClient();
@@ -122,11 +126,22 @@ export function PostCard({ post, onDeleted }) {
   // Font family + sizes from the user's reading preference, applied to the
   // post's content: body, title, and the author name/handle — so a post reads
   // cohesively in the chosen face. (Type label + timestamp stay UI chrome.)
-  const contentFonts = {
-    regular: resolved.regularFamily,
-    bold: resolved.boldFamily,
-    italic: resolved.italicFamily,
-  };
+  // Memoized so HtmlContent's own useMemo (keyed on fonts) isn't defeated by
+  // a fresh object every render.
+  const contentFonts = useMemo(
+    () => ({
+      regular: resolved.regularFamily,
+      bold: resolved.boldFamily,
+      italic: resolved.italicFamily,
+    }),
+    [resolved.regularFamily, resolved.boldFamily, resolved.italicFamily]
+  );
+  // onRemove(postId) lets lists pass one stable callback for every card.
+  const postId = post?.id;
+  const handleDeleted = useCallback(() => {
+    onDeleted?.();
+    onRemove?.(postId);
+  }, [onDeleted, onRemove, postId]);
   const titleStyle = {
     fontFamily: resolved.boldFamily,
     fontSize: Math.round(resolved.fontSize * 1.4),
@@ -456,11 +471,11 @@ export function PostCard({ post, onDeleted }) {
             post={post}
             client={client}
             currentUser={currentUser}
-            onDeleted={onDeleted}
+            onDeleted={handleDeleted}
             size="sm"
           />
         </View>
       </View>
     </Pressable>
   );
-}
+});

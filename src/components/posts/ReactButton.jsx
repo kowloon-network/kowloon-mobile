@@ -33,32 +33,42 @@ const DEFAULT_EMOJIS = [
   { emoji: "🤬", name: "Angry" },
 ];
 
-let cachedEmojis = null;
-let fetchPromise = null;
+// Keyed by server baseUrl: each server has its own reactEmojis setting, so a
+// single module-level cache leaked server A's set into account B's posts.
+const emojiCache = new Map(); // baseUrl -> emoji list
+const fetchPromises = new Map(); // baseUrl -> in-flight promise
+function cachedEmojisFor(client) {
+  return emojiCache.get(client?.http?.baseUrl || "") || null;
+}
 async function getEmojis(client) {
-  if (cachedEmojis) return cachedEmojis;
-  if (!fetchPromise) {
-    fetchPromise = client.feeds
-      .getServerInfo()
-      .then((info) => {
-        cachedEmojis = info?.settings?.reactEmojis?.length
-          ? info.settings.reactEmojis
-          : DEFAULT_EMOJIS;
-        return cachedEmojis;
-      })
-      .catch(() => {
-        cachedEmojis = DEFAULT_EMOJIS;
-        return cachedEmojis;
-      });
+  const key = client?.http?.baseUrl || "";
+  if (emojiCache.has(key)) return emojiCache.get(key);
+  if (!fetchPromises.has(key)) {
+    fetchPromises.set(
+      key,
+      client.feeds
+        .getServerInfo()
+        .then((info) => {
+          const list = info?.settings?.reactEmojis?.length
+            ? info.settings.reactEmojis
+            : DEFAULT_EMOJIS;
+          emojiCache.set(key, list);
+          return list;
+        })
+        .catch(() => {
+          emojiCache.set(key, DEFAULT_EMOJIS);
+          return DEFAULT_EMOJIS;
+        })
+    );
   }
-  return fetchPromise;
+  return fetchPromises.get(key);
 }
 
 export function ReactButton({ client, post, onReacted, size = "md" }) {
   const ink = useInk();
   const [open, setOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [emojis, setEmojis] = useState(cachedEmojis ?? DEFAULT_EMOJIS);
+  const [emojis, setEmojis] = useState(() => cachedEmojisFor(client) ?? DEFAULT_EMOJIS);
   const [pending, setPending] = useState(false);
   const [count, setCount] = useState(post?.reactCount ?? 0);
   const [myReact, setMyReact] = useState(post?.myReact ?? null);
@@ -73,7 +83,12 @@ export function ReactButton({ client, post, onReacted, size = "md" }) {
   }, [post?.id, post?.reactCount, post?.myReact]);
 
   useEffect(() => {
-    if (!client || cachedEmojis) return;
+    if (!client) return;
+    const hit = cachedEmojisFor(client);
+    if (hit) {
+      setEmojis(hit);
+      return;
+    }
     let cancelled = false;
     getEmojis(client).then((list) => {
       if (!cancelled) setEmojis(list);

@@ -36,14 +36,20 @@ export function UnreadCountProvider({ children }) {
   const account = useSelector(selectActiveAccount);
   const [count, setCountState] = useState(0);
   const timerRef = useRef(null);
+  // Latest active account id, read after the await below so a count fetched
+  // for account A is dropped if the user switched to B while it was in flight.
+  const activeIdRef = useRef(account?.id);
+  activeIdRef.current = account?.id;
 
   const refresh = useCallback(async () => {
     if (!client || !account?.id) {
       setCountState(0);
       return;
     }
+    const requestedFor = account.id;
     try {
       const res = await client.notifications.unreadCount();
+      if (activeIdRef.current !== requestedFor) return;
       const n = Number(res?.count) || 0;
       setCountState(n);
     } catch {

@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 
 import { useActiveClient } from "./useActiveClient.js";
+import { sharedInit } from "./client.js";
 import { selectActiveAccount } from "../state/accountsSlice.js";
 
 export function useJoinedGroups() {
@@ -36,7 +37,7 @@ export function useJoinedGroups() {
         let user = client.auth?.getUser?.();
         if (!user) {
           try {
-            user = await client.init();
+            user = await sharedInit(client);
           } catch {
             user = null;
           }

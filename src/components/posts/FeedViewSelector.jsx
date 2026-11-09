@@ -26,6 +26,7 @@ import { Compass, Pin } from "lucide-react-native";
 import { sortByPins, togglePin } from "@kowloon/client";
 
 import { useActiveClient } from "../../lib/useActiveClient.js";
+import { sharedInit } from "../../lib/client.js";
 import { useJoinedGroups } from "../../lib/useJoinedGroups.js";
 import { useInk } from "../../lib/useInk.js";
 import { selectActiveAccount } from "../../state/accountsSlice.js";
@@ -71,7 +72,7 @@ export function FeedViewSelector({ value, onChange, subject }) {
     (async () => {
       let user = client.auth?.getUser?.();
       if (!user) {
-        try { user = await client.init(); } catch { user = null; }
+        try { user = await sharedInit(client); } catch { user = null; }
       }
       if (cancelled) return;
       setPinnedCircles(user?.prefs?.pinnedCircles || []);

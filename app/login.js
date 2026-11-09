@@ -24,9 +24,8 @@ import { Button } from "../src/components/ui/Button.jsx";
 import { Field } from "../src/components/ui/Field.jsx";
 import { Heading, Eyebrow } from "../src/components/ui/Heading.jsx";
 import { parseKowloonId, inferBaseUrl, domainFromUrl } from "../src/lib/identity.js";
-import { ensureClient, forgetClient } from "../src/lib/client.js";
+import { makeEphemeralClient, adoptSession } from "../src/lib/client.js";
 import { addAccountAndPersist } from "../src/state/accountsSlice.js";
-import { purgeAccountStorage } from "../src/lib/storage.js";
 import { TabletColumns } from "../src/components/layout/TabletColumns.jsx";
 
 export default function Login() {
@@ -68,8 +67,12 @@ export default function Login() {
 
     setSubmitting(true);
     try {
-      const client = ensureClient(provisionalAccount);
-      const result = await client.auth.login({
+      // Ephemeral, in-memory client: re-adding an existing account must not
+      // touch its live client/storage. A cached client would send the live
+      // token (a 401 then fires onUnauthorized and signs that account out),
+      // and would keep a stale baseUrl if the server URL was corrected.
+      const loginClient = makeEphemeralClient(baseUrl);
+      const result = await loginClient.auth.login({
         id: parsed.id,
         password,
       });
@@ -84,11 +87,14 @@ export default function Login() {
         addedAt: new Date().toISOString(),
       };
 
+      // Only now, on success, move the session onto the real per-account
+      // client (persists the token to its namespaced secure storage).
+      await adoptSession(account, result.token, result.user);
       await dispatch(addAccountAndPersist(account));
       router.replace("/feed");
     } catch (e) {
-      forgetClient(parsed.id);
-      await purgeAccountStorage(parsed.id).catch(() => {});
+      // Nothing to clean up: the failed attempt only touched the ephemeral
+      // client, so an already-signed-in account keeps its session.
       // Only call it a credentials problem on an actual 401. A server blip (5xx,
       // e.g. mid-deploy) or a network failure must NOT read as "wrong password" —
       // that sends people chasing a password that's actually fine.

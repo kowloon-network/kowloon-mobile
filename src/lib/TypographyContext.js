@@ -20,7 +20,7 @@ import {
 import { useSelector } from "react-redux";
 
 import { selectActiveAccount } from "../state/accountsSlice.js";
-import { ensureClient } from "./client.js";
+import { ensureClient, sharedInit } from "./client.js";
 import {
   DEFAULT_TYPOGRAPHY,
   normalizeTypography,
@@ -46,6 +46,10 @@ export function TypographyProvider({ children }) {
   useEffect(() => {
     let cancelled = false;
 
+    // Flush the previous account's pending write before switching, so it
+    // goes to the account it was made on (syncNow uses the captured client).
+    syncNow();
+
     if (!account) {
       clientRef.current = null;
       setState(DEFAULT_TYPOGRAPHY);
@@ -60,7 +64,7 @@ export function TypographyProvider({ children }) {
       if (!user) {
         // Cold start — restore the session so prefs are available.
         try {
-          user = await client.init();
+          user = await sharedInit(client);
         } catch {
           user = null;
         }
@@ -84,10 +88,13 @@ export function TypographyProvider({ children }) {
       clearTimeout(syncTimer.current);
       syncTimer.current = null;
     }
-    const value = pendingRef.current;
-    if (!value || !clientRef.current) return;
+    // pendingRef holds { client, value }: the client captured when the change
+    // was made, so A's typography is never saved to B after a switch.
+    const pending = pendingRef.current;
+    if (!pending?.value || !pending.client) return;
+    const { client, value } = pending;
     pendingRef.current = null;
-    clientRef.current.activities
+    client.activities
       ?.updateProfile({ updates: { prefs: { typography: value } } })
       .catch(() => {});
   }
@@ -106,7 +113,7 @@ export function TypographyProvider({ children }) {
       setState((prev) => {
         const next = normalizeTypography({ ...prev, ...patch });
         if (clientRef.current) {
-          pendingRef.current = next;
+          pendingRef.current = { client: clientRef.current, value: next };
           if (syncTimer.current) clearTimeout(syncTimer.current);
           syncTimer.current = setTimeout(syncNow, SYNC_DEBOUNCE_MS);
         }

@@ -259,6 +259,12 @@ try {
 // compresses to roughly 30MB at these settings). Falls back to the original
 // asset untouched on any failure -- keepUnderLimit's existing Alert is the
 // safety net for anything still oversized afterward.
+// Best-effort delete of a temp file we created (compressed video).
+function deleteTempFile(uri) {
+  if (!uri) return;
+  FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => {});
+}
+
 async function compressVideoAsset(asset, onProgress) {
   if (!VideoCompressor?.compress) return asset;
   try {
@@ -358,6 +364,28 @@ export default function Compose() {
   const [uploadProgress, setUploadProgress] = useState({}); // att.uri → percent (#69)
   const [compressProgress, setCompressProgress] = useState({}); // att.pickId → percent (#80)
   const [error, setError] = useState(null);
+
+  // Upload bookkeeping (#30):
+  //  - uploadedIdsRef: `${audience}|${uri}` -> file id, so a retry after a
+  //    partial failure reuses files that already uploaded instead of
+  //    re-sending (and orphaning) them.
+  //  - tempUrisRef: compressed-video temp files we created; deleted after
+  //    they upload and on unmount so they don't pile up in the cache dir.
+  //  - abortRef: aborts in-flight uploads when the composer unmounts.
+  const uploadedIdsRef = useRef(new Map());
+  const tempUrisRef = useRef(new Set());
+  const abortRef = useRef(null);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    const temps = tempUrisRef.current;
+    return () => {
+      mountedRef.current = false;
+      abortRef.current?.abort();
+      for (const uri of temps) deleteTempFile(uri);
+      temps.clear();
+    };
+  }, []);
 
   // This server's upload ceiling, from its public `maxUploadSize` setting (MB).
   // Per-server; used to reject oversized picks up front instead of a doomed
@@ -549,6 +577,13 @@ export default function Compose() {
         const compressed = await compressVideoAsset(p.asset, (percent) =>
           setCompressProgress((prev) => ({ ...prev, [p.pickId]: percent }))
         );
+        const isTemp = compressed.uri && compressed.uri !== p.asset.uri;
+        if (!mountedRef.current) {
+          // Composer closed mid-compress: the unmount cleanup already ran.
+          if (isTemp) deleteTempFile(compressed.uri);
+          return;
+        }
+        if (isTemp) tempUrisRef.current.add(compressed.uri);
         setCompressProgress((prev) => {
           const next = { ...prev };
           delete next[p.pickId];
@@ -558,6 +593,10 @@ export default function Compose() {
         if (!accepted) {
           // Still over the limit after compression (or compression wasn't
           // available) -- keepUnderLimit already alerted; drop the tile.
+          if (isTemp) {
+            tempUrisRef.current.delete(compressed.uri);
+            deleteTempFile(compressed.uri);
+          }
           setAttachments((prev) => prev.filter((att) => att.pickId !== p.pickId));
           continue;
         }
@@ -897,8 +936,33 @@ export default function Compose() {
       if (parsed?.id) target = parsed.id;
     }
 
+    // A video still compressing would upload the uncompressed original with
+    // no size check -- the Post button is disabled for this too.
+    if (attachments.some((a) => a.compressing)) {
+      setError("Wait for video compression to finish.");
+      return;
+    }
+
     setPosting(true);
     setUploadProgress({});
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    abortRef.current = controller;
+    // Upload once per (audience, uri); reuse the id on retry. Deletes our
+    // compressed temp file once its bytes are on the server.
+    const uploadOnce = async (opts) => {
+      const key = `${audience}|${opts.uri}`;
+      const known = uploadedIdsRef.current.get(key);
+      if (known) return { file: { id: known } };
+      const res = await uploadFile(client, { ...opts, signal: controller?.signal });
+      if (res?.file?.id) {
+        uploadedIdsRef.current.set(key, res.file.id);
+        if (tempUrisRef.current.has(opts.uri)) {
+          tempUrisRef.current.delete(opts.uri);
+          deleteTempFile(opts.uri);
+        }
+      }
+      return res;
+    };
     try {
       // Upload Article's featured image first (if any). The returned file ID
       // is what gets stored on the post — the server presigns a serve URL
@@ -909,7 +973,7 @@ export default function Compose() {
         featuredImage?.uri
       ) {
         try {
-          const res = await uploadFile(client, {
+          const res = await uploadOnce({
             uri: featuredImage.uri,
             name: featuredImage.name,
             mimeType: featuredImage.mimeType,
@@ -919,8 +983,7 @@ export default function Compose() {
           articleFeaturedFileId = res?.file?.id;
         } catch (e) {
           setError(`Featured image upload failed: ${e?.message || "unknown"}`);
-          setPosting(false);
-          return;
+          return; // posting reset in finally
         }
       }
 
@@ -932,7 +995,7 @@ export default function Compose() {
         try {
           const results = await Promise.all(
             attachments.map((a) =>
-              uploadFile(client, {
+              uploadOnce({
                 uri: a.uri,
                 name: a.name,
                 mimeType: a.mimeType,
@@ -955,8 +1018,7 @@ export default function Compose() {
             .filter((x) => x.fileId);
         } catch (e) {
           setError(`Attachment upload failed: ${e?.message || "unknown"}`);
-          setPosting(false);
-          return;
+          return; // posting reset in finally
         }
       }
 
@@ -1003,9 +1065,15 @@ export default function Compose() {
       router.back();
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || "Failed to post.");
-      setPosting(false);
+    } finally {
+      // Never leave Post stuck disabled after a failure (harmless after
+      // router.back() unmounts us).
+      if (abortRef.current === controller) abortRef.current = null;
+      if (mountedRef.current) setPosting(false);
     }
   }
+
+  const anyCompressing = attachments.some((a) => a.compressing);
 
   return (
     <SafeAreaView className="flex-1 bg-base-100" edges={["top"]}>
@@ -1027,10 +1095,10 @@ export default function Compose() {
             </Pressable>
             <Pressable
               onPress={handlePost}
-              disabled={posting}
+              disabled={posting || anyCompressing}
               hitSlop={8}
               className="p-2"
-              style={{ opacity: posting ? 0.5 : 1 }}
+              style={{ opacity: posting || anyCompressing ? 0.5 : 1 }}
             >
               {posting ? (
                 <ActivityIndicator size="small" color="#5588b1" />

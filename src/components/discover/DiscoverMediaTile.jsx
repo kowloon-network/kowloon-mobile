@@ -10,7 +10,7 @@ import { useVideoPlayer, VideoView } from "expo-video";
 
 import { Avatar } from "../posts/Avatar.jsx";
 import { resolveImageUrl } from "../../lib/resolveImageUrl.js";
-import { useAudioBar } from "../../lib/AudioPlayerProvider.jsx";
+import { useAudioActions } from "../../lib/AudioPlayerProvider.jsx";
 
 // Fullscreen video modal — autoplays, native controls, tap X to close.
 function FullscreenVideo({ uri, onClose }) {
@@ -49,7 +49,7 @@ function FullscreenVideo({ uri, onClose }) {
 
 export function DiscoverMediaTile({ item, size, baseUrl, showAuthor, marginRight = 0 }) {
   const [videoOpen, setVideoOpen] = useState(false);
-  const audio = useAudioBar();
+  const audio = useAudioActions();
   const kind = item.mediaKind || "image";
   const img = resolveImageUrl(item.mediaImage || item.featuredImage, baseUrl);
   const playUrl = resolveImageUrl(item.mediaUrl, baseUrl);

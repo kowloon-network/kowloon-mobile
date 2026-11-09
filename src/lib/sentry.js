@@ -10,10 +10,11 @@
 // per-profile in eas.json; it is a publishable key (it ships inside the app
 // binary by design), not a secret.
 //
-// Source maps are NOT uploaded: SENTRY_DISABLE_AUTO_UPLOAD=true is set in
-// eas.json because the config plugin's gradle step shells out to sentry-cli
-// and broke the Android build. Consequence: JS stack traces arrive minified.
-// Fixing that needs a GlitchTip auth token + SENTRY_URL pointed at our host.
+// Source maps ARE uploaded for preview/production builds: eas.json points
+// sentry-cli at our GlitchTip (SENTRY_URL/ORG/PROJECT; the auth token is an
+// EAS secret) and metro.config.js uses getSentryExpoConfig so bundles carry
+// Debug IDs matching the uploaded maps. Only the `development` profile keeps
+// SENTRY_DISABLE_AUTO_UPLOAD=true (no upload, minified traces).
 import * as Sentry from "@sentry/react-native";
 import Constants from "expo-constants";
 

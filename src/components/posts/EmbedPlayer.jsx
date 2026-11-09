@@ -11,6 +11,28 @@ import { View, Pressable, Image } from "react-native";
 import { WebView } from "react-native-webview";
 import { Play } from "lucide-react-native";
 import { EMBED_WEBVIEW_USER_AGENT } from "@kowloon/client";
+import { openExternalUrl } from "../../lib/parseKowloonUrl.js";
+
+// Hosts the player WebView may load. Anything else (e.g. "Watch on YouTube",
+// channel links, ads) is a navigation out of the player: top-level goes to the
+// system browser, sub-frames are just blocked. Without this the WebView could
+// be navigated to arbitrary pages inside the app.
+const ALLOWED_HOST_SUFFIXES = [
+  "youtube-nocookie.com",
+  "youtube.com",
+  "googlevideo.com",
+  "ytimg.com",
+  "google.com",
+];
+function hostAllowed(host, extraHost) {
+  if (!host) return false;
+  if (extraHost && host === extraHost) return true;
+  return ALLOWED_HOST_SUFFIXES.some((d) => host === d || host.endsWith(`.${d}`));
+}
+function hostOfUrl(url) {
+  const m = /^https:\/\/([^/:?#]+)/i.exec(url || "");
+  return m ? m[1].toLowerCase() : null;
+}
 
 export function EmbedPlayer({ embed, poster }) {
   const [playing, setPlaying] = useState(false);
@@ -27,6 +49,20 @@ export function EmbedPlayer({ embed, poster }) {
   // Overriding to a normal Chrome UA makes it behave like the browser embed.
   const src = embed.embedUrl + (embed.embedUrl.includes("?") ? "&" : "?") + "autoplay=1";
   const baseUrl = (embed.embedUrl.match(/^https?:\/\/[^/]+/) || ["https://www.youtube.com"])[0];
+  // The embed's own host comes from the trusted descriptor, so allow it too
+  // (keeps future non-YouTube providers in the registry working).
+  const embedHost = hostOfUrl(embed.embedUrl);
+
+  const onShouldStartLoadWithRequest = (req) => {
+    const url = req?.url || "";
+    if (url === "about:blank" || url.startsWith("about:")) return true;
+    // The inline html document itself loads at baseUrl.
+    if (url === baseUrl || url === `${baseUrl}/`) return true;
+    if (hostAllowed(hostOfUrl(url), embedHost)) return true;
+    // isTopFrame is iOS-only; Android only reports top-level navigations.
+    if (req?.isTopFrame !== false) openExternalUrl(url);
+    return false;
+  };
   const html =
     `<!DOCTYPE html><html><head>` +
     `<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">` +
@@ -43,7 +79,8 @@ export function EmbedPlayer({ embed, poster }) {
         <WebView
           source={{ html, baseUrl }}
           userAgent={EMBED_WEBVIEW_USER_AGENT}
-          originWhitelist={["*"]}
+          originWhitelist={["https://*", "about:*"]}
+          onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
           style={{ flex: 1, backgroundColor: "#000000" }}
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}

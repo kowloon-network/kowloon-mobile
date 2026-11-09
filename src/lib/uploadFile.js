@@ -23,6 +23,7 @@ export async function uploadFile(
     generateThumbnail,
     thumbnailSizes,
     onProgress,
+    signal,
   }
 ) {
   if (!client) throw new Error("uploadFile: no client");
@@ -53,5 +54,8 @@ export async function uploadFile(
     generateThumbnail,
     thumbnailSizes,
     onProgress,
+    // Abort/timeout support is being added to client.files.upload as
+    // options.signal; older client versions simply ignore the extra field.
+    signal,
   });
 }

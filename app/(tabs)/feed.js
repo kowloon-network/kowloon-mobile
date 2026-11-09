@@ -11,6 +11,7 @@ import {
   AppState,
   FlatList,
   Image,
+  Platform,
   Pressable,
   RefreshControl,
   Text,
@@ -31,6 +32,7 @@ import { Globe, Menu, Search } from "lucide-react-native";
 import { useFeed } from "../../src/lib/useFeed.js";
 import { consumeFeedRefresh } from "../../src/lib/feedRefreshSignal.js";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
+import { sharedInit } from "../../src/lib/client.js";
 import { useInk } from "../../src/lib/useInk.js";
 import { useUnreadCount } from "../../src/lib/UnreadCountContext.js";
 import { usePersistedFilter } from "../../src/lib/usePersistedFilter.js";
@@ -41,6 +43,12 @@ import {
 } from "../../src/state/accountsSlice.js";
 
 // Order-independent equality for the active-types array ([] === "all").
+// Defined at module scope so FlatList gets the same component every render
+// (an inline arrow remounts every separator on each feed re-render).
+function FeedSeparator() {
+  return <View className="h-3" />;
+}
+
 function sameTypes(a, b) {
   const x = [...(a || [])].sort();
   const y = [...(b || [])].sort();
@@ -77,7 +85,7 @@ export default function Feed() {
       let user = client.auth?.getUser?.();
       if (!user) {
         try {
-          user = await client.init();
+          user = await sharedInit(client);
         } catch {
           user = null;
         }
@@ -190,6 +198,13 @@ export default function Feed() {
     // fetch used to land in the restored circle/group view.
     enabled: hydrated,
   });
+
+  // Stable renderItem: removePost is a stable useCallback in useFeed, and
+  // PostCard calls onRemove(post.id) itself, so no per-item closure is made.
+  const renderPost = useCallback(
+    ({ item }) => <PostCard post={item} onRemove={removePost} />,
+    [removePost]
+  );
 
   // Backfill the server's display name onto the account the first time we
   // have a client for it. Accounts created before this field existed (and
@@ -365,10 +380,14 @@ export default function Feed() {
         className="flex-1"
         data={posts}
         keyExtractor={(p) => p.id}
-        renderItem={({ item }) => (
-          <PostCard post={item} onDeleted={() => removePost(item.id)} />
-        )}
-        ItemSeparatorComponent={() => <View className="h-3" />}
+        renderItem={renderPost}
+        ItemSeparatorComponent={FeedSeparator}
+        // Bound the mounted window: long feeds otherwise keep every rich card
+        // (images, HTML, embeds) alive. Clipping is Android-only -- on iOS it
+        // can blank cells.
+        windowSize={7}
+        maxToRenderPerBatch={6}
+        removeClippedSubviews={Platform.OS === "android"}
         ListHeaderComponent={
           viewKey === "all" && activeTypes.length === 0 ? (
             <FeedDiscoverRow refreshKey={discoverTick} />

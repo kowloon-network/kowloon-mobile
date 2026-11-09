@@ -4,7 +4,8 @@
 
 import { Pressable, Text, View } from "react-native";
 
-import { POST_TYPE_NAMES } from "../../lib/postTypes.js";
+// POST_TYPES was referenced below but never imported (crashed if rendered).
+import { POST_TYPE_NAMES, POST_TYPES } from "../../lib/postTypes.js";
 import { PostTypeIcon } from "./PostTypeIcon.jsx";
 import { useInk } from "../../lib/useInk.js";
 import { usePostColor } from "../../lib/usePostColor.js";
@@ -39,7 +40,7 @@ export function PostTypeSelector({ value, onChange }) {
                 active ? "text-base-content font-bold" : "text-base-content/40"
               }`}
             >
-              {POST_TYPES[type].label}
+              {POST_TYPES[type]?.label || type}
             </Text>
           </Pressable>
         );
