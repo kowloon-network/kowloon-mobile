@@ -15,6 +15,28 @@
 
 import { isValidDomain } from "./identity.js";
 
+// Invite links are attacker-controllable, and the Register screen shows
+// `server` while actually talking to `serverUrl` -- so
+// ?server=kwln.social&serverUrl=https://evil would display kwln.social but
+// register (password included) against evil. Only honour serverUrl when it
+// points at the same host as `server` (and is https); dev builds keep the
+// LAN-override escape hatch this exists for. Returns "" when not trusted, so
+// callers fall back to https://<server>.
+export function trustedServerUrl(server, serverUrl) {
+  if (!serverUrl) return "";
+  if (__DEV__) return serverUrl;
+  try {
+    const u = new URL(serverUrl);
+    const want = String(server || "").trim().toLowerCase();
+    if (u.protocol !== "https:" || !want) return "";
+    return u.host.toLowerCase() === want || u.hostname.toLowerCase() === want
+      ? serverUrl
+      : "";
+  } catch {
+    return "";
+  }
+}
+
 export function parseInviteUrl(raw) {
   if (!raw) return null;
   let input = String(raw).trim();
@@ -41,7 +63,7 @@ export function parseInviteUrl(raw) {
     return {
       server,
       inviteCode: inviteCode || "",
-      serverUrl: serverUrl || "",
+      serverUrl: trustedServerUrl(server, serverUrl),
     };
   }
 
@@ -59,7 +81,7 @@ export function parseInviteUrl(raw) {
     if (match) inviteCode = decodeURIComponent(match[1]);
   }
 
-  const serverUrl = url.searchParams.get("serverUrl") || "";
+  const serverUrl = trustedServerUrl(server, url.searchParams.get("serverUrl"));
 
   return { server, inviteCode, serverUrl };
 }

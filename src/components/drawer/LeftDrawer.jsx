@@ -11,7 +11,6 @@ import { useEffect, useState } from "react";
 import {
   Dimensions,
   Image,
-  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -19,6 +18,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { openExternalUrl } from "../../lib/parseKowloonUrl.js";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
@@ -340,7 +340,7 @@ function BookmarksMenuSection({ client }) {
 
   function open(href) {
     if (!href) return;
-    Linking.openURL(href).catch(() => {});
+    openExternalUrl(href).catch(() => {});
   }
 
   return (

@@ -7,7 +7,8 @@
 // causing an upward offset equal to the status bar height on Android.
 
 import { useRef, useState } from "react";
-import { Alert, Linking, Modal, Pressable, Text, View } from "react-native";
+import { Alert, Modal, Pressable, Text, View } from "react-native";
+import { openExternalUrl } from "../../lib/parseKowloonUrl.js";
 import { useRouter } from "expo-router";
 import {
   Ban,
@@ -210,7 +211,7 @@ export function PostMoreMenu({ post, client, currentUser, onDeleted }) {
     close();
     if (!shareUrl) return;
     try {
-      await Linking.openURL(shareUrl);
+      await openExternalUrl(shareUrl);
     } catch {
       // silently ignore unsupported or malformed URL
     }

@@ -5,7 +5,8 @@
 // Servers. Mirror of the web FeedDiscoverRow.
 
 import { useEffect, useState } from "react";
-import { View, Text, Pressable, Image, ScrollView, Linking } from "react-native";
+import { View, Text, Pressable, Image, ScrollView } from "react-native";
+import { openExternalUrl } from "../../lib/parseKowloonUrl.js";
 import { useRouter } from "expo-router";
 import {
   ChevronRight,
@@ -156,7 +157,7 @@ function SquareCard({ item, baseUrl, router }) {
         <LinkSquare
           item={item}
           Icon={FileText}
-          onPress={() => item.url && Linking.openURL(item.url).catch(() => {})}
+          onPress={() => item.url && openExternalUrl(item.url).catch(() => {})}
         />
       );
     case "Bookmark":
@@ -164,7 +165,7 @@ function SquareCard({ item, baseUrl, router }) {
         <LinkSquare
           item={item}
           Icon={BookmarkIcon}
-          onPress={() => item.href && Linking.openURL(item.href).catch(() => {})}
+          onPress={() => item.href && openExternalUrl(item.href).catch(() => {})}
         />
       );
     case "Server":

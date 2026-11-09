@@ -73,7 +73,9 @@ function isGroup(viewKey) {
 
 // ---- Hook ------------------------------------------------------------------
 
-export function useFeed({ viewKey = "public", activeTypes = [], accountId } = {}) {
+// `enabled` (default true): callers pass false until their filter state has
+// hydrated, so we don't fire a throwaway "all" fetch that races the real view.
+export function useFeed({ viewKey = "public", activeTypes = [], accountId, enabled = true } = {}) {
   const client = useActiveClient();
 
   const [posts, setPosts] = useState([]);
@@ -88,13 +90,30 @@ export function useFeed({ viewKey = "public", activeTypes = [], accountId } = {}
   //   circle feeds → ISO `publishedAt` of the oldest loaded item, used as `before`
   const cursor = useRef(null);
   const inFlight = useRef(false);
+  // Request generation: every fetch takes a new number; a response is only
+  // applied if it is still the latest AND was made for the view/client that is
+  // current now. Without this, a slow response for a previous view (cold-start
+  // "all" fetch, or account A after switching to B) landed in the new view.
+  const generation = useRef(0);
 
   // Active-types JSON for the effect dep (arrays aren't ref-stable).
   const typesKey = JSON.stringify(activeTypes || []);
 
+  // What the hook is showing right now (updated every render), so stale
+  // fetchPage closures -- e.g. an old loadMore -- can tell they're outdated.
+  const viewSig = `${accountId}|${viewKey}|${typesKey}`;
+  const currentRef = useRef(null);
+  currentRef.current = { client, viewSig };
+
   const fetchPage = useCallback(
     async (mode) => {
       if (!client || inFlight.current) return;
+      const isCurrent = () =>
+        currentRef.current?.client === client &&
+        currentRef.current?.viewSig === viewSig;
+      if (!isCurrent()) return;
+      const myGen = ++generation.current;
+      const isLatest = () => myGen === generation.current && isCurrent();
       inFlight.current = true;
 
       if (mode === "initial") setLoading(true);
@@ -115,6 +134,7 @@ export function useFeed({ viewKey = "public", activeTypes = [], accountId } = {}
             before,
           });
           items = res?.orderedItems || res?.items || [];
+          if (!isLatest()) return; // superseded -- see `generation`
           const oldest = items[items.length - 1]?.publishedAt;
           cursor.current = oldest || cursor.current;
           // No total available — assume more if we got a full-ish page.
@@ -134,6 +154,7 @@ export function useFeed({ viewKey = "public", activeTypes = [], accountId } = {}
             page,
           });
           items = res?.orderedItems || res?.items || [];
+          if (!isLatest()) return; // superseded -- see `generation`
           const totalPages = Number(res?.totalPages);
           setHasMore(totalPages ? page < totalPages : items.length >= 20);
           cursor.current = page;
@@ -151,6 +172,7 @@ export function useFeed({ viewKey = "public", activeTypes = [], accountId } = {}
             page,
           });
           items = res?.orderedItems || res?.items || [];
+          if (!isLatest()) return; // superseded -- see `generation`
           const totalPages = Number(res?.totalPages) || 1;
           setHasMore(page < totalPages);
           cursor.current = page;
@@ -168,6 +190,7 @@ export function useFeed({ viewKey = "public", activeTypes = [], accountId } = {}
             page,
           });
           items = res?.orderedItems || res?.items || [];
+          if (!isLatest()) return; // superseded -- see `generation`
           const totalPages = Number(res?.totalPages) || 1;
           setHasMore(page < totalPages);
           cursor.current = page;
@@ -182,16 +205,21 @@ export function useFeed({ viewKey = "public", activeTypes = [], accountId } = {}
           writeCache(cacheKey(accountId, viewKey), items);
         }
       } catch (e) {
+        if (!isLatest()) return;
         setError(e?.message || "Couldn't load the feed.");
         // Stop here: without this, a failed fetch leaves hasMore=true, so an
         // empty FlatList keeps firing onEndReached → loadMore → refetch, which
         // flickers the error/empty states. A fresh initial/refresh resets it.
         setHasMore(false);
       } finally {
-        inFlight.current = false;
-        setLoading(false);
-        setRefreshing(false);
-        setLoadingMore(false);
+        // A superseded request must not clear the flags of the one that
+        // replaced it (the view-change effect already reset them).
+        if (myGen === generation.current) {
+          inFlight.current = false;
+          setLoading(false);
+          setRefreshing(false);
+          setLoadingMore(false);
+        }
       }
     },
     // typesKey covers activeTypes; viewKey direct; client and accountId identity.
@@ -206,12 +234,22 @@ export function useFeed({ viewKey = "public", activeTypes = [], accountId } = {}
     cursor.current = null;
     setPosts([]);
     setHasMore(true);
+    // Invalidate any request still in flight for the previous view/client and
+    // release the single-flight guard so the new view's fetch isn't skipped.
+    generation.current++;
+    inFlight.current = false;
+    setLoading(false);
+    setRefreshing(false);
+    setLoadingMore(false);
 
-    if (!client) return;
+    if (!client || !enabled) return;
 
     let cancelled = false;
     readCache(cacheKey(accountId, viewKey)).then((cached) => {
-      if (!cancelled && cached?.length) setPosts(cached);
+      // Don't let a slow cache read clobber a network result that beat it.
+      if (!cancelled && cached?.length) {
+        setPosts((prev) => (prev.length ? prev : cached));
+      }
     });
     fetchPage("initial");
 
@@ -219,7 +257,7 @@ export function useFeed({ viewKey = "public", activeTypes = [], accountId } = {}
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client, viewKey, typesKey]);
+  }, [client, viewKey, typesKey, accountId, enabled]);
 
   const refresh = useCallback(() => {
     cursor.current = null;

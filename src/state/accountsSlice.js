@@ -6,8 +6,14 @@
 // and instantiate the right client.
 
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { rootStorage, ROOT_KEYS, purgeAccountStorage } from "../lib/storage.js";
-import { forgetClient } from "../lib/client.js";
+import {
+  rootStorage,
+  ROOT_KEYS,
+  purgeAccountStorage,
+  makeAccountStorage,
+  PUSH_TOKEN_KEY,
+} from "../lib/storage.js";
+import { forgetClient, getCachedClient, ensureClient } from "../lib/client.js";
 
 const initialState = {
   // Loaded from AsyncStorage on app boot.
@@ -112,11 +118,47 @@ export const updateAccountAndPersist = (id, patch) => async (dispatch, getState)
   await persist(getState().accounts);
 };
 
+// Best-effort: tell the account's server to stop pushing to this device, so a
+// signed-out account's notifications don't keep arriving. Must run BEFORE the
+// client/token are dropped. Capped by a short timeout and every error is
+// swallowed -- sign-out must never hang or fail on this (e.g. a revoked
+// session's 401 just fails silently here).
+const PUSH_UNREGISTER_TIMEOUT_MS = 3000;
+async function unregisterPush(id, getState) {
+  try {
+    const pushToken = await makeAccountStorage(id).getItem(PUSH_TOKEN_KEY);
+    if (!pushToken) return;
+    let client = getCachedClient(id);
+    if (!client) {
+      const account = getState().accounts.list.find((a) => a.id === id);
+      if (!account) return;
+      client = ensureClient(account);
+    }
+    await Promise.race([
+      client.http.post("/push/unregister", { token: pushToken }),
+      new Promise((resolve) => setTimeout(resolve, PUSH_UNREGISTER_TIMEOUT_MS)),
+    ]);
+  } catch {
+    // ignore -- best-effort
+  }
+}
+
+// Re-entry guard: the unregister call above can itself 401 (revoked session),
+// which fires onUnauthorized -> signOutAccount(id) again mid-sign-out.
+const signingOut = new Set();
+
 export const signOutAccount = (id) => async (dispatch, getState) => {
-  forgetClient(id);
-  await purgeAccountStorage(id);
-  dispatch(removeAccount(id));
-  await persist(getState().accounts);
+  if (signingOut.has(id)) return;
+  signingOut.add(id);
+  try {
+    await unregisterPush(id, getState);
+    forgetClient(id);
+    await purgeAccountStorage(id);
+    dispatch(removeAccount(id));
+    await persist(getState().accounts);
+  } finally {
+    signingOut.delete(id);
+  }
 };
 
 // Selectors

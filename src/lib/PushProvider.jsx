@@ -24,6 +24,7 @@ import Constants from "expo-constants";
 import { selectActiveAccount } from "../state/accountsSlice.js";
 import { useActiveClient } from "./useActiveClient.js";
 import { notificationRoute } from "./notifications.js";
+import { makeAccountStorage, PUSH_TOKEN_KEY } from "./storage.js";
 
 // Expo Go reports executionEnvironment "storeClient"; dev/prod builds report
 // "standalone"/"bare". appOwnership is a legacy fallback ("expo" in Expo Go).
@@ -112,6 +113,8 @@ export function PushProvider({ children }) {
         const reg = await getPushRegistration();
         if (!reg || cancelled) return;
         await client.http.post("/push/register", reg);
+        // Remember it per account so signOutAccount can unregister it.
+        await makeAccountStorage(account.id).setItem(PUSH_TOKEN_KEY, reg.token);
       } catch {
         // permission denied / no build / offline — the poll fallback covers it
       }

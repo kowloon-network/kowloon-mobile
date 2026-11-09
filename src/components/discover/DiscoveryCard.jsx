@@ -6,7 +6,8 @@
 // Bookmark/Page: compact link card.
 
 import { useState } from "react";
-import { Image, Linking, Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
+import { openExternalUrl } from "../../lib/parseKowloonUrl.js";
 import { useRouter } from "expo-router";
 import { useSelector } from "react-redux";
 import { Bookmark as BookmarkIcon, Copy, ExternalLink, Globe, Newspaper, Play, Users } from "lucide-react-native";
@@ -397,7 +398,7 @@ export function DiscoveryCard({ item, baseUrl }) {
           item={item}
           baseUrl={baseUrl}
           icon={<BookmarkIcon size={12} color={ink(0.5)} strokeWidth={1.75} />}
-          onPress={() => item.href && Linking.openURL(item.href).catch(() => {})}
+          onPress={() => item.href && openExternalUrl(item.href).catch(() => {})}
         />
       );
     case "Page":
@@ -406,7 +407,7 @@ export function DiscoveryCard({ item, baseUrl }) {
           item={item}
           baseUrl={baseUrl}
           icon={<ExternalLink size={12} color={ink(0.5)} strokeWidth={1.75} />}
-          onPress={() => item.url && Linking.openURL(item.url).catch(() => {})}
+          onPress={() => item.url && openExternalUrl(item.url).catch(() => {})}
         />
       );
     case "Server":

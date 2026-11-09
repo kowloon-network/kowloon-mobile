@@ -5,11 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  Linking,
   Pressable,
   Text,
   View,
 } from "react-native";
+import { openExternalUrl } from "../../lib/parseKowloonUrl.js";
 import { ChevronRight, Folder, MoreHorizontal } from "lucide-react-native";
 
 import { VisibilityChip } from "./VisibilityChip.jsx";
@@ -184,7 +184,7 @@ export function TreeNode({
   async function openExternal() {
     if (!node?.href) return;
     try {
-      await Linking.openURL(node.href);
+      await openExternalUrl(node.href);
     } catch {
       // OS couldn't open; nothing to do
     }

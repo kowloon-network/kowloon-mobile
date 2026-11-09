@@ -182,7 +182,14 @@ export default function Feed() {
     refresh,
     loadMore,
     removePost,
-  } = useFeed({ viewKey, activeTypes, accountId: account?.id });
+  } = useFeed({
+    viewKey,
+    activeTypes,
+    accountId: account?.id,
+    // Don't fetch until the persisted filter has loaded -- an early "all"
+    // fetch used to land in the restored circle/group view.
+    enabled: hydrated,
+  });
 
   // Backfill the server's display name onto the account the first time we
   // have a client for it. Accounts created before this field existed (and

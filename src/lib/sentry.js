@@ -21,6 +21,61 @@ const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
 
 export const sentryEnabled = !!dsn;
 
+// ---- Privacy scrubbing ------------------------------------------------------
+// Default breadcrumbs record console output and every fetch/XHR URL, which
+// leaks search terms (/search?q=), shared URLs, invite/reset tokens and IDs.
+// We drop console breadcrumbs entirely and strip query strings/fragments (and
+// token-bearing path segments) from any URL before it leaves the device.
+
+const SECRET_PATH_RE = /(\/(?:invite|reset-password|verify-email))(\/[^?#]*)?/gi;
+
+function scrubUrl(url) {
+  if (typeof url !== "string") return url;
+  return url
+    .replace(/[?#].*$/, "")
+    .replace(SECRET_PATH_RE, (m, prefix, rest) => (rest ? `${prefix}/[redacted]` : prefix));
+}
+
+// Scrub every URL embedded in free text (error messages, breadcrumb messages).
+function scrubText(text) {
+  if (typeof text !== "string") return text;
+  return text.replace(/(?:https?|kowloon):\/\/[^\s"'<>)]+/gi, (u) => scrubUrl(u));
+}
+
+function scrubBreadcrumb(crumb) {
+  if (!crumb || crumb.category === "console") return null;
+  if (crumb.data) {
+    const data = { ...crumb.data };
+    for (const k of ["url", "from", "to"]) {
+      if (typeof data[k] === "string") data[k] = scrubUrl(data[k]);
+    }
+    crumb = { ...crumb, data };
+  }
+  if (crumb.message) crumb = { ...crumb, message: scrubText(crumb.message) };
+  return crumb;
+}
+
+function scrubEvent(event) {
+  if (event.request?.url) {
+    event.request = { ...event.request, url: scrubUrl(event.request.url) };
+    delete event.request.query_string;
+  }
+  if (event.message) {
+    event.message =
+      typeof event.message === "string"
+        ? scrubText(event.message)
+        : { ...event.message, formatted: scrubText(event.message.formatted) };
+  }
+  for (const ex of event.exception?.values || []) {
+    ex.value = scrubText(ex.value);
+  }
+  // Native-layer breadcrumbs merged in at send time skip beforeBreadcrumb.
+  if (Array.isArray(event.breadcrumbs)) {
+    event.breadcrumbs = event.breadcrumbs.map(scrubBreadcrumb).filter(Boolean);
+  }
+  return event;
+}
+
 if (dsn) {
   Sentry.init({
     dsn,
@@ -32,6 +87,11 @@ if (dsn) {
     // store. Default is already false; pinned explicitly so a future SDK
     // default change can't quietly start sending PII.
     sendDefaultPii: false,
+    beforeBreadcrumb: (crumb) => scrubBreadcrumb(crumb),
+    beforeSend: (event) => scrubEvent(event),
+    // iOS native layer records its own (unscrubbed) HTTP breadcrumbs; the JS
+    // ones above already cover fetch/XHR after scrubbing.
+    enableNetworkBreadcrumbs: false,
   });
 }
 

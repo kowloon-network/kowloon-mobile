@@ -65,12 +65,18 @@ import { isNavigatorReady } from "../lib/navigatorReady.js";
 // ("never let a share crash the app") which means a real thrown error would
 // look EXACTLY like "nothing happens" with zero visibility into why. This
 // surfaces what's actually happening on-screen instead of guessing blind.
+const NOOP = () => {};
+
 export function ShareIntentRouter() {
   const { hasShareIntent, shareIntent, resetShareIntent } =
     useShareIntentContext();
   const accountsStatus = useSelector(selectAccountsStatus);
   const hydrated = accountsStatus === "ready" || accountsStatus === "error";
-  const [debug, setDebug] = useState(null);
+  const [debug, setDebugState] = useState(null);
+  // Debug state/overlay/logging is dev-only: in production builds it leaked
+  // shared URLs/text on-screen and into device logs. A no-op setter keeps
+  // every setDebug call below harmless without touching the routing logic.
+  const setDebug = __DEV__ ? setDebugState : NOOP;
   // TEMP DIAGNOSTIC ONLY -- not a gate, just logged alongside the failure so
   // we can see the actual routeNames Expo Router is working with at the
   // exact moment "not handled by any navigator" fires.
@@ -173,7 +179,7 @@ export function ShareIntentRouter() {
       // Plain console.log (not just setDebug) -- shows up directly in the
       // Metro terminal, so this can be checked without relaying a
       // screenshot each time.
-      console.log("[ShareIntentRouter] navigating", { target, routeNames: dataRef.current?.routeNames });
+      if (__DEV__) console.log("[ShareIntentRouter] navigating", { target, routeNames: dataRef.current?.routeNames });
       setDebug((p) => ({ ...p, step: "navigating", target, routeNames: dataRef.current?.routeNames }));
 
       // ANDROID RELOAD STRATEGY -- TRIED AND REVERTED. DevSettings.reload()
@@ -255,7 +261,7 @@ export function ShareIntentRouter() {
         const ready = isNavigatorReady();
         const rn = dataRef.current?.routeNames;
         if (attemptsLeft === MAX_ATTEMPTS || attemptsLeft % 10 === 0) {
-          console.log("[ShareIntentRouter] readiness check", { ready, attemptsLeft, routeNames: rn });
+          if (__DEV__) console.log("[ShareIntentRouter] readiness check", { ready, attemptsLeft, routeNames: rn });
           setDebug((p) => ({ ...p, step: "polling", attemptsLeft, ready, routeNamesCount: Array.isArray(rn) ? rn.length : String(rn) }));
         }
         if (!ready) {
@@ -278,7 +284,7 @@ export function ShareIntentRouter() {
         // Re-check the actual path shortly after -- did it change at all?
         setTimeout(() => {
           const pathnameAfter = dataRef.current?.pathname;
-          console.log("[ShareIntentRouter] path check", { pathnameBefore, pathnameAfter, changed: pathnameBefore !== pathnameAfter });
+          if (__DEV__) console.log("[ShareIntentRouter] path check", { pathnameBefore, pathnameAfter, changed: pathnameBefore !== pathnameAfter });
           setDebug((p) => ({ ...p, pathnameBefore, pathnameAfter }));
         }, 500);
       };
@@ -324,7 +330,7 @@ export function ShareIntentRouter() {
   // Floats at the top of whatever screen is showing so it survives
   // navigation into the composer. Remove alongside the setDebug calls above
   // once this is root-caused.
-  if (Platform.OS !== "android" || !debug) return null;
+  if (!__DEV__ || Platform.OS !== "android" || !debug) return null;
   return (
     <View
       pointerEvents="none"

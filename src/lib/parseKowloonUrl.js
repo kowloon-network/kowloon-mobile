@@ -80,6 +80,26 @@ export function kowloonRouteFromUrl(href) {
   return parseKowloonUrl(href)?.route || null;
 }
 
+// The ONE place server/user-supplied URLs get handed to the OS. Only http(s)
+// and mailto are allowed: Linking.openURL will happily fire tel:, sms:,
+// intent:, market:, other apps' custom schemes, file: etc., and these hrefs
+// come from posts, profiles, bookmarks and remote servers. Anything else is
+// silently ignored. Resolves true if the OS accepted the URL.
+const SAFE_EXTERNAL_SCHEMES = new Set(["http", "https", "mailto"]);
+
+export function isSafeExternalUrl(href) {
+  if (typeof href !== "string") return false;
+  const m = href.trim().match(/^([a-z][a-z0-9+.-]*):/i);
+  return !!m && SAFE_EXTERNAL_SCHEMES.has(m[1].toLowerCase());
+}
+
+export function openExternalUrl(href) {
+  if (!isSafeExternalUrl(href)) return Promise.resolve(false);
+  return Linking.openURL(href.trim())
+    .then(() => true)
+    .catch(() => false);
+}
+
 // Open a link the right way: route in-app if it points at a Kowloon object we
 // can show, otherwise hand it to the browser. Returns true if handled in-app.
 export function openKowloonLink(href) {
@@ -88,7 +108,7 @@ export function openKowloonLink(href) {
     router.push(route);
     return true;
   }
-  if (href) Linking.openURL(href).catch(() => {});
+  if (href) openExternalUrl(href);
   return false;
 }
 

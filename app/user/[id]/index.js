@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
-  Linking,
   Modal,
   Pressable,
   RefreshControl,
@@ -18,6 +17,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { openExternalUrl } from "../../../src/lib/parseKowloonUrl.js";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, MapPin } from "lucide-react-native";
 
@@ -446,7 +446,7 @@ export default function UserProfile() {
                     key={url}
                     onPress={() => {
                       setLinksOpen(false);
-                      Linking.openURL(url).catch(() => {});
+                      openExternalUrl(url).catch(() => {});
                     }}
                     android_ripple={{ color: "rgba(0,0,0,0.05)" }}
                     className="flex-row items-center px-5 py-3  "

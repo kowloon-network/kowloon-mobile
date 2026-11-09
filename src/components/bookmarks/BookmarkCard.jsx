@@ -1,7 +1,8 @@
 // BookmarkCard — list row for a saved bookmark. Tap opens the external URL
 // in the system browser; long-press jumps to the bookmark detail (someday).
 
-import { Image, Linking, Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
+import { openExternalUrl } from "../../lib/parseKowloonUrl.js";
 
 import { resolveImageUrl } from "../../lib/resolveImageUrl.js";
 import { timeAgo } from "@kowloon/client";
@@ -24,7 +25,7 @@ export function BookmarkCard({ bookmark, baseUrl }) {
   async function open() {
     if (!bookmark?.href) return;
     try {
-      await Linking.openURL(bookmark.href);
+      await openExternalUrl(bookmark.href);
     } catch {
       // ignore — some URLs the OS can't handle
     }

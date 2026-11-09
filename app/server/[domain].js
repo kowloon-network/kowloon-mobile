@@ -6,7 +6,6 @@ import {
   Dimensions,
   FlatList,
   Image,
-  Linking,
   Modal,
   Pressable,
   RefreshControl,
@@ -15,6 +14,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { openExternalUrl } from "../../src/lib/parseKowloonUrl.js";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Check, ChevronRight, Globe, MapPin, Newspaper, Play, PlusCircle, Users, X } from "lucide-react-native";
 import { selectActiveAccount } from "../../src/state/accountsSlice.js";
@@ -227,7 +227,7 @@ function PageRow({ page, domain }) {
         `/pages/${encodeURIComponent(slug)}?domain=${encodeURIComponent(domain)}`
       );
     } else if (page.url) {
-      Linking.openURL(page.url);
+      openExternalUrl(page.url);
     }
   };
   return (

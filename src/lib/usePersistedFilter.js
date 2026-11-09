@@ -28,7 +28,11 @@ function fallbackHasValues(f) {
 }
 
 export function usePersistedFilter(accountId, fallbackDefaults) {
-  const [hydrated, setHydrated] = useState(false);
+  // Which storageKey we've finished hydrating for. Derived (not a boolean set
+  // in an effect) so `hydrated` is false on the very render an account switch
+  // happens -- otherwise the feed saw hydrated=true with the PREVIOUS
+  // account's viewKey for one render and fetched it.
+  const [hydratedKey, setHydratedKey] = useState(undefined);
   // Current (ephemeral) selection.
   const [viewKey, setViewKey] = useState(HARD_DEFAULTS.viewKey);
   const [activeTypes, setActiveTypes] = useState(HARD_DEFAULTS.activeTypes);
@@ -37,6 +41,7 @@ export function usePersistedFilter(accountId, fallbackDefaults) {
   const [defaultTypes, setDefaultTypes] = useState(HARD_DEFAULTS.activeTypes);
 
   const storageKey = keyFor(accountId);
+  const hydrated = hydratedKey === storageKey;
   const awaitingFallback = useRef(false);
 
   // Apply a default to BOTH the default and the current selection (used on
@@ -54,12 +59,14 @@ export function usePersistedFilter(accountId, fallbackDefaults) {
 
   // Hydrate on account change.
   useEffect(() => {
+    // Start each account from the hard defaults so a view that only exists
+    // for the previous account (e.g. its circle) never carries over.
+    applyDefault(HARD_DEFAULTS.viewKey, HARD_DEFAULTS.activeTypes);
     if (!storageKey) {
-      setHydrated(true);
+      setHydratedKey(storageKey);
       return;
     }
     let cancelled = false;
-    setHydrated(false);
     awaitingFallback.current = false;
     (async () => {
       try {
@@ -80,7 +87,7 @@ export function usePersistedFilter(accountId, fallbackDefaults) {
       } catch {
         // ignore — fall back to hard defaults
       }
-      if (!cancelled) setHydrated(true);
+      if (!cancelled) setHydratedKey(storageKey);
     })();
     return () => {
       cancelled = true;

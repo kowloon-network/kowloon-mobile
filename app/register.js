@@ -19,12 +19,13 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useDispatch } from "react-redux";
 import {
   KeyboardAvoidingView,
-  Linking,
   Platform,
   ScrollView,
   Text,
   View,
 } from "react-native";
+import { openExternalUrl } from "../src/lib/parseKowloonUrl.js";
+import { trustedServerUrl } from "../src/lib/inviteUrl.js";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button } from "../src/components/ui/Button.jsx";
@@ -52,8 +53,13 @@ export default function Register() {
   const [domain, setDomain] = useState(
     typeof params.server === "string" ? params.server : ""
   );
+  // Deep links can reach this route directly (kowloon://register?...), so the
+  // serverUrl param is re-checked here, not just in parseInviteUrl: it must
+  // match the displayed server or it's ignored (see trustedServerUrl).
   const [override, setOverride] = useState(
-    typeof params.serverUrl === "string" ? params.serverUrl : ""
+    typeof params.serverUrl === "string"
+      ? trustedServerUrl(params.server, params.serverUrl)
+      : ""
   );
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [serverInfo, setServerInfo] = useState(null);
@@ -394,7 +400,7 @@ export default function Register() {
                   <View className="flex-row mt-2" style={{ gap: 16 }}>
                     <Text
                       onPress={() =>
-                        Linking.openURL(
+                        openExternalUrl(
                           `https://${domain.trim().toLowerCase()}/pages/terms`
                         )
                       }
@@ -404,7 +410,7 @@ export default function Register() {
                     </Text>
                     <Text
                       onPress={() =>
-                        Linking.openURL(
+                        openExternalUrl(
                           `https://${domain.trim().toLowerCase()}/pages/privacy`
                         )
                       }
