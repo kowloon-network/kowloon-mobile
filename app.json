@@ -100,7 +100,8 @@
       ],
       "expo-status-bar",
       "expo-asset",
-      "expo-secure-store"
+      "expo-secure-store",
+      "./plugins/withAllowBackupOverride"
     ],
     "extra": {
       "router": {},
