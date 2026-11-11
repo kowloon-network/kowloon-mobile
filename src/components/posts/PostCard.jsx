@@ -254,13 +254,20 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
                         const isOddFinal =
                           !isOverflowCell && shown.length > 1 && shown.length % 2 === 1 && i === shown.length - 1;
                         const cellWidth = shown.length === 1 || isOddFinal ? "100%" : "49%";
+                        // Same cell shapes as the web feed card: square cells
+                        // (a lone image fills the full width as a square), and
+                        // an odd final item spans both columns at 2:1.
+                        const cellRatio = isOddFinal ? 2 : 1;
                         const onPress =
                           kind === "image"
                             ? () => viewer?.open(imageItems, imageAtts.findIndex((a) => attUrl(a) === attUrl(att)))
                             : open;
                         return (
                           <Pressable key={`${attUrl(att)}-${i}`} onPress={onPress} style={{ width: cellWidth }}>
-                            <View className="relative w-full h-40 bg-base-200 items-center justify-center overflow-hidden">
+                            <View
+                              className="relative w-full bg-base-200 items-center justify-center overflow-hidden"
+                              style={{ aspectRatio: cellRatio }}
+                            >
                               {kind === "image" && (
                                 <Image source={{ uri: attUrl(att) }} className="w-full h-full" resizeMode="cover" />
                               )}
