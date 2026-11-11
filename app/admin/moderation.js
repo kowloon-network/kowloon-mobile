@@ -1,5 +1,6 @@
-// Admin moderation -- the report queue, filtered by status. Each report opens
-// its own screen (app/admin/report/[id].js), which holds the actions.
+// Admin moderation -- a top switch between the report queue (filtered by
+// status; each report opens app/admin/report/[id].js, which holds the
+// actions), the server's Blocked and Defederated lists, and banned emails.
 
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -15,6 +16,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { ReportsList } from "../../src/components/admin/ReportsList.jsx";
+import { BlocklistView } from "../../src/components/admin/BlocklistView.jsx";
+import { BannedEmailsView } from "../../src/components/admin/BannedEmailsView.jsx";
+
+const SECTIONS = [
+  { key: "reports", label: "Reports" },
+  { key: "blocked", label: "Blocked" },
+  { key: "defederated", label: "Defederated" },
+  { key: "emails", label: "Emails" },
+];
 
 const STATUSES = [
   { key: "open", label: "Open" },
@@ -25,6 +35,7 @@ const STATUSES = [
 export default function Moderation() {
   const client = useActiveClient();
 
+  const [section, setSection] = useState("reports");
   const [status, setStatus] = useState("open");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +76,36 @@ export default function Moderation() {
     <SafeAreaView className="flex-1 bg-base-100" edges={["left", "right"]}>
       <AppHeader back title="Moderation" />
 
+      {/* Section switch */}
+      <View className="flex-row bg-base-200">
+        {SECTIONS.map((sec) => {
+          const active = section === sec.key;
+          return (
+            <Pressable
+              key={sec.key}
+              onPress={() => setSection(sec.key)}
+              className={`flex-1 items-center py-3 ${active ? "bg-secondary" : ""}`}
+              android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+            >
+              <Text
+                numberOfLines={1}
+                className={`font-ui uppercase tracking-[0.12em] text-[10px] ${
+                  active ? "text-secondary-content" : "text-base-content/55"
+                }`}
+              >
+                {sec.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {section === "blocked" || section === "defederated" ? (
+        <BlocklistView key={section} list={section} />
+      ) : section === "emails" ? (
+        <BannedEmailsView />
+      ) : (
+      <>
       {/* Status tabs */}
       <View className="flex-row border-b border-base-200">
         {STATUSES.map((s) => {
@@ -114,6 +155,8 @@ export default function Moderation() {
           </View>
         )}
       </ScrollView>
+      </>
+      )}
     </SafeAreaView>
   );
 }

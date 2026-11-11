@@ -1,5 +1,5 @@
 // One moderation report: what was reported, by whom, why, and the four
-// things an admin can do about it. Mirrors the web's AdminReportPage.
+// things an admin can do about it (blocking a local author is a ban). Mirrors the web's AdminReportPage.
 
 import { useCallback, useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -25,6 +25,7 @@ import {
   personName,
   reasonLabel,
 } from "../../../src/components/admin/ReportsList.jsx";
+import { banMessage, domainOf, ownDomain } from "../../../src/components/admin/blocklistUtils.js";
 
 // Where the reported thing can be opened in the app.
 const VIEW_ROUTE = {
@@ -166,6 +167,8 @@ export default function AdminReport() {
   const typeLower = typeLabel.toLowerCase();
   const isOpen = flag.status === "open";
   const authorName = personName(flag.targetActor, flag.targetActorId);
+  const authorId = flag.targetActor?.id || flag.targetActorId;
+  const authorIsLocal = !!authorId && domainOf(authorId) === ownDomain(client);
   const viewRoute = t.exists !== false ? VIEW_ROUTE[flag.targetType]?.(flag.target) : null;
   const images = [
     ...(t.image ? [t.image] : []),
@@ -290,22 +293,41 @@ export default function AdminReport() {
                 )
               }
             />
-            <ActionButton
-              danger
-              icon={<UserX size={16} color={DANGER} strokeWidth={1.75} />}
-              label="Block creator"
-              hint="Close the author's account and sign them out."
-              disabled={busy || !flag.targetActorId}
-              onPress={() =>
-                confirmThen(
-                  `Close ${authorName}'s account?`,
-                  "They'll be signed out straight away. You can restore it from Users.",
-                  "Close account",
-                  () => client.admin.blockFlaggedAuthor({ flagId: flag.id }),
-                  `${authorName}'s account is closed. The reporter has been told.`
-                )
-              }
-            />
+            {authorIsLocal ? (
+              <ActionButton
+                danger
+                icon={<UserX size={16} color={DANGER} strokeWidth={1.75} />}
+                label="Ban author"
+                hint="Permanently deletes their account and everything they posted."
+                disabled={busy || !authorId}
+                onPress={() =>
+                  confirmThen(
+                    `Ban ${authorName}?`,
+                    banMessage(authorName),
+                    "Ban",
+                    () => client.admin.blockFlaggedAuthor({ flagId: flag.id, confirmBan: true }),
+                    `${authorName} is banned: their account and posts are deleted, and their email can't sign up again. The reporter has been told.`
+                  )
+                }
+              />
+            ) : (
+              <ActionButton
+                danger
+                icon={<UserX size={16} color={DANGER} strokeWidth={1.75} />}
+                label="Block creator"
+                hint="Refuse everything they send this server. Adds them to the Blocked list."
+                disabled={busy || !authorId}
+                onPress={() =>
+                  confirmThen(
+                    `Block ${authorName}?`,
+                    "Everything they send this server will be refused. You can remove them from Moderation > Blocked.",
+                    "Block",
+                    () => client.admin.blockFlaggedAuthor({ flagId: flag.id }),
+                    `${authorName} is on the Blocked list. The reporter has been told.`
+                  )
+                }
+              />
+            )}
             <ActionButton
               danger
               icon={<Flame size={16} color={DANGER} strokeWidth={1.75} />}
