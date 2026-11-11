@@ -81,7 +81,7 @@ const SECTIONS = [
 ];
 
 const QUICK_ACTIONS = [
-  { route: "/admin/invites", label: "Invite", Icon: Mail },
+  { route: "/admin/invite/new", label: "Invite", Icon: Mail },
   { route: "/admin/page/new", label: "Page", Icon: BookOpen },
   { route: "/admin/bookmark/new", label: "Bookmark", Icon: Bookmark },
 ];
