@@ -17,6 +17,7 @@ import { ChevronRight, FileText, Folder } from "lucide-react-native";
 import { AppHeader, HeaderButton } from "../../src/components/nav/AppHeader.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { useInk } from "../../src/lib/useInk.js";
+import { SortableGroups, applyOrder } from "../../src/components/admin/SortableGroups.jsx";
 import { Spinner } from "../../src/components/ui/Spinner.jsx";
 import { EmptyState } from "../../src/components/ui/EmptyState.jsx";
 import { ErrorState } from "../../src/components/ui/ErrorState.jsx";
@@ -46,7 +47,7 @@ export default function AdminPages() {
       else setLoading(true);
       setError(null);
       try {
-        const res = await client.admin.getPages({ showDeleted: t === "deleted" });
+        const res = await client.admin.getPages({ showDeleted: t === "deleted", limit: 100 });
         setItems(res?.orderedItems || res?.items || []);
       } catch (e) {
         setError(
@@ -88,6 +89,70 @@ export default function AdminPages() {
 
   const isDeleted = tab === "deleted";
 
+  // One row. `handle` is the drag grip (active tab only), else null.
+  function renderRow(page, { handle = null } = {}) {
+    const isFolder = page.type === "Folder";
+    return (
+      <Pressable
+        onPress={() =>
+          isDeleted
+            ? null
+            : router.push(`/admin/page/${encodeURIComponent(page.id)}`)
+        }
+        android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+        className="flex-row items-center px-5 py-3.5 border-b border-base-200"
+      >
+        {handle}
+        <View className="mr-3">
+          {isFolder ? (
+            <Folder size={18} color={ink(0.6)} strokeWidth={1.75} />
+          ) : (
+            <FileText size={18} color={ink(0.6)} strokeWidth={1.75} />
+          )}
+        </View>
+        <View className="flex-1 min-w-0">
+          <Text className="font-ui text-base text-base-content" numberOfLines={1}>
+            {page.title || "Untitled"}
+          </Text>
+          <Text className="font-ui text-xs text-base-content/50" numberOfLines={1}>
+            {page.slug ? `/${page.slug}` : page.id}
+            {page.to && page.to !== "@public" ? " · server" : ""}
+          </Text>
+        </View>
+        {isDeleted ? (
+          <Pressable
+            onPress={() => restore(page)}
+            disabled={busyId === page.id}
+            className="px-3 py-1.5 bg-base-200"
+            android_ripple={{ color: "rgba(0,0,0,0.08)" }}
+          >
+            {busyId === page.id ? (
+              <Spinner size="sm" />
+            ) : (
+              <Text className="font-ui uppercase tracking-[0.12em] text-[10px] text-base-content">
+                Restore
+              </Text>
+            )}
+          </Pressable>
+        ) : (
+          <ChevronRight size={18} color={ink(0.35)} strokeWidth={1.75} />
+        )}
+      </Pressable>
+    );
+  }
+
+  // Drag-to-reorder: show the new order straight away, then save it.
+  async function handleReorder(ids) {
+    setItems((arr) => applyOrder(arr, ids));
+    try {
+      await client.admin.reorderPages({ ids });
+    } catch (e) {
+      Alert.alert("Couldn't save the new order", e?.message || "Please try again.");
+      load(tab);
+    }
+  }
+
+
   return (
     <SafeAreaView className="flex-1 bg-base-100" edges={["left", "right"]}>
       <AppHeader
@@ -118,77 +183,40 @@ export default function AdminPages() {
         })}
       </View>
 
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 96 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => load(tab, { isRefresh: true })} />
-        }
-      >
-        {loading ? (
-          <Spinner centered />
-        ) : error ? (
-          <ErrorState message={error} onRetry={() => load(tab)} />
-        ) : items.length === 0 ? (
-          <EmptyState
-            message={
-              isDeleted
-                ? "No deleted pages."
-                : "No pages yet. Tap New to create your first page."
-            }
-          />
-        ) : (
-          items.map((page) => {
-            const isFolder = page.type === "Folder";
-            return (
-              <Pressable
-                key={page.id}
-                onPress={() =>
-                  isDeleted
-                    ? null
-                    : router.push(`/admin/page/${encodeURIComponent(page.id)}`)
-                }
-                android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-                className="flex-row items-center px-5 py-3.5 border-b border-base-200"
-              >
-                <View className="mr-3">
-                  {isFolder ? (
-                    <Folder size={18} color={ink(0.6)} strokeWidth={1.75} />
-                  ) : (
-                    <FileText size={18} color={ink(0.6)} strokeWidth={1.75} />
-                  )}
-                </View>
-                <View className="flex-1 min-w-0">
-                  <Text className="font-ui text-base text-base-content" numberOfLines={1}>
-                    {page.title || "Untitled"}
-                  </Text>
-                  <Text className="font-ui text-xs text-base-content/50" numberOfLines={1}>
-                    {page.slug ? `/${page.slug}` : page.id}
-                    {page.to && page.to !== "@public" ? " · server" : ""}
-                  </Text>
-                </View>
-                {isDeleted ? (
-                  <Pressable
-                    onPress={() => restore(page)}
-                    disabled={busyId === page.id}
-                    className="px-3 py-1.5 bg-base-200"
-                    android_ripple={{ color: "rgba(0,0,0,0.08)" }}
-                  >
-                    {busyId === page.id ? (
-                      <Spinner size="sm" />
-                    ) : (
-                      <Text className="font-ui uppercase tracking-[0.12em] text-[10px] text-base-content">
-                        Restore
-                      </Text>
-                    )}
-                  </Pressable>
-                ) : (
-                  <ChevronRight size={18} color={ink(0.35)} strokeWidth={1.75} />
-                )}
-              </Pressable>
-            );
-          })
-        )}
-      </ScrollView>
+      {!isDeleted && !loading && !error && items.length > 0 ? (
+        <SortableGroups
+          items={items}
+          parentKey="parentId"
+          onReorder={handleReorder}
+          renderRow={renderRow}
+          refreshing={refreshing}
+          onRefresh={() => load(tab, { isRefresh: true })}
+          hint="Drag the handle to change the order pages appear in."
+        />
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 96 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={() => load(tab, { isRefresh: true })} />
+          }
+        >
+          {loading ? (
+            <Spinner centered />
+          ) : error ? (
+            <ErrorState message={error} onRetry={() => load(tab)} />
+          ) : items.length === 0 ? (
+            <EmptyState
+              message={
+                isDeleted
+                  ? "No deleted pages."
+                  : "No pages yet. Tap New to create your first page."
+              }
+            />
+          ) : (
+            items.map((page) => <View key={page.id}>{renderRow(page)}</View>)
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
