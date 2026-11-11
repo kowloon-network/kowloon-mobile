@@ -1,7 +1,7 @@
 // Admin home -- same order as the web dashboard (frontend AdminDashboardPage):
-//   1. Moderation: open reports, each opening its report screen
-//   2. Quick actions
-//   3. Your community: the four numbers an admin actually watches
+//   1. Your community: the four numbers an admin actually watches
+//   2. Moderation: open reports, each opening its report screen
+//   3. Create new: quick actions
 //   4. Sections, with a one-line description each
 //   5. Server health, collapsed
 //   6. A pointer to the admin guide
@@ -22,6 +22,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   AlertTriangle,
+  ArrowRight,
   Bookmark,
   BookOpen,
   ChevronDown,
@@ -106,13 +107,23 @@ function fmtNum(v) {
   return typeof v === "number" ? v.toLocaleString() : "--";
 }
 
-function SectionTitle({ children, action, onAction }) {
+// `onAction` adds an arrow at the right that opens the section's full screen;
+// `actionLabel` (optional) sits beside the arrow.
+function SectionTitle({ children, onAction, actionLabel, first = false }) {
+  const ink = useInk();
   return (
-    <View className="flex-row items-baseline justify-between border-b-2 border-base-300 pb-2 mb-1 mt-8">
+    <View
+      className={`flex-row items-center justify-between border-b-2 border-base-300 pb-2 mb-1 ${first ? "mt-4" : "mt-8"}`}
+    >
       <Text className="font-reading text-2xl text-base-content">{children}</Text>
-      {action ? (
-        <Pressable onPress={onAction} hitSlop={8}>
-          <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-primary">{action}</Text>
+      {onAction ? (
+        <Pressable onPress={onAction} hitSlop={10} className="flex-row items-center" accessibilityRole="link">
+          {actionLabel ? (
+            <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content/70 mr-1.5">
+              {actionLabel}
+            </Text>
+          ) : null}
+          <ArrowRight size={22} color={ink(0.75)} strokeWidth={1.75} />
         </Pressable>
       ) : null}
     </View>
@@ -244,39 +255,8 @@ export default function AdminHome() {
             </View>
           ) : null}
 
-          {/* 1. Moderation */}
-          <SectionTitle
-            action={openTotal > 0 ? (openTotal > REPORTS_SHOWN ? `All ${openTotal} open` : "Moderation") : null}
-            onAction={() => router.push("/admin/moderation")}
-          >
-            Moderation
-          </SectionTitle>
-          {reports?.failed ? (
-            <Text className="font-ui text-sm text-error py-3">Couldn't load reports.</Text>
-          ) : (
-            <ReportsList flags={reports?.items || []} empty="No open reports." />
-          )}
-
-          {/* 2. Quick actions */}
-          <SectionTitle>Create new</SectionTitle>
-          <View className="flex-row mt-2" style={{ gap: 8 }}>
-            {QUICK_ACTIONS.map(({ route, label, Icon }) => (
-              <Pressable
-                key={label}
-                onPress={() => router.push(route)}
-                android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-                className="flex-1 items-center py-3 border-2 border-base-300"
-              >
-                <Icon size={18} color={ink(0.6)} strokeWidth={1.75} />
-                <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content/70 mt-1">
-                  {label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          {/* 3. Your community */}
-          <SectionTitle>Your community</SectionTitle>
+          {/* 1. Your community */}
+          <SectionTitle first>Your community</SectionTitle>
           <View className="flex-row flex-wrap -mx-1 mt-1">
             <Tile
               label="Members"
@@ -297,6 +277,37 @@ export default function AdminHome() {
               sub={a.invitesUsed != null ? `active -- ${a.invitesUsed} used` : "active"}
               onPress={() => router.push("/admin/invites")}
             />
+          </View>
+
+          {/* 2. Moderation */}
+          <SectionTitle
+            onAction={() => router.push("/admin/moderation")}
+            actionLabel={openTotal > REPORTS_SHOWN ? `${openTotal} open` : null}
+          >
+            Moderation
+          </SectionTitle>
+          {reports?.failed ? (
+            <Text className="font-ui text-sm text-error py-3">Couldn't load reports.</Text>
+          ) : (
+            <ReportsList flags={reports?.items || []} empty="No open reports." />
+          )}
+
+          {/* 3. Quick actions */}
+          <SectionTitle>Create new</SectionTitle>
+          <View className="flex-row mt-2" style={{ gap: 8 }}>
+            {QUICK_ACTIONS.map(({ route, label, Icon }) => (
+              <Pressable
+                key={label}
+                onPress={() => router.push(route)}
+                android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+                className="flex-1 items-center py-3 border-2 border-base-300"
+              >
+                <Icon size={18} color={ink(0.6)} strokeWidth={1.75} />
+                <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content/70 mt-1">
+                  {label}
+                </Text>
+              </Pressable>
+            ))}
           </View>
 
           {/* 4. Sections */}
