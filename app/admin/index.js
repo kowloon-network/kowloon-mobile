@@ -33,7 +33,6 @@ import {
   Flag,
   Mail,
   Palette,
-  Plus,
   ScrollText,
   Settings,
   Users,
@@ -259,7 +258,8 @@ export default function AdminHome() {
           )}
 
           {/* 2. Quick actions */}
-          <View className="flex-row mt-6" style={{ gap: 8 }}>
+          <SectionTitle>Create new</SectionTitle>
+          <View className="flex-row mt-2" style={{ gap: 8 }}>
             {QUICK_ACTIONS.map(({ route, label, Icon }) => (
               <Pressable
                 key={label}
@@ -267,10 +267,7 @@ export default function AdminHome() {
                 android_ripple={{ color: "rgba(0,0,0,0.05)" }}
                 className="flex-1 items-center py-3 border-2 border-base-300"
               >
-                <View className="flex-row items-center">
-                  <Plus size={12} color={ink(0.6)} strokeWidth={2} />
-                  <Icon size={16} color={ink(0.6)} strokeWidth={1.75} />
-                </View>
+                <Icon size={18} color={ink(0.6)} strokeWidth={1.75} />
                 <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content/70 mt-1">
                   {label}
                 </Text>
