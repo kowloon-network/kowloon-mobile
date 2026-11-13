@@ -36,7 +36,7 @@ import {
 
 import { useActiveClient } from "../../lib/useActiveClient.js";
 import { resolveImageUrl } from "../../lib/resolveImageUrl.js";
-import { useIsAdmin } from "../../lib/useIsAdmin.js";
+import { useIsStaff } from "../../lib/useIsAdmin.js";
 import { useInk } from "../../lib/useInk.js";
 import { selectActiveAccount } from "../../state/accountsSlice.js";
 
@@ -571,7 +571,7 @@ function DiscoverSection({ client, onNavigate }) {
 // left column (#tablet-layout). `onNavigate` lets the drawer close-then-navigate
 // while the tablet column just navigates.
 export function SidebarBody({ client, onNavigate }) {
-  const isAdmin = useIsAdmin();
+  const isAdmin = useIsStaff(); // admins and moderators
   const ink = useInk();
   return (
     <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
@@ -604,7 +604,7 @@ export function LeftDrawer({ visible, onClose }) {
   const screenWidth = Dimensions.get("window").width;
   const panelWidth = Math.round(screenWidth * DRAWER_WIDTH_PCT);
   const [serverIcon, setServerIcon] = useState(null);
-  const isAdmin = useIsAdmin();
+  const isAdmin = useIsStaff(); // admins and moderators
   const ink = useInk();
 
   // Server icon for the header, matching the feed masthead.

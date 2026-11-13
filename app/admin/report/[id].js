@@ -26,6 +26,7 @@ import {
   reasonLabel,
 } from "../../../src/components/admin/ReportsList.jsx";
 import { banMessage, domainOf, ownDomain } from "../../../src/components/admin/blocklistUtils.js";
+import { useStaffRole } from "../../../src/lib/useIsAdmin.js";
 
 // Where the reported thing can be opened in the app.
 const VIEW_ROUTE = {
@@ -93,6 +94,7 @@ export default function AdminReport() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const client = useActiveClient();
+  const isMod = useStaffRole() === "mod";
   const ink = useInk();
 
   const [flag, setFlag] = useState(null);
@@ -293,7 +295,11 @@ export default function AdminReport() {
                 )
               }
             />
-            {authorIsLocal ? (
+            {authorIsLocal && isMod ? (
+              <Text className="font-ui text-xs text-base-content/55 py-3">
+                Banning a member is an admin's call. If this needs a ban, tell an admin -- or remove the {typeLower} now and leave the ban to them.
+              </Text>
+            ) : authorIsLocal ? (
               <ActionButton
                 danger
                 icon={<UserX size={16} color={DANGER} strokeWidth={1.75} />}

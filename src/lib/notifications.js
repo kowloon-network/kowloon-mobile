@@ -36,6 +36,12 @@ export const NOTIF_TYPES = {
 // route this one (e.g. an unrecognized objectType, or a User reference with
 // no profile screen yet).
 export function notificationRoute(notification) {
+  // Staff notices (a new report; a moderator changed who's defederated)
+  // carry only an href into the admin panel.
+  const adminPath = String(notification?.href || "").match(/\/admin\/moderation(?:\/([^/?#]+))?/);
+  if (notification?.type === "moderation" && adminPath && !notification?.objectType) {
+    return adminPath[1] ? `/admin/report/${adminPath[1]}` : "/admin/moderation";
+  }
   const t = notification?.objectType;
   const id = notification?.objectId;
   if (!t || !id) return null;

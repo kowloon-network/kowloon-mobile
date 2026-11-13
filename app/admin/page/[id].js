@@ -9,6 +9,7 @@ import { AppHeader, HeaderButton } from "../../../src/components/nav/AppHeader.j
 import { Button } from "../../../src/components/ui/Button.jsx";
 import { PageForm } from "../../../src/components/admin/PageForm.jsx";
 import { useActiveClient } from "../../../src/lib/useActiveClient.js";
+import { useStaffRole } from "../../../src/lib/useIsAdmin.js";
 
 function serverDomainOf(client) {
   return (client?.http?.baseUrl || "")
@@ -20,6 +21,7 @@ export default function EditPage() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const client = useActiveClient();
+  const isMod = useStaffRole() === "mod"; // moderators edit, but don't delete
 
   const [page, setPage] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -81,7 +83,7 @@ export default function EditPage() {
       <AppHeader
         back
         title="Edit Page"
-        right={page ? <HeaderButton label="Delete" onPress={handleDelete} /> : null}
+        right={page && !isMod ? <HeaderButton label="Delete" onPress={handleDelete} /> : null}
       />
 
       {loading ? (

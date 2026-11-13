@@ -11,6 +11,7 @@ import { Button } from "../../../src/components/ui/Button.jsx";
 import { AdminCircleForm } from "../../../src/components/admin/AdminCircleForm.jsx";
 import { useActiveClient } from "../../../src/lib/useActiveClient.js";
 import { uploadFile } from "../../../src/lib/uploadFile.js";
+import { useStaffRole } from "../../../src/lib/useIsAdmin.js";
 
 function serverDomainOf(client) {
   return (client?.http?.baseUrl || "")
@@ -22,6 +23,7 @@ export default function EditAdminCircle() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const client = useActiveClient();
+  const isMod = useStaffRole() === "mod"; // moderators edit, but don't delete
 
   const [circle, setCircle] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -107,7 +109,7 @@ export default function EditAdminCircle() {
       <AppHeader
         back
         title="Edit Circle"
-        right={circle ? <HeaderButton label="Delete" onPress={handleDelete} /> : null}
+        right={circle && !isMod ? <HeaderButton label="Delete" onPress={handleDelete} /> : null}
       />
 
       {loading ? (

@@ -43,7 +43,7 @@ import {
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { ReportsList } from "../../src/components/admin/ReportsList.jsx";
 import { useActiveClient } from "../../src/lib/useActiveClient.js";
-import { useIsAdmin } from "../../src/lib/useIsAdmin.js";
+import { useStaffRole, MOD_ADMIN_ROUTES } from "../../src/lib/useIsAdmin.js";
 import { useInk } from "../../src/lib/useInk.js";
 
 const REPORTS_SHOWN = 5;
@@ -166,8 +166,16 @@ function HealthGroup({ title, children }) {
 export default function AdminHome() {
   const router = useRouter();
   const client = useActiveClient();
-  const isAdmin = useIsAdmin();
+  const role = useStaffRole();
   const ink = useInk();
+  const isAdmin = !!role; // admin or moderator may open this screen
+  // Moderators only see what they can use (server/methods/auth/staffPolicy.js).
+  // "/admin/page/new" -> "/admin/pages"; web links ("/admin/discovery") count too.
+  const allowed = (to) =>
+    role === "admin" ||
+    MOD_ADMIN_ROUTES.has(to.replace(/\/new$/, "").replace(/\/(invite|page|bookmark|circle)$/, "/$1s")) ||
+    to === "/admin/discovery";
+  const go = (to) => (allowed(to) ? () => router.push(to) : undefined);
 
   const [stats, setStats] = useState(null);
   const [reports, setReports] = useState(null);
@@ -232,7 +240,7 @@ export default function AdminHome() {
       {!isAdmin && !loading ? (
         <View className="px-6 py-20 items-center">
           <Text className="font-ui text-base text-base-content/70 text-center">
-            You don't have admin access on this server.
+            You don't have admin or moderator access on this server.
           </Text>
         </View>
       ) : loading ? (
@@ -263,20 +271,20 @@ export default function AdminHome() {
               label="Members"
               value={c.users}
               sub={a.newUsersWeek != null ? `${a.newUsersWeek} new this week` : null}
-              onPress={() => router.push("/admin/users")}
+              onPress={go("/admin/users")}
             />
             <Tile
               label="Posts today"
               value={a.postsToday}
               sub={c.posts != null ? `${fmtNum(c.posts)} in all` : null}
-              onPress={() => router.push("/admin/posts")}
+              onPress={go("/admin/posts")}
             />
-            <Tile label="Groups" value={c.groups} onPress={() => router.push("/admin/groups")} />
+            <Tile label="Groups" value={c.groups} onPress={go("/admin/groups")} />
             <Tile
               label="Invites"
               value={c.activeInvites}
               sub={a.invitesUsed != null ? `active -- ${a.invitesUsed} used` : "active"}
-              onPress={() => router.push("/admin/invites")}
+              onPress={go("/admin/invites")}
             />
           </View>
 
@@ -296,7 +304,7 @@ export default function AdminHome() {
           {/* 3. Quick actions */}
           <SectionTitle>Create new</SectionTitle>
           <View className="flex-row mt-2" style={{ gap: 8 }}>
-            {QUICK_ACTIONS.map(({ route, label, Icon }) => (
+            {QUICK_ACTIONS.filter((q) => allowed(q.route)).map(({ route, label, Icon }) => (
               <Pressable
                 key={label}
                 onPress={() => router.push(route)}
@@ -312,7 +320,7 @@ export default function AdminHome() {
           </View>
 
           {/* 4. Sections */}
-          {SECTIONS.map((group) => (
+          {SECTIONS.map((g) => ({ ...g, items: g.items.filter((i) => allowed(i.route || i.web)) })).filter((g) => g.items.length).map((group) => (
             <View key={group.label}>
               <SectionTitle>{group.label}</SectionTitle>
               {group.items.map(({ route, web, label, desc, Icon }) => (

@@ -14,7 +14,7 @@ import { CircleForm } from "../../../src/components/circles/CircleForm.jsx";
 import { useActiveClient } from "../../../src/lib/useActiveClient.js";
 import { uploadFile } from "../../../src/lib/uploadFile.js";
 import { selectActiveAccount } from "../../../src/state/accountsSlice.js";
-import { useIsAdmin } from "../../../src/lib/useIsAdmin.js";
+import { useIsStaff } from "../../../src/lib/useIsAdmin.js";
 
 export default function EditCircle() {
   const router = useRouter();
@@ -48,8 +48,8 @@ export default function EditCircle() {
 
   const ownerId = circle?.actorId || circle?.actor?.id;
   const isOwner = !!account?.id && ownerId === account.id;
-  // Admins edit this server's own (non-System) circles too.
-  const isAdmin = useIsAdmin();
+  // Admins and moderators edit this server's own (non-System) circles too.
+  const isAdmin = useIsStaff();
   const ownDomain = account?.id?.split("@")[2];
   const canManage =
     isOwner ||

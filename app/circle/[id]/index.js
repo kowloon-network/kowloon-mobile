@@ -28,7 +28,7 @@ import { useActiveClient } from "../../../src/lib/useActiveClient.js";
 import { circleVisibilityLabel } from "../../../src/lib/circles.js";
 import { selectActiveAccount } from "../../../src/state/accountsSlice.js";
 import { useInk } from "../../../src/lib/useInk.js";
-import { useIsAdmin } from "../../../src/lib/useIsAdmin.js";
+import { useStaffRole } from "../../../src/lib/useIsAdmin.js";
 import { Spinner } from "../../../src/components/ui/Spinner.jsx";
 import { ErrorState } from "../../../src/components/ui/ErrorState.jsx";
 
@@ -54,7 +54,9 @@ export default function CircleDetail() {
   const [deleting, setDeleting] = useState(false);
   const [removingId, setRemovingId] = useState(null);
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
-  const isAdmin = useIsAdmin();
+  const staffRole = useStaffRole();
+  // Admins and moderators: feature on Discover, manage server circles.
+  const isAdmin = !!staffRole;
 
   // Quick-add state
   const [addQuery, setAddQuery] = useState("");
@@ -99,6 +101,8 @@ export default function CircleDetail() {
   const ownDomain = account?.id?.split("@")[2];
   const isServerCircle = !!ownDomain && ownerId === `@${ownDomain}`;
   const canManage = isOwner || (!!isAdmin && isServerCircle && !isSystem);
+  // Moderators add and edit server circles but don't delete them.
+  const canDelete = !isSystem && (isOwner || (staffRole === "admin" && isServerCircle));
   const owner = circle?.actor || (ownerId ? { id: ownerId } : null);
   const members = Array.isArray(circle?.members)
     ? circle.members.map(memberView)
@@ -358,7 +362,7 @@ export default function CircleDetail() {
                       </Text>
                     </Pressable>
                     {/* System circles are fixed identity — never deletable. */}
-                    {!isSystem ? (
+                    {canDelete ? (
                       <Pressable
                         onPress={confirmDelete}
                         disabled={deleting}

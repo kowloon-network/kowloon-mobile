@@ -42,7 +42,7 @@ import {
 } from "../../../src/lib/groups.js";
 import { selectActiveAccount } from "../../../src/state/accountsSlice.js";
 import { useInk } from "../../../src/lib/useInk.js";
-import { useIsAdmin } from "../../../src/lib/useIsAdmin.js";
+import { useIsStaff } from "../../../src/lib/useIsAdmin.js";
 
 function memberView(m) {
   return {
@@ -71,7 +71,7 @@ export default function GroupDetail() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
-  const isAdmin = useIsAdmin();
+  const isAdmin = useIsStaff(); // admins and moderators can feature on Discover
 
   const load = useCallback(async () => {
     if (!client || !id) return;

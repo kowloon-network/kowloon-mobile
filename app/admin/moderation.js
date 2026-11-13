@@ -18,6 +18,7 @@ import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { ReportsList } from "../../src/components/admin/ReportsList.jsx";
 import { BlocklistView } from "../../src/components/admin/BlocklistView.jsx";
 import { BannedEmailsView } from "../../src/components/admin/BannedEmailsView.jsx";
+import { useStaffRole } from "../../src/lib/useIsAdmin.js";
 
 const SECTIONS = [
   { key: "reports", label: "Reports" },
@@ -34,6 +35,9 @@ const STATUSES = [
 
 export default function Moderation() {
   const client = useActiveClient();
+  // Moderators don't see the banned-emails list (it's people's addresses).
+  const isMod = useStaffRole() === "mod";
+  const sections = isMod ? SECTIONS.filter((s) => s.key !== "emails") : SECTIONS;
 
   const [section, setSection] = useState("reports");
   const [status, setStatus] = useState("open");
@@ -78,7 +82,7 @@ export default function Moderation() {
 
       {/* Section switch */}
       <View className="flex-row bg-base-200">
-        {SECTIONS.map((sec) => {
+        {sections.map((sec) => {
           const active = section === sec.key;
           return (
             <Pressable

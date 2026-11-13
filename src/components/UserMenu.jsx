@@ -12,7 +12,7 @@ import { Plus } from "lucide-react-native";
 
 import { Avatar } from "./posts/Avatar.jsx";
 import { useUnreadCount } from "../lib/UnreadCountContext.js";
-import { useIsAdmin } from "../lib/useIsAdmin.js";
+import { useIsStaff } from "../lib/useIsAdmin.js";
 import { useInk } from "../lib/useInk.js";
 import {
   selectAccounts,
@@ -52,7 +52,7 @@ export function UserMenu({ visible, onClose }) {
   const account = useSelector(selectActiveAccount);
   const accounts = useSelector(selectAccounts);
   const { count: unreadCount } = useUnreadCount();
-  const isAdmin = useIsAdmin();
+  const isAdmin = useIsStaff(); // admins and moderators
   const ink = useInk();
 
   if (!account) return null;

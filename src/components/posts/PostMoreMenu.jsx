@@ -32,7 +32,7 @@ try {
 import { FlagSheet } from "./FlagSheet.jsx";
 import { AddToDiscoveryModal } from "../discover/AddToDiscoveryModal.jsx";
 import { useInk } from "../../lib/useInk.js";
-import { useIsAdmin } from "../../lib/useIsAdmin.js";
+import { useIsStaff } from "../../lib/useIsAdmin.js";
 
 const DROPDOWN_WIDTH = 210;
 const ICON_SIZE = 15;
@@ -62,7 +62,7 @@ export function PostMoreMenu({ post, client, currentUser, onDeleted }) {
   const isSelf = !!currentUser?.id && currentUser.id === authorId;
   const [flagOpen, setFlagOpen] = useState(false);
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
-  const isAdmin = useIsAdmin();
+  const isAdmin = useIsStaff(); // admins and moderators can feature on Discover
 
   function openMenu() {
     triggerRef.current?.measureInWindow((x, y, w, h) => {

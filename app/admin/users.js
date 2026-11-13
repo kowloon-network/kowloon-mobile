@@ -25,6 +25,7 @@ import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import { selectActiveAccount } from "../../src/state/accountsSlice.js";
 import { useInk } from "../../src/lib/useInk.js";
 import { banMessage } from "../../src/components/admin/blocklistUtils.js";
+import { useStaffRole } from "../../src/lib/useIsAdmin.js";
 
 const TABS = [
   { key: "active", label: "Active" },
@@ -54,6 +55,8 @@ function ActionRow({ label, onPress, destructive }) {
 export default function AdminUsers() {
   const router = useRouter();
   const client = useActiveClient();
+  // Moderators can view, close and restore accounts -- not create, promote or ban.
+  const isMod = useStaffRole() === "mod";
   const account = useSelector(selectActiveAccount);
   const ink = useInk();
 
@@ -209,7 +212,7 @@ export default function AdminUsers() {
       <AppHeader
         back
         title="Users"
-        right={<HeaderButton label="New" onPress={() => router.push("/admin/user/new")} />}
+        right={isMod ? null : <HeaderButton label="New" onPress={() => router.push("/admin/user/new")} />}
       />
 
       <View className="flex-row border-b border-base-200">
@@ -377,6 +380,8 @@ export default function AdminUsers() {
                       router.push(`/user/${encodeURIComponent(id)}`);
                     }}
                   />
+                  {isMod ? null : (
+                  <>
                   <ActionRow
                     label="Make admin"
                     onPress={() =>
@@ -389,6 +394,8 @@ export default function AdminUsers() {
                       runAction((u) => client.admin.addMod({ userId: u.id }))
                     }
                   />
+                  </>
+                  )}
                   {isDeactivated(sheet) ? (
                     <ActionRow
                       label="Restore user"
@@ -402,7 +409,7 @@ export default function AdminUsers() {
                   ) : (
                     <ActionRow label="Deactivate user" destructive onPress={onDeactivate} />
                   )}
-                  {sheet.id !== account?.id ? (
+                  {sheet.id !== account?.id && !isMod ? (
                     <ActionRow label="Ban user" destructive onPress={() => setBanning(true)} />
                   ) : null}
                 </>

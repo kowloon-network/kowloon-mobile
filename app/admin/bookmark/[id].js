@@ -9,6 +9,7 @@ import { AppHeader, HeaderButton } from "../../../src/components/nav/AppHeader.j
 import { Button } from "../../../src/components/ui/Button.jsx";
 import { AdminBookmarkForm } from "../../../src/components/admin/AdminBookmarkForm.jsx";
 import { useActiveClient } from "../../../src/lib/useActiveClient.js";
+import { useStaffRole } from "../../../src/lib/useIsAdmin.js";
 
 function serverDomainOf(client) {
   return (client?.http?.baseUrl || "")
@@ -20,6 +21,7 @@ export default function EditBookmark() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const client = useActiveClient();
+  const isMod = useStaffRole() === "mod"; // moderators edit, but don't delete
 
   const [bookmark, setBookmark] = useState(null);
   const [folders, setFolders] = useState([]);
@@ -87,7 +89,7 @@ export default function EditBookmark() {
       <AppHeader
         back
         title="Edit Bookmark"
-        right={bookmark ? <HeaderButton label="Delete" onPress={handleDelete} /> : null}
+        right={bookmark && !isMod ? <HeaderButton label="Delete" onPress={handleDelete} /> : null}
       />
 
       {loading ? (

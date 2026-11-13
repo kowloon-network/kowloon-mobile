@@ -21,6 +21,7 @@ import { useActiveClient } from "../../lib/useActiveClient.js";
 import { useInk } from "../../lib/useInk.js";
 import { fmtDate } from "./ReportsList.jsx";
 import { banMessage, domainOf, isConflict, ownDomain, parseTarget } from "./blocklistUtils.js";
+import { useStaffRole } from "../../lib/useIsAdmin.js";
 
 export const inputCls =
   "bg-field border border-base-300 px-3 py-2.5 font-ui text-base text-base-content";
@@ -81,7 +82,7 @@ function Chip({ label, danger }) {
   );
 }
 
-function MemberRow({ member, list, domain, editing, onEdit, onCancel, onSave, onRemove }) {
+function MemberRow({ member, list, domain, editing, onEdit, onCancel, onSave, onRemove, canRemove = true }) {
   const ink = useInk();
   const [draft, setDraft] = useState(member.summary || "");
   const [saving, setSaving] = useState(false);
@@ -143,7 +144,9 @@ function MemberRow({ member, list, domain, editing, onEdit, onCancel, onSave, on
             <SmallButton primary label={saving ? "Saving" : "Save"} onPress={save} disabled={saving} />
             <SmallButton label="Cancel" onPress={onCancel} disabled={saving} />
             <View className="flex-1" />
-            <SmallButton danger label="Remove" onPress={() => onRemove(member)} disabled={saving} />
+            {canRemove ? (
+              <SmallButton danger label="Remove" onPress={() => onRemove(member)} disabled={saving} />
+            ) : null}
           </View>
         </View>
       ) : null}
@@ -156,6 +159,8 @@ export function BlocklistView({ list }) {
   const ink = useInk();
   const copy = COPY[list];
   const domain = ownDomain(client);
+  // Moderators can't ban or unban members, or change who sees the list.
+  const isMod = useStaffRole() === "mod";
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -220,6 +225,10 @@ export function BlocklistView({ list }) {
       return;
     }
     const isLocalPerson = t.kind === "person" && t.domain === domain;
+    if (isLocalPerson && isMod) {
+      setAddError("Only an admin can ban a member of this server. Report it to an admin, or close their account from Users.");
+      return;
+    }
     if (isLocalPerson && !withBan) {
       confirmBan(t.id, () => add(true));
       return;
@@ -386,14 +395,16 @@ export function BlocklistView({ list }) {
                   <Text className="font-ui text-xs text-base-content/55 mt-0.5">
                     {data?.isPublic
                       ? "Anyone can see this list and its reasons."
-                      : "Only admins can see this list."}
+                      : "Only admins and moderators can see this list."}
                   </Text>
                 </View>
-                <Switch
-                  value={!!data?.isPublic}
-                  onValueChange={onToggleVisibility}
-                  disabled={togglingVis}
-                />
+                {isMod ? null : (
+                  <Switch
+                    value={!!data?.isPublic}
+                    onValueChange={onToggleVisibility}
+                    disabled={togglingVis}
+                  />
+                )}
               </View>
             ) : null}
 
@@ -419,6 +430,7 @@ export function BlocklistView({ list }) {
                     onCancel={() => setEditingId(null)}
                     onSave={saveSummary}
                     onRemove={remove}
+                    canRemove={!(isMod && m.type === "Person" && domainOf(m.id) === domain)}
                   />
                 ))}
               </View>
