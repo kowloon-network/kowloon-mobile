@@ -14,6 +14,7 @@ import { CircleForm } from "../../../src/components/circles/CircleForm.jsx";
 import { useActiveClient } from "../../../src/lib/useActiveClient.js";
 import { uploadFile } from "../../../src/lib/uploadFile.js";
 import { selectActiveAccount } from "../../../src/state/accountsSlice.js";
+import { useIsAdmin } from "../../../src/lib/useIsAdmin.js";
 
 export default function EditCircle() {
   const router = useRouter();
@@ -47,6 +48,12 @@ export default function EditCircle() {
 
   const ownerId = circle?.actorId || circle?.actor?.id;
   const isOwner = !!account?.id && ownerId === account.id;
+  // Admins edit this server's own (non-System) circles too.
+  const isAdmin = useIsAdmin();
+  const ownDomain = account?.id?.split("@")[2];
+  const canManage =
+    isOwner ||
+    (!!isAdmin && !!ownDomain && ownerId === `@${ownDomain}` && circle?.type !== "System");
 
   async function handleSubmit({ name, description, to, iconAsset, iconUrl, members }) {
     if (submitting) return;
@@ -117,7 +124,7 @@ export default function EditCircle() {
           </Text>
           <Button label="Back" variant="ghost" onPress={() => router.back()} />
         </View>
-      ) : !isOwner ? (
+      ) : !canManage ? (
         <View className="py-20 items-center px-6">
           <Text className="font-ui text-base text-base-content/70 text-center mb-4">
             You can only edit circles you own.

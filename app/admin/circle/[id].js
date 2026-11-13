@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ActivityIndicator, Alert, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppHeader, HeaderButton } from "../../../src/components/nav/AppHeader.jsx";
@@ -120,6 +120,16 @@ export default function EditAdminCircle() {
           <Button label="Back" variant="ghost" onPress={() => router.back()} />
         </View>
       ) : circle ? (
+        <>
+        <Pressable
+          onPress={() => router.push(`/circle/${encodeURIComponent(String(circle.id))}`)}
+          className="px-5 pt-4"
+        >
+          <Text className="font-ui text-sm text-base-content/60">
+            {circle.memberCount ?? circle.members?.length ?? 0} members.{" "}
+            <Text className="text-primary">Add or remove members</Text> on the circle's page.
+          </Text>
+        </Pressable>
         <AdminCircleForm
           mode="edit"
           initialValues={circle}
@@ -129,6 +139,7 @@ export default function EditAdminCircle() {
           onSubmit={handleSubmit}
           onCancel={() => router.back()}
         />
+        </>
       ) : null}
     </SafeAreaView>
   );

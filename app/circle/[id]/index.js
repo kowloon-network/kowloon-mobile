@@ -93,6 +93,12 @@ export default function CircleDetail() {
   // "find people to add" nudge — it makes no sense on a block list.
   const isSystemManaged =
     isSystem && ["Blocked", "Muted", "Groups"].includes(circle?.name);
+  // Admins manage this server's own circles (owned by "@<domain>") as if
+  // they were the owner -- except its System circles (Blocked, Defederated,
+  // admins, moderators), which have their own admin screens.
+  const ownDomain = account?.id?.split("@")[2];
+  const isServerCircle = !!ownDomain && ownerId === `@${ownDomain}`;
+  const canManage = isOwner || (!!isAdmin && isServerCircle && !isSystem);
   const owner = circle?.actor || (ownerId ? { id: ownerId } : null);
   const members = Array.isArray(circle?.members)
     ? circle.members.map(memberView)
@@ -331,7 +337,7 @@ export default function CircleDetail() {
                     View Feed
                   </Text>
                 </Pressable>
-                {isOwner ? (
+                {canManage ? (
                   <>
                     <Pressable
                       onPress={() =>
@@ -389,7 +395,7 @@ export default function CircleDetail() {
             </View>
 
             {/* Quick-add bar — owner only */}
-            {isOwner ? (
+            {canManage ? (
               <View className="px-5 pt-4 pb-3  ">
                 <Text className="font-ui uppercase tracking-[0.18em] text-[11px] text-base-content/50 mb-2">
                   Add Member
@@ -452,7 +458,7 @@ export default function CircleDetail() {
             {/* Members */}
             <View className="px-5 pt-5">
               <Text className="font-ui uppercase tracking-[0.18em] text-[11px] text-base-content/50 mb-3">
-                {isOwner || members.length > 0
+                {canManage || members.length > 0
                   ? `Members${members.length ? ` (${members.length})` : ""}`
                   : "Members"}
               </Text>
@@ -487,7 +493,7 @@ export default function CircleDetail() {
                   </View>
                 ) : (
                   <Text className="font-ui text-sm text-base-content/55 leading-6">
-                    {isOwner
+                    {canManage
                       ? "No members yet."
                       : "This circle's members are private to its owner."}
                   </Text>
@@ -519,7 +525,7 @@ export default function CircleDetail() {
                         </Text>
                       </View>
                     </Pressable>
-                    {isOwner ? (
+                    {canManage ? (
                       <Pressable
                         onPress={() => removeMember(m)}
                         disabled={removingId === m.id}

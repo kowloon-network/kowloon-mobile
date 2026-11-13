@@ -38,13 +38,16 @@ export default function NewAdminCircle() {
         iconUrl = up?.file?.url;
       }
 
-      await client.admin.createCircle({
+      const res = await client.admin.createCircle({
         name,
         summary,
         icon: iconUrl || undefined,
         to,
       });
-      router.back();
+      // A new circle is empty: open its page to add members.
+      const newId = res?.circle?.id;
+      if (newId) router.replace(`/circle/${encodeURIComponent(newId)}`);
+      else router.back();
     } catch (e) {
       setError(e?.message || "Couldn't create the circle.");
       setSubmitting(false);
