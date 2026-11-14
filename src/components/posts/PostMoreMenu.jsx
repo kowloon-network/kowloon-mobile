@@ -234,7 +234,7 @@ export function PostMoreMenu({ post, client, currentUser, onDeleted }) {
 
   if (currentUser) {
     if (items.length > 0) items.push({ key: "sep1", sep: true });
-    items.push({ key: "flag", Icon: Flag, label: "Flag", onPress: handleFlag });
+    items.push({ key: "flag", Icon: Flag, label: "Report", onPress: handleFlag });
     // Don't offer block/mute on your own posts.
     if (!isSelf && authorId) {
       items.push({

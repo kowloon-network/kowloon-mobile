@@ -15,6 +15,7 @@ import { Alert, Pressable, Text, TextInput, View } from "react-native";
 import { Avatar } from "./Avatar.jsx";
 import { HtmlContent } from "../HtmlContent.jsx";
 import { ReactButton } from "./ReactButton.jsx";
+import { ReportSheet } from "./FlagSheet.jsx";
 import { timeAgo } from "@kowloon/client";
 import { useInk } from "../../lib/useInk.js";
 import { useTypography } from "../../lib/TypographyContext.js";
@@ -42,6 +43,7 @@ export function Reply({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
+  const [reportOpen, setReportOpen] = useState(false);
 
   async function handleSave() {
     if (!draft.trim() || saving) return;
@@ -206,6 +208,12 @@ export function Reply({
                   </Text>
                 </Pressable>
               </>
+            ) : currentUserId ? (
+              <Pressable onPress={() => setReportOpen(true)} hitSlop={6}>
+                <Text className="font-ui uppercase tracking-[0.16em] text-[10px] text-base-content/45">
+                  Report
+                </Text>
+              </Pressable>
             ) : null}
           </View>
         ) : null}
@@ -215,6 +223,16 @@ export function Reply({
         ) : null}
       </View>
       </View>
+
+      {reportOpen ? (
+        <ReportSheet
+          visible
+          onClose={() => setReportOpen(false)}
+          client={client}
+          targetId={reply.id}
+          noun="reply"
+        />
+      ) : null}
 
       {/* Second-level thread — indented, capped at this depth (no reply
           affordance on children). */}

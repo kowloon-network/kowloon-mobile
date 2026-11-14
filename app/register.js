@@ -267,7 +267,7 @@ export default function Register() {
                 label="Server URL"
                 value={override}
                 onChangeText={setOverride}
-                placeholder="http://100.83.23.39:3000"
+                placeholder="https://kowloon.example.com"
                 hint="For local development or non-default ports."
               />
             ) : null}

@@ -194,6 +194,11 @@ export default function Settings() {
             onPress={() => router.push("/settings/typography")}
           />
           <NavRow
+            label="Email"
+            hint="Where password resets are sent"
+            onPress={() => router.push("/settings/email")}
+          />
+          <NavRow
             label="Password"
             hint="Change the password for this account"
             onPress={() => router.push("/settings/password")}

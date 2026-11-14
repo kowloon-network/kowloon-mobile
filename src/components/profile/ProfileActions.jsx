@@ -19,7 +19,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Ban, BellOff, Check, MoreHorizontal, X } from "lucide-react-native";
+import { Ban, BellOff, Check, Flag, MoreHorizontal, X } from "lucide-react-native";
+import { ReportSheet } from "../posts/FlagSheet.jsx";
 import { sortByPins } from "@kowloon/client";
 
 import { useInk } from "../../lib/useInk.js";
@@ -97,6 +98,7 @@ export function ProfileActions({ client, account, targetId, name }) {
   const triggerRef = useRef(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const [reportOpen, setReportOpen] = useState(false);
 
   function openMenu() {
     triggerRef.current?.measureInWindow((x, y, w, h) => {
@@ -199,9 +201,25 @@ export function ProfileActions({ client, account, targetId, name }) {
               <Ban size={15} color="#CC272E" strokeWidth={1.75} />
               <Text className="font-ui text-sm ml-3 text-error">Block</Text>
             </Pressable>
+            <Pressable
+              onPress={() => { setMenuOpen(false); setReportOpen(true); }}
+              android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+              className="flex-row items-center px-4 py-3"
+            >
+              <Flag size={15} color={ink(0.85)} strokeWidth={1.75} />
+              <Text className="font-ui text-sm ml-3 text-base-content">Report</Text>
+            </Pressable>
           </Pressable>
         </Pressable>
       </Modal>
+
+      <ReportSheet
+        visible={reportOpen}
+        onClose={() => setReportOpen(false)}
+        client={client}
+        targetId={targetId}
+        noun="person"
+      />
 
       {/* Add-to-Circle picker — full-screen modal (a slide-up sheet clipped its
           last row under Android's nav bar) with a search box at the top. */}

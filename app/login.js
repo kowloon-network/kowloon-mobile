@@ -152,6 +152,22 @@ export default function Login() {
             />
 
             <Pressable
+              onPress={() =>
+                router.push(
+                  kowloonId.trim()
+                    ? `/forgot-password?id=${encodeURIComponent(kowloonId.trim())}`
+                    : "/forgot-password"
+                )
+              }
+              className="mb-4 -mt-1"
+              hitSlop={6}
+            >
+              <Text className="font-ui uppercase tracking-[0.2em] text-[11px] text-base-content/60">
+                Forgot your password?
+              </Text>
+            </Pressable>
+
+            <Pressable
               onPress={() => setShowAdvanced((v) => !v)}
               className="mb-4"
             >
@@ -165,7 +181,7 @@ export default function Login() {
                 label="Server URL"
                 value={serverOverride}
                 onChangeText={setServerOverride}
-                placeholder="http://100.83.23.39:3000"
+                placeholder="https://kowloon.example.com"
                 hint="For local development or non-default ports."
               />
             ) : null}

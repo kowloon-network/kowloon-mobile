@@ -1,4 +1,5 @@
-// FlagSheet — bottom sheet for reporting a post.
+// FlagSheet -- bottom sheet for reporting a post, person, reply or group.
+// ReportSheet (below) wraps it with the submit step for any target.
 //
 // Fetches flagOptions from GET / (settings.flagOptions) when opened so the
 // list always reflects whatever the server admin has configured. Falls back to
@@ -12,6 +13,7 @@ import {
   ScrollView,
   Text,
   View,
+  Alert,
 } from "react-native";
 
 const FALLBACK_REASONS = [
@@ -21,7 +23,7 @@ const FALLBACK_REASONS = [
   { key: "other", label: "Other", description: "Anything objectionable not covered by the other categories." },
 ];
 
-export function FlagSheet({ visible, onClose, onSubmit, client }) {
+export function FlagSheet({ visible, onClose, onSubmit, client, noun = "post" }) {
   const [reasons, setReasons] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -85,10 +87,10 @@ export function FlagSheet({ visible, onClose, onSubmit, client }) {
           {/* Header */}
           <View className="px-5 pt-4 pb-3  ">
             <Text className="font-ui uppercase tracking-[0.18em] text-[11px] text-base-content/45 mb-1.5">
-              Report Post
+              Report {noun}
             </Text>
             <Text className="font-ui text-sm text-base-content/70">
-              Select the reason that best describes this content.
+              Choose the reason that fits best. Only this server's moderators see your report.
             </Text>
           </View>
 
@@ -136,5 +138,23 @@ export function FlagSheet({ visible, onClose, onSubmit, client }) {
         </Pressable>
       </Pressable>
     </Modal>
+  );
+}
+
+// Report anything: opens the reason list and files the Flag. `noun` is what
+// the person is reporting ("person", "reply", "group") for the heading and
+// the thank-you message.
+export function ReportSheet({ visible, onClose, client, targetId, noun = "post" }) {
+  async function submit(reason) {
+    onClose();
+    try {
+      await client.activities.flag({ targetId, reason });
+      Alert.alert("Reported", `Thanks. A moderator will review this ${noun}.`);
+    } catch (e) {
+      Alert.alert("Couldn't report", e?.message || "Please try again.");
+    }
+  }
+  return (
+    <FlagSheet visible={visible} onClose={onClose} onSubmit={submit} client={client} noun={noun} />
   );
 }

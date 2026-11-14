@@ -18,6 +18,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useSelector } from "react-redux";
 import {
   Compass,
+  Flag,
   Inbox,
   LogIn,
   LogOut,
@@ -33,6 +34,7 @@ import { Avatar } from "../../../src/components/posts/Avatar.jsx";
 import { Button } from "../../../src/components/ui/Button.jsx";
 import { GroupAvatar } from "../../../src/components/groups/GroupAvatar.jsx";
 import { AddToDiscoveryModal } from "../../../src/components/discover/AddToDiscoveryModal.jsx";
+import { ReportSheet } from "../../../src/components/posts/FlagSheet.jsx";
 import { useActiveClient } from "../../../src/lib/useActiveClient.js";
 import { resolveImageUrl } from "../../../src/lib/resolveImageUrl.js";
 import {
@@ -71,6 +73,7 @@ export default function GroupDetail() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const isAdmin = useIsStaff(); // admins and moderators can feature on Discover
 
   const load = useCallback(async () => {
@@ -374,6 +377,19 @@ export default function GroupDetail() {
                   </>
                 ) : null}
 
+                {account?.id && !isOwner ? (
+                  <Pressable
+                    onPress={() => setReportOpen(true)}
+                    android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+                    className="flex-row items-center   px-3 py-2"
+                  >
+                    <Flag size={13} color={ink(0.85)} strokeWidth={1.75} />
+                    <Text className="font-ui uppercase tracking-[0.14em] text-[11px] text-base-content ml-1.5">
+                      Report
+                    </Text>
+                  </Pressable>
+                ) : null}
+
                 {isAdmin ? (
                   <Pressable
                     onPress={() => setDiscoveryOpen(true)}
@@ -450,6 +466,16 @@ export default function GroupDetail() {
             +
           </Text>
         </Pressable>
+      ) : null}
+
+      {group ? (
+        <ReportSheet
+          visible={reportOpen}
+          onClose={() => setReportOpen(false)}
+          client={client}
+          targetId={group.id || String(id)}
+          noun="group"
+        />
       ) : null}
 
       {isAdmin && group ? (
