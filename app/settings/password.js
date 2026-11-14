@@ -6,9 +6,8 @@
 // near the outbox.
 //
 // The server hands back a fresh token on success and the SDK swaps it into
-// storage, so the active session survives the change. Sessions on OTHER
-// devices are NOT signed out: tokens are stateless and stay valid until they
-// expire. The copy below says so rather than implying a global sign-out.
+// storage, so the active session survives the change. Every OTHER session
+// is signed out (the server stamps tokensValidAfter), and the copy says so.
 
 import { useState } from "react";
 import { useRouter } from "expo-router";

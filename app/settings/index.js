@@ -13,6 +13,7 @@ import { Eyebrow, Heading } from "../../src/components/ui/Heading.jsx";
 import { AppHeader } from "../../src/components/nav/AppHeader.jsx";
 import { SegmentedControl } from "../../src/components/ui/SegmentedControl.jsx";
 import { useTheme } from "../../src/lib/ThemeContext.jsx";
+import { useActiveClient } from "../../src/lib/useActiveClient.js";
 import {
   selectAccounts,
   selectActiveId,
@@ -115,6 +116,7 @@ export default function Settings() {
   const { pref: themePref, setPref: setThemePref } = useTheme();
   const activeId = useSelector(selectActiveId);
   const accounts = useSelector(selectAccounts);
+  const client = useActiveClient();
 
   async function handleSignOut(accountId) {
     const wasActive = accountId === activeId;
@@ -128,6 +130,27 @@ export default function Settings() {
   async function handleSwitch(accountId) {
     await dispatch(setActiveAndPersist(accountId));
     router.replace("/feed");
+  }
+
+  function confirmSignOutEverywhere() {
+    Alert.alert(
+      "Sign out everywhere else?",
+      "This signs this account out on every other phone, tablet and browser. You stay signed in here.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Sign Out Others",
+          onPress: async () => {
+            try {
+              await client.auth.signOutEverywhere();
+              Alert.alert("Done", "Every other device has been signed out.");
+            } catch (e) {
+              Alert.alert("Couldn't sign out other devices", e?.message || "Try again.");
+            }
+          },
+        },
+      ]
+    );
   }
 
   function confirmDeleteAccount() {
@@ -202,6 +225,16 @@ export default function Settings() {
             label="Password"
             hint="Change the password for this account"
             onPress={() => router.push("/settings/password")}
+          />
+          <NavRow
+            label="Sign Out Everywhere Else"
+            hint="End this account's sessions on other devices"
+            onPress={confirmSignOutEverywhere}
+          />
+          <NavRow
+            label="Download Your Data"
+            hint="A copy of everything you've made here"
+            onPress={() => router.push("/settings/data")}
           />
           <Pressable
             onPress={confirmDeleteAccount}
