@@ -17,6 +17,7 @@ import {
 } from "lucide-react-native";
 
 import { Avatar } from "../posts/Avatar.jsx";
+import { useDiscoverWarning, WarningTile } from "../posts/ContentWarning.jsx";
 import { CircleAvatar } from "../circles/CircleAvatar.jsx";
 import { GroupAvatar } from "../groups/GroupAvatar.jsx";
 import { useActiveClient } from "../../lib/useActiveClient.js";
@@ -52,11 +53,29 @@ function LinkSquare({ item, Icon, onPress }) {
 
 function SquareCard({ item, baseUrl, router }) {
   const ink = useInk();
+  const warning = useDiscoverWarning(item);
   switch (item.refType) {
     case "Post": {
-      const img = resolveImageUrl(item.featuredImage || item.mediaImage, baseUrl);
+      const img = warning.noImage ? null : resolveImageUrl(item.featuredImage || item.mediaImage, baseUrl);
       const author = item.actor || {};
       const text = item.title || item.summary || item.preview || "";
+      if (warning.covered) {
+        return (
+          <Pressable
+            onPress={() => router.push(`/post/${encodeURIComponent(item.id)}`)}
+            style={sq}
+            className="bg-base-200"
+          >
+            <WarningTile label={warning.label} small />
+            <View className="flex-row items-center px-3 pb-3">
+              <Avatar actor={author} size={16} baseUrl={baseUrl} />
+              <Text className="font-ui text-[10px] text-base-content/60 ml-1.5 flex-1" numberOfLines={1}>
+                {author.name || author.id}
+              </Text>
+            </View>
+          </Pressable>
+        );
+      }
       if (img) {
         return (
           <Pressable

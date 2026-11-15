@@ -16,6 +16,13 @@ import { EmbedPlayer } from "./EmbedPlayer.jsx";
 import { LocationLine } from "./LocationLine.jsx";
 import { PostActionBar } from "./PostActionBar.jsx";
 import { ReactSummaryRow } from "./ReactSummaryRow.jsx";
+import {
+  useContentWarning,
+  HiddenPostLine,
+  WarningBar,
+  WarningChip,
+  SensitiveCover,
+} from "./ContentWarning.jsx";
 import { HtmlContent } from "../HtmlContent.jsx";
 import { useImageViewer } from "../ImageViewerProvider.jsx";
 import { useActiveClient } from "../../lib/useActiveClient.js";
@@ -148,6 +155,9 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
     lineHeight: Math.round(resolved.fontSize * 1.6),
   };
   const ink = useInk();
+  // Content warning: hidden (one line) / warned (bar instead of the body) /
+  // open; sensitive media stays covered until tapped.
+  const cw = useContentWarning(post);
 
   const actor = post?.actor || {};
   const handle = actor.id || post?.actorId || "";
@@ -177,6 +187,10 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
     // A Kowloon link (post, group, circle, user, page) opens in-app; anything
     // else goes to the browser.
     if (post?.href) openKowloonLink(post.href);
+  }
+
+  if (cw.stage === "hidden") {
+    return <HiddenPostLine label={cw.decision.hiddenLabel} onShow={cw.reveal} />;
   }
 
   return (
@@ -222,6 +236,11 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
           </View>
         </View>
 
+        {cw.stage === "warned" ? (
+          <WarningBar decision={cw.decision} onShow={cw.reveal} />
+        ) : (
+        <>
+        <WarningChip decision={cw.decision} />
         {post?.type === "Media" ? (
           /* Media: optional title, then caption, then each attachment as a
              tile. Images render in a 2-col grid; videos and audio render as
@@ -240,7 +259,8 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
                 cap and cell treatment as images here -- full playback lives
                 on the detail screen (Card.md decision 2). */}
             {Array.isArray(post.attachments) && post.attachments.length > 0 ? (
-              <View className="mb-3">
+              <SensitiveCover hidden={cw.mediaHidden} onReveal={cw.revealMedia} className="mb-3">
+              <View className={cw.mediaHidden ? "" : "mb-3"}>
                 {(() => {
                   const shown = post.attachments.slice(0, 4);
                   const extra = post.attachments.length - shown.length;
@@ -288,15 +308,18 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
                   );
                 })()}
               </View>
+              </SensitiveCover>
             ) : image ? (
+              <SensitiveCover hidden={cw.mediaHidden} onReveal={cw.revealMedia} className="mb-3">
               <Pressable onPress={() => viewer?.open([image], 0)}>
                 <Image
                   source={{ uri: image }}
-                  className="w-full mb-3 bg-base-200"
+                  className={`w-full bg-base-200 ${cw.mediaHidden ? "" : "mb-3"}`}
                   style={{ aspectRatio: 4 / 5 }}
                   resizeMode="cover"
                 />
               </Pressable>
+              </SensitiveCover>
             ) : null}
             {previewHtml ? (
               <View>
@@ -315,6 +338,7 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
              the description. Image and title open the external URL; tapping
              elsewhere on the card still opens the post detail. */
           <>
+            <SensitiveCover hidden={cw.mediaHidden && (embed?.mode === "inline" || !!image)} onReveal={cw.revealMedia} className="mb-3">
             {embed?.mode === "inline" ? (
               <EmbedPlayer embed={embed} poster={image} />
             ) : image ? (
@@ -326,6 +350,7 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
                 />
               </Pressable>
             ) : null}
+            </SensitiveCover>
             {title ? (
               <Pressable onPress={openExternal}>
                 <Text className={`${meta.accent} mb-1`} style={titleStyle}>
@@ -392,9 +417,11 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
             </View>
 
             {image ? (
+              <SensitiveCover hidden={cw.mediaHidden} onReveal={cw.revealMedia} className="mb-3">
               <Pressable onPress={() => viewer?.open([image], 0)} className="mb-3">
                 <Image source={{ uri: image }} className="w-full h-48   bg-base-200" resizeMode="cover" />
               </Pressable>
+              </SensitiveCover>
             ) : null}
 
             {previewHtml ? (
@@ -433,6 +460,7 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
 
             {/* Featured/hero image above the body — always, like the web. */}
             {image ? (
+              <SensitiveCover hidden={cw.mediaHidden} onReveal={cw.revealMedia} className="mb-3 mt-1">
               <Pressable onPress={() => viewer?.open([image], 0)} className="mb-3 mt-1">
                 <Image
                   source={{ uri: image }}
@@ -440,6 +468,7 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
                   resizeMode="cover"
                 />
               </Pressable>
+              </SensitiveCover>
             ) : null}
 
             {linkHost ? (
@@ -467,6 +496,8 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
 
             <ContinueReading show={!!post?.summary} />
           </>
+        )}
+        </>
         )}
 
         {/* Reaction summary — read-only emoji row + total, between body and bar (#79) */}

@@ -67,6 +67,7 @@ import { PostTypeIcon } from "../src/components/posts/PostTypeIcon.jsx";
 import { AudienceSelector } from "../src/components/posts/AudienceSelector.jsx";
 import { ReplyReactScope } from "../src/components/posts/ReplyReactScope.jsx";
 import { LocationField } from "../src/components/posts/LocationField.jsx";
+import { ContentWarningButton, ContentWarningSheet } from "../src/components/posts/ContentWarning.jsx";
 import { DateTimeField } from "../src/components/posts/DateTimeField.jsx";
 import { useActiveClient } from "../src/lib/useActiveClient.js";
 import { requestFeedRefresh } from "../src/lib/feedRefreshSignal.js";
@@ -457,6 +458,25 @@ export default function Compose() {
   // Universal geotag — available on every post type. null when unset;
   // otherwise { name, lat, lon }.
   const [location, setLocation] = useState(null);
+  // Content warning + "blur photos" (sensitive). A reshare starts with the
+  // original's warning (PostActionBar passes it as `cw` / `sensitive`).
+  const [contentWarning, setContentWarning] = useState(() => {
+    if (typeof params.cw !== "string" || !params.cw) return null;
+    try {
+      const v = JSON.parse(params.cw);
+      return v && (v.categories?.length || v.note)
+        ? { categories: v.categories || [], note: v.note || "" }
+        : null;
+    } catch {
+      return null;
+    }
+  });
+  const [sensitive, setSensitive] = useState(params.sensitive === "1");
+  const [cwOpen, setCwOpen] = useState(false);
+  const composeHasMedia =
+    (type === "Media" && attachments.length > 0) ||
+    ((type === "Article" || type === "Event") && !!featuredImage) ||
+    (type === "Link" && !!(forcedFeaturedImage || linkPreview?.image));
 
   // Event date/time — four separate string parts per
   // project_event_datetime_logic memory. Auto-fill rules in
@@ -1056,6 +1076,8 @@ export default function Compose() {
             ? joinDateTime(endDatePart, endTimePart)
             : undefined,
         content: markdown.trim() || undefined,
+        contentWarning: contentWarning || undefined,
+        sensitive: sensitive && composeHasMedia ? true : undefined,
         to: audience,
         canReply,
         canReact,
@@ -1574,11 +1596,31 @@ export default function Compose() {
                   />
                 </Pressable>
               ) : null}
+              <ContentWarningButton
+                value={contentWarning}
+                sensitive={sensitive && composeHasMedia}
+                onPress={() => setCwOpen(true)}
+              />
               <LocationField value={location} onChange={setLocation} iconOnly />
             </View>
           </>
         )}
       </View>
+
+      {cwOpen ? (
+        <ContentWarningSheet
+          visible
+          value={contentWarning}
+          sensitive={sensitive}
+          showSensitive={composeHasMedia}
+          onClose={() => setCwOpen(false)}
+          onDone={(next, blur) => {
+            setContentWarning(next);
+            setSensitive(!!blur);
+            setCwOpen(false);
+          }}
+        />
+      ) : null}
 
       {/* Add-media chooser — a centered dialog (not Alert.alert, whose Android
           3-button layout can't be aligned). Launch the picker just after the

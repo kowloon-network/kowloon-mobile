@@ -14,6 +14,11 @@ import { Button } from "../../../src/components/ui/Button.jsx";
 import { Eyebrow } from "../../../src/components/ui/Heading.jsx";
 import { PostActionBar } from "../../../src/components/posts/PostActionBar.jsx";
 import { PostBody } from "../../../src/components/posts/PostBody.jsx";
+import {
+  useContentWarning,
+  WarningBar,
+  WarningChip,
+} from "../../../src/components/posts/ContentWarning.jsx";
 import { ReactsBar } from "../../../src/components/posts/ReactsBar.jsx";
 import { Reply } from "../../../src/components/posts/Reply.jsx";
 import { ReplyComposer } from "../../../src/components/posts/ReplyComposer.jsx";
@@ -192,9 +197,10 @@ export default function PostDetail() {
   // is the post id for a top-level reply, or the first-level reply id for a
   // threaded one; `target` is always the root post so it slots into the tree.
   const insertOptimisticReply = useCallback(
-    ({ content, parent }) => {
+    ({ content, parent, contentWarning }) => {
       const now = new Date().toISOString();
       const optimistic = {
+        ...(contentWarning ? { contentWarning } : {}),
         id: `pending-${Date.now()}`,
         __optimistic: true,
         actorId: currentUser?.id,
@@ -220,6 +226,11 @@ export default function PostDetail() {
     },
     [currentUser, postRootId, reconcileReplies]
   );
+
+  // Content warning. Opening the post is a deliberate choice, so a post the
+  // reader chose to hide shows its warning here rather than a hidden line.
+  const cw = useContentWarning(post);
+  const cwCovered = cw.stage !== "open";
 
   const actor = post?.actor || {};
   const type = post?.type || "Note";
@@ -301,7 +312,19 @@ export default function PostDetail() {
 
             {/* Body — typography-aware padding for the column width */}
             <View style={{ paddingHorizontal: resolved.paddingHorizontal }}>
-              <PostBody post={post} typography={typography} />
+              {cwCovered ? (
+                <WarningBar decision={cw.decision} onShow={() => { cw.reveal(); if (cw.stage === "hidden") cw.reveal(); }} />
+              ) : (
+                <>
+                  <WarningChip decision={cw.decision} />
+                  <PostBody
+                    post={post}
+                    typography={typography}
+                    mediaHidden={cw.mediaHidden}
+                    onRevealMedia={cw.revealMedia}
+                  />
+                </>
+              )}
             </View>
 
             {/* Reactions summary — tap any emoji to see who reacted (#63) */}
@@ -357,11 +380,13 @@ export default function PostDetail() {
                             placeholder={`Reply to ${
                               reply.actor?.name || "this reply"
                             }…`}
-                            onSubmitted={({ duplicated, content }) => {
+                            parent={reply.contentWarning ? reply : post}
+                            onSubmitted={({ duplicated, content, contentWarning }) => {
                               setOpenReplyId(null);
                               if (duplicated) return;
                               insertOptimisticReply({
                                 content,
+                                contentWarning,
                                 parent: reply.id,
                               });
                             }}
@@ -383,10 +408,11 @@ export default function PostDetail() {
                 currentUser={composerUser}
                 canReply={post.canReply}
                 autoFocus={shouldFocusReply && !loading && !!post}
-                onSubmitted={({ duplicated, content }) => {
+                parent={post}
+                onSubmitted={({ duplicated, content, contentWarning }) => {
                   if (duplicated) return;
                   // Top-level reply — parent is the post itself.
-                  insertOptimisticReply({ content, parent: postRootId });
+                  insertOptimisticReply({ content, contentWarning, parent: postRootId });
                 }}
               />
             </View>

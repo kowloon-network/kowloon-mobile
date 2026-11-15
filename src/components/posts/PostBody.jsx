@@ -19,6 +19,7 @@ import { SmartImage as Image } from "../ui/SmartImage.jsx";
 import { Avatar } from "./Avatar.jsx";
 import { AudioAttachment } from "./AudioAttachment.jsx";
 import { VideoAttachment } from "./VideoAttachment.jsx";
+import { SensitiveCover } from "./ContentWarning.jsx";
 import { LocationLine } from "./LocationLine.jsx";
 import { HtmlContent } from "../HtmlContent.jsx";
 import { useImageViewer } from "../ImageViewerProvider.jsx";
@@ -160,7 +161,9 @@ function MediaAttachments({ attachments }) {
   );
 }
 
-export function PostBody({ post, typography }) {
+// mediaHidden / onRevealMedia: photos and video marked sensitive stay
+// covered until tapped (see ContentWarning.jsx).
+export function PostBody({ post, typography, mediaHidden = false, onRevealMedia }) {
   const viewer = useImageViewer();
   const title = post?.title || post?.name;
   const html = post?.body || "";
@@ -259,7 +262,8 @@ export function PostBody({ post, typography }) {
           gallery as its content. On Link posts the image is part of the
           clickable external surface (matching the title + host). */}
       {hero ? (
-        type === "Link" && post?.href ? (
+        <SensitiveCover hidden={mediaHidden} onReveal={onRevealMedia} className="mb-5">
+        {type === "Link" && post?.href ? (
           <Pressable onPress={openHref}>
             <Image
               source={{ uri: hero }}
@@ -275,14 +279,17 @@ export function PostBody({ post, typography }) {
               resizeMode="cover"
             />
           </Pressable>
-        )
+        )}
+        </SensitiveCover>
       ) : null}
 
       {/* Media gallery */}
       {type === "Media" ? (
-        <View className="mb-3">
-          <MediaAttachments attachments={post?.attachments} />
-        </View>
+        <SensitiveCover hidden={mediaHidden} onReveal={onRevealMedia} className="mb-3">
+          <View className="mb-3">
+            <MediaAttachments attachments={post?.attachments} />
+          </View>
+        </SensitiveCover>
       ) : null}
 
       {/* Body */}
@@ -304,9 +311,11 @@ export function PostBody({ post, typography }) {
           downloadable file). Audio/video render inline; images get the
           grid treatment. */}
       {type !== "Media" && Array.isArray(post?.attachments) && post.attachments.length > 0 ? (
-        <View className="mt-4">
-          <MediaAttachments attachments={post.attachments} />
-        </View>
+        <SensitiveCover hidden={mediaHidden} onReveal={onRevealMedia} className="mt-4">
+          <View className="mt-4">
+            <MediaAttachments attachments={post.attachments} />
+          </View>
+        </SensitiveCover>
       ) : null}
     </View>
   );

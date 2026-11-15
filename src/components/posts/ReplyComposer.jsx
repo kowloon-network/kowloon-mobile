@@ -7,7 +7,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 
+import { inheritedContentWarning, contentWarningLabel } from "@kowloon/client";
 import { Avatar } from "./Avatar.jsx";
+import { ContentWarningButton, ContentWarningSheet } from "./ContentWarning.jsx";
 import { useInk } from "../../lib/useInk.js";
 
 export function ReplyComposer({
@@ -19,6 +21,9 @@ export function ReplyComposer({
   onSubmitted,
   autoFocus = false,
   placeholder = "Write a reply…",
+  // The post or reply being answered: a reply starts with its content
+  // warning, which the author can change or clear.
+  parent = null,
 }) {
   const ink = useInk();
   const [text, setText] = useState("");
@@ -26,6 +31,16 @@ export function ReplyComposer({
   const [error, setError] = useState(null);
   const dedupeRef = useRef(null);
   const inputRef = useRef(null);
+  const inherited = inheritedContentWarning(parent);
+  const [cw, setCw] = useState(inherited);
+  const [cwOpen, setCwOpen] = useState(false);
+  // The parent loads after the composer mounts on some screens.
+  const inheritedKey = JSON.stringify(inherited);
+  const [lastInherited, setLastInherited] = useState(inheritedKey);
+  if (inheritedKey !== lastInherited) {
+    setLastInherited(inheritedKey);
+    setCw(inherited);
+  }
 
   // Imperative focus — autoFocus on first render isn't enough on Android,
   // where the input lives off-screen until the parent ScrollView lays out.
@@ -61,14 +76,18 @@ export function ReplyComposer({
         postId,
         ...(inReplyTo ? { inReplyTo } : {}),
         content: text,
+        ...(cw ? { contentWarning: cw } : {}),
         dedupeKey: dedupeRef.current.key,
       });
       setText("");
       dedupeRef.current = null;
+      const sentCw = cw;
+      setCw(inheritedContentWarning(parent));
       onSubmitted?.({
         duplicated: !!res?.duplicated,
         result: res,
         content: text,
+        contentWarning: sentCw,
         inReplyTo,
       });
     } catch (e) {
@@ -94,6 +113,14 @@ export function ReplyComposer({
           className="  bg-field px-3 py-2.5 font-ui text-[15px] text-base-content min-h-20"
         />
         <View className="flex-row items-center justify-end mt-2">
+          <View className="flex-row items-center mr-auto flex-1 min-w-0">
+            <ContentWarningButton value={cw} onPress={() => setCwOpen(true)} size={18} />
+            {cw ? (
+              <Text className="font-ui text-xs text-base-content/55 shrink" numberOfLines={1}>
+                {contentWarningLabel({ contentWarning: cw })}
+              </Text>
+            ) : null}
+          </View>
           {error ? (
             <Text className="font-ui text-[11px] text-error mr-3 flex-1">
               {error}
@@ -113,6 +140,17 @@ export function ReplyComposer({
           </Pressable>
         </View>
       </View>
+      {cwOpen ? (
+        <ContentWarningSheet
+          visible
+          value={cw}
+          onClose={() => setCwOpen(false)}
+          onDone={(next) => {
+            setCw(next);
+            setCwOpen(false);
+          }}
+        />
+      ) : null}
     </View>
   );
 }

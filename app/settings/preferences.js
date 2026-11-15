@@ -2,8 +2,9 @@
 // (@kowloon/client). Each entry's `type` picks a control; values are read/written
 // flat on user.prefs. Writes go straight to the server via updateProfile:
 //   - scalar prefs merge (the Update handler dot-paths prefs.<key>)
-//   - nested `notifications.*` must be sent as the WHOLE object, since the
-//     handler replaces prefs.notifications wholesale.
+//   - nested dotted keys (`notifications.*`, `contentWarnings.*`) are sent as
+//     the WHOLE nested object, since the handler replaces e.g.
+//     prefs.notifications wholesale.
 // Reading typography has its own dedicated screen and is linked, not inlined.
 
 import { useCallback, useRef, useState } from "react";
@@ -42,11 +43,13 @@ export default function PreferencesScreen() {
       const prev = prefsRef.current;
       let nextPrefs;
       let payload;
-      if (key.startsWith("notifications.")) {
-        const sub = key.slice("notifications.".length);
-        const nextNotifs = { ...(prev.notifications || {}), [sub]: value };
-        nextPrefs = { ...prev, notifications: nextNotifs };
-        payload = { notifications: nextNotifs }; // send the whole nested object
+      const dot = key.indexOf(".");
+      if (dot > 0) {
+        const head = key.slice(0, dot);
+        const sub = key.slice(dot + 1);
+        const nextNested = { ...(prev[head] || {}), [sub]: value };
+        nextPrefs = { ...prev, [head]: nextNested };
+        payload = { [head]: nextNested }; // send the whole nested object
       } else {
         nextPrefs = { ...prev, [key]: value };
         payload = { [key]: value };
@@ -123,6 +126,25 @@ function PrefControl({ entry, value, onChange, isAdmin }) {
     case "select": {
       // Hide admin-only options from non-admins (e.g. the Admin home screen).
       const options = entry.options.filter((o) => !o.adminOnly || isAdmin);
+      // Content warnings: eight short Show / Warn / Hide rows -- label on the
+      // left, choices on the right, so the group stays compact.
+      if (entry.group === "contentWarnings") {
+        return (
+          <RowH entry={entry}>
+            <View className="flex-row">
+              {options.map((o) => (
+                <Pill
+                  key={o.value}
+                  label={o.label}
+                  active={value === o.value}
+                  onPress={() => onChange(o.value)}
+                  compact
+                />
+              ))}
+            </View>
+          </RowH>
+        );
+      }
       return (
         <RowV entry={entry}>
           <View className="flex-row flex-wrap">
@@ -221,7 +243,7 @@ function RowV({ entry, children }) {
   );
 }
 
-function Pill({ label, active, onPress }) {
+function Pill({ label, active, onPress, compact = false }) {
   // Colors via inline style, not NativeWind classes: a conditional `className`
   // background doesn't reliably repaint on Android (same reason the feed filter
   // toggles icon COLOR, not a background). Inline color values always re-apply.
@@ -229,13 +251,13 @@ function Pill({ label, active, onPress }) {
     <Pressable
       onPress={onPress}
       android_ripple={{ color: "rgba(0,0,0,0.08)" }}
-      className="mr-2 mb-1"
+      className={compact ? "ml-1" : "mr-2 mb-1"}
     >
       {/* key flips with `active` so the View remounts on toggle — guarantees a
           background repaint even where in-place restyle is unreliable. */}
       <View
         key={active ? "on" : "off"}
-        className="px-3 py-2"
+        className={compact ? "px-2.5 py-1.5" : "px-3 py-2"}
         style={{ backgroundColor: active ? "#5588B1" : "#F4F4F4" }}
       >
         <Text

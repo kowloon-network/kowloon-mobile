@@ -16,6 +16,15 @@ import { Avatar } from "./Avatar.jsx";
 import { HtmlContent } from "../HtmlContent.jsx";
 import { ReactButton } from "./ReactButton.jsx";
 import { ReportSheet } from "./FlagSheet.jsx";
+import {
+  useContentWarning,
+  HiddenPostLine,
+  WarningBar,
+  WarningChip,
+  ContentWarningButton,
+  ContentWarningSheet,
+} from "./ContentWarning.jsx";
+import { useStaffRole } from "../../lib/useIsAdmin.js";
 import { timeAgo } from "@kowloon/client";
 import { useInk } from "../../lib/useInk.js";
 import { useTypography } from "../../lib/TypographyContext.js";
@@ -44,6 +53,33 @@ export function Reply({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
+  // Content warning: what the reader sees, the author's edit draft, and the
+  // staff tool (moderators can add one to someone else's reply).
+  const cw = useContentWarning(reply);
+  const modLocked = !!reply?.contentWarning?.addedBy;
+  const [draftCw, setDraftCw] = useState(reply?.contentWarning || null);
+  const [cwSheet, setCwSheet] = useState(null); // "edit" | "staff" | null
+  const [cwBusy, setCwBusy] = useState(false);
+  const staffRole = useStaffRole();
+  const isStaff = !!staffRole && !isAuthor;
+
+  async function applyStaffWarning(nextCw, sensitive) {
+    setCwBusy(true);
+    setError(null);
+    try {
+      const res = await client.admin.setContentWarning({
+        target: reply.id,
+        contentWarning: nextCw,
+        sensitive,
+      });
+      onUpdated?.({ ...reply, contentWarning: res?.contentWarning ?? null, sensitive: !!res?.sensitive });
+      setCwSheet(null);
+    } catch (e) {
+      setError(e?.message || "Couldn't change the warning.");
+    } finally {
+      setCwBusy(false);
+    }
+  }
 
   async function handleSave() {
     if (!draft.trim() || saving) return;
@@ -53,12 +89,15 @@ export function Reply({
       const res = await client.activities.updateReply({
         replyId: reply.id,
         content: draft,
+        // A moderator's warning can't be changed by the author; don't send it.
+        ...(modLocked ? {} : { contentWarning: draftCw }),
       });
       const updated = res?.result || res?.activity?.object || null;
       onUpdated?.({
         ...reply,
         source: { ...(reply.source || {}), content: draft },
         body: updated?.body || "",
+        ...(modLocked ? {} : { contentWarning: draftCw }),
       });
       setEditing(false);
     } catch (e) {
@@ -123,10 +162,14 @@ export function Reply({
               placeholderTextColor={ink(0.35)}
               className="  bg-field px-3 py-2 font-ui text-sm text-base-content min-h-20"
             />
-            <View className="flex-row justify-end mt-2">
+            <View className="flex-row items-center justify-end mt-2">
+              <View className="mr-auto">
+                <ContentWarningButton value={draftCw} onPress={() => setCwSheet("edit")} size={18} />
+              </View>
               <Pressable
                 onPress={() => {
                   setEditing(false);
+                  setDraftCw(reply?.contentWarning || null);
                   setDraft(reply?.source?.content || "");
                   setError(null);
                 }}
@@ -151,7 +194,17 @@ export function Reply({
               </Pressable>
             </View>
           </View>
+        ) : cw.stage === "hidden" ? (
+          <HiddenPostLine
+            compact
+            label={cw.decision.hiddenLabel.replace(/^Post/, "Reply")}
+            onShow={cw.reveal}
+          />
+        ) : cw.stage === "warned" ? (
+          <WarningBar decision={cw.decision} onShow={cw.reveal} noun="reply" />
         ) : html ? (
+          <>
+          <WarningChip decision={cw.decision} />
           <HtmlContent
             html={html}
             fonts={{
@@ -162,6 +215,7 @@ export function Reply({
             fontSize={resolved.fontSize}
             lineHeight={resolved.lineHeight}
           />
+          </>
         ) : null}
 
         {!editing ? (
@@ -209,9 +263,16 @@ export function Reply({
                 </Pressable>
               </>
             ) : currentUserId ? (
-              <Pressable onPress={() => setReportOpen(true)} hitSlop={6}>
+              <Pressable onPress={() => setReportOpen(true)} hitSlop={6} className="mr-4">
                 <Text className="font-ui uppercase tracking-[0.16em] text-[10px] text-base-content/45">
                   Report
+                </Text>
+              </Pressable>
+            ) : null}
+            {isStaff ? (
+              <Pressable onPress={() => setCwSheet("staff")} hitSlop={6}>
+                <Text className="font-ui uppercase tracking-[0.16em] text-[10px] text-base-content/45">
+                  Warning
                 </Text>
               </Pressable>
             ) : null}
@@ -223,6 +284,32 @@ export function Reply({
         ) : null}
       </View>
       </View>
+
+      {cwSheet === "edit" ? (
+      <ContentWarningSheet
+        visible
+        value={draftCw}
+        locked={modLocked}
+        onClose={() => setCwSheet(null)}
+        onDone={(next) => {
+          setDraftCw(next);
+          setCwSheet(null);
+        }}
+      />
+      ) : null}
+      {cwSheet === "staff" ? (
+      <ContentWarningSheet
+        visible
+        title="Content warning (moderator)"
+        doneLabel="Save"
+        allowRemove={!!reply?.contentWarning}
+        busy={cwBusy}
+        value={reply?.contentWarning || null}
+        sensitive={!!reply?.sensitive}
+        onClose={() => setCwSheet(null)}
+        onDone={applyStaffWarning}
+      />
+      ) : null}
 
       {reportOpen ? (
         <ReportSheet

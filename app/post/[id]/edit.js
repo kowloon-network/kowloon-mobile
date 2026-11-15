@@ -40,6 +40,8 @@ import { uploadFile } from "../../../src/lib/uploadFile.js";
 import { selectActiveAccount } from "../../../src/state/accountsSlice.js";
 import { pmToMarkdown } from "../../../src/lib/pmToMarkdown.js";
 import { useInk } from "../../../src/lib/useInk.js";
+import { contentWarningLabel } from "@kowloon/client";
+import { ContentWarningSheet } from "../../../src/components/posts/ContentWarning.jsx";
 
 const TOOLBAR_HEIGHT = 44;
 const EDITOR_HEIGHT = 320;
@@ -154,6 +156,10 @@ export default function EditPost() {
   // Featured image (Article/Event): existing { existing:true, fileId, url },
   // newly picked { existing:false, uri }, or null when there is none/removed.
   const [featuredImage, setFeaturedImage] = useState(null);
+  // Content warning + "blur photos". A moderator's warning is shown locked.
+  const [cw, setCw] = useState(null);
+  const [sensitive, setSensitive] = useState(false);
+  const [cwOpen, setCwOpen] = useState(false);
 
   // Rich text editor — rendered by <PostBodyEditor> once the post loads, so it
   // can be created with the body as initialContent. editorRef receives the
@@ -175,6 +181,8 @@ export default function EditPost() {
       // source) means the editor shows formatted text, not escaped markdown.
       setInitialBodyHtml(doc?.body || "");
       setAudience(doc?.to || "@public");
+      setCw(doc?.contentWarning || null);
+      setSensitive(!!doc?.sensitive);
       // Reply/react default to the post audience when they were left to inherit.
       setCanReply(doc?.canReply || doc?.to || "@public");
       setCanReact(doc?.canReact || doc?.to || "@public");
@@ -239,6 +247,8 @@ export default function EditPost() {
   const isEvent = type === "Event";
   const isMedia = type === "Media";
   const hasFeatured = type === "Article" || type === "Event";
+  const cwLocked = !!post?.contentWarning?.addedBy;
+  const hasMedia = (isMedia && attachments.length > 0) || (hasFeatured && !!featuredImage) || !!post?.image;
 
   async function pickFeaturedImage() {
     try {
@@ -329,6 +339,10 @@ export default function EditPost() {
     setError(null);
     try {
       const updates = { content: trimmedContent, to: audience, canReply, canReact };
+      if (!cwLocked) {
+        updates.contentWarning = cw ? { categories: cw.categories || [], note: cw.note || "" } : null;
+        updates.sensitive = hasMedia ? sensitive : false;
+      }
       if (hasTitleField) updates.title = trimmedTitle || "";
       if (isEvent) {
         updates.startTime = joinDateTime(startDate, startTime);
@@ -585,6 +599,26 @@ export default function EditPost() {
             ) : null}
 
             <View className="mb-5">
+              <FieldLabel>Content Warning</FieldLabel>
+              <Pressable
+                onPress={() => setCwOpen(true)}
+                className="flex-row items-center px-4 py-3 bg-base-200"
+                android_ripple={{ color: "rgba(0,0,0,0.08)" }}
+              >
+                <Text className="flex-1 font-ui text-sm text-base-content" numberOfLines={2}>
+                  {cw
+                    ? contentWarningLabel({ contentWarning: cw })
+                    : sensitive
+                    ? "None (photos blurred)"
+                    : "None"}
+                </Text>
+                <Text className="font-ui text-xs text-base-content/55 ml-3">
+                  {cwLocked ? "Added by a moderator" : cw || sensitive ? "Change" : "Add"}
+                </Text>
+              </Pressable>
+            </View>
+
+            <View className="mb-5">
               <FieldLabel>Visible To</FieldLabel>
               <AudienceSelector
                 value={audience}
@@ -609,6 +643,22 @@ export default function EditPost() {
               <Text className="font-ui text-xs text-error mb-3">{error}</Text>
             ) : null}
           </ScrollView>
+
+          {cwOpen ? (
+            <ContentWarningSheet
+              visible
+              value={cw}
+              sensitive={sensitive}
+              showSensitive={hasMedia}
+              locked={cwLocked}
+              onClose={() => setCwOpen(false)}
+              onDone={(next, blur) => {
+                setCw(next);
+                setSensitive(!!blur);
+                setCwOpen(false);
+              }}
+            />
+          ) : null}
 
           <View
             className="flex-row items-center justify-end px-5 pt-3  "

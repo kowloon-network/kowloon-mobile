@@ -193,6 +193,9 @@ export function PostActionBar({
         // Community posts may only be reshared to Community — cap the audience
         // selector to the original's tier so it can't be widened to Public.
         ...(tier === "server" ? { constrain: post?.to } : {}),
+        // Keep the original's content warning on the reshare.
+        ...(post?.contentWarning ? { cw: JSON.stringify(post.contentWarning) } : {}),
+        ...(post?.sensitive ? { sensitive: "1" } : {}),
       },
     });
   }

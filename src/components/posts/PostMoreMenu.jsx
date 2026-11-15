@@ -20,6 +20,7 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
+  TriangleAlert,
 } from "lucide-react-native";
 // expo-clipboard requires a native module. Guard against builds where the
 // correct SDK-matched version wasn't included at native compile time.
@@ -33,6 +34,8 @@ import { FlagSheet } from "./FlagSheet.jsx";
 import { AddToDiscoveryModal } from "../discover/AddToDiscoveryModal.jsx";
 import { useInk } from "../../lib/useInk.js";
 import { useIsStaff } from "../../lib/useIsAdmin.js";
+import { requestFeedRefresh } from "../../lib/feedRefreshSignal.js";
+import { ContentWarningSheet } from "./ContentWarning.jsx";
 
 const DROPDOWN_WIDTH = 210;
 const ICON_SIZE = 15;
@@ -63,6 +66,26 @@ export function PostMoreMenu({ post, client, currentUser, onDeleted }) {
   const [flagOpen, setFlagOpen] = useState(false);
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
   const isAdmin = useIsStaff(); // admins and moderators can feature on Discover
+  // Staff: put a content warning on someone else's post (the author uses Edit).
+  const [cwOpen, setCwOpen] = useState(false);
+  const [cwBusy, setCwBusy] = useState(false);
+
+  async function saveStaffWarning(contentWarning, sensitive) {
+    setCwBusy(true);
+    try {
+      await client.admin.setContentWarning({ target: post.id, contentWarning, sensitive });
+      setCwOpen(false);
+      requestFeedRefresh();
+      Alert.alert(
+        contentWarning || sensitive ? "Content warning saved" : "Content warning removed",
+        "The author has been told."
+      );
+    } catch (e) {
+      Alert.alert("Couldn't change the warning", e?.message || "Please try again.");
+    } finally {
+      setCwBusy(false);
+    }
+  }
 
   function openMenu() {
     triggerRef.current?.measureInWindow((x, y, w, h) => {
@@ -281,6 +304,17 @@ export function PostMoreMenu({ post, client, currentUser, onDeleted }) {
         setDiscoveryOpen(true);
       },
     });
+    if (!isOwner) {
+      items.push({
+        key: "contentwarning",
+        Icon: TriangleAlert,
+        label: post?.contentWarning || post?.sensitive ? "Change Warning" : "Add Content Warning",
+        onPress: () => {
+          close();
+          setCwOpen(true);
+        },
+      });
+    }
   }
 
   // Nothing to show — don't render the trigger.
@@ -351,6 +385,24 @@ export function PostMoreMenu({ post, client, currentUser, onDeleted }) {
         onSubmit={submitFlag}
         client={client}
       />
+
+      {cwOpen ? (
+        <ContentWarningSheet
+          visible
+          title="Content warning (moderator)"
+          doneLabel="Save"
+          value={post?.contentWarning || null}
+          sensitive={!!post?.sensitive}
+          showSensitive={
+            !!(post?.featuredImage || post?.image) ||
+            (Array.isArray(post?.attachments) && post.attachments.length > 0)
+          }
+          allowRemove={!!(post?.contentWarning || post?.sensitive)}
+          busy={cwBusy}
+          onClose={() => setCwOpen(false)}
+          onDone={saveStaffWarning}
+        />
+      ) : null}
 
       {isAdmin && (
         <AddToDiscoveryModal

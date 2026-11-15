@@ -13,6 +13,7 @@ import { useSelector } from "react-redux";
 import { Bookmark as BookmarkIcon, Copy, ExternalLink, Globe, Newspaper, Play, Users } from "lucide-react-native";
 
 import { Avatar } from "../posts/Avatar.jsx";
+import { useDiscoverWarning, WarningTile } from "../posts/ContentWarning.jsx";
 import { CircleAvatar } from "../circles/CircleAvatar.jsx";
 import { GroupAvatar } from "../groups/GroupAvatar.jsx";
 import { useActiveClient } from "../../lib/useActiveClient.js";
@@ -67,11 +68,33 @@ function MiniButton({ label, onPress, filled, disabled, icon }) {
 const POST_H = 200; // uniform post-card height across the row
 function PostCard({ item, baseUrl, onPress }) {
   const ink = useInk();
-  const img = resolveImageUrl(item.featuredImage, baseUrl);
+  const warning = useDiscoverWarning(item);
+  const img = warning.noImage ? null : resolveImageUrl(item.featuredImage, baseUrl);
   const author = item.actor || {};
   const title = item.title || null;
   const preview = item.preview || item.summary || "";
   const overlayText = title || preview;
+  if (warning.covered) {
+    return (
+      <Pressable
+        onPress={onPress}
+        android_ripple={{ color: "rgba(0,0,0,0.05)" }}
+        style={{ width: CARD_W }}
+        className="bg-base-200 mr-3"
+      >
+        <View style={{ height: POST_H }}>
+          <WarningTile label={warning.label} />
+          <View className="flex-row items-center px-3 pb-3">
+            <Avatar actor={author} size={20} baseUrl={baseUrl} />
+            <Text className="font-ui text-[11px] text-base-content/60 ml-2" numberOfLines={1}>
+              {author.name || author.id}
+            </Text>
+          </View>
+        </View>
+        <NoteBlock note={item.note} />
+      </Pressable>
+    );
+  }
   if (img) {
     return (
       <Pressable

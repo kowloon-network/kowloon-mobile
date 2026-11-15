@@ -9,6 +9,7 @@ import { Music, Play, X } from "lucide-react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 
 import { Avatar } from "../posts/Avatar.jsx";
+import { useDiscoverWarning, WarningTile } from "../posts/ContentWarning.jsx";
 import { resolveImageUrl } from "../../lib/resolveImageUrl.js";
 import { useAudioActions } from "../../lib/AudioPlayerProvider.jsx";
 
@@ -54,9 +55,14 @@ export function DiscoverMediaTile({ item, size, baseUrl, showAuthor, marginRight
   const img = resolveImageUrl(item.mediaImage || item.featuredImage, baseUrl);
   const playUrl = resolveImageUrl(item.mediaUrl, baseUrl);
   const author = item.actor || {};
+  // Behind a warning or marked sensitive: don't show or play it from the
+  // tile -- open the post, which shows the warning first.
+  const warning = useDiscoverWarning(item);
+  const guarded = warning.covered || warning.noImage;
 
   function onPress() {
-    if (kind === "video" && playUrl) setVideoOpen(true);
+    if (guarded) router.push(`/post/${encodeURIComponent(item.id)}`);
+    else if (kind === "video" && playUrl) setVideoOpen(true);
     else if (kind === "audio" && playUrl)
       audio?.requestTrack({ id: item.id, url: playUrl, title: item.mediaName || item.title || "Audio" });
     else router.push(`/post/${encodeURIComponent(item.id)}`);
@@ -70,7 +76,9 @@ export function DiscoverMediaTile({ item, size, baseUrl, showAuthor, marginRight
         className="bg-base-300"
         android_ripple={{ color: "rgba(0,0,0,0.06)" }}
       >
-        {kind === "image" && img ? (
+        {guarded ? (
+          <WarningTile label={warning.covered ? warning.label : "Sensitive"} small />
+        ) : kind === "image" && img ? (
           <Image source={{ uri: img }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
         ) : (
           <View

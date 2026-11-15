@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { EyeOff, Trash2, UserX, Flame, ExternalLink } from "lucide-react-native";
+import { EyeOff, Trash2, UserX, Flame, ExternalLink, TriangleAlert } from "lucide-react-native";
 
 import { AppHeader } from "../../../src/components/nav/AppHeader.jsx";
 import { useActiveClient } from "../../../src/lib/useActiveClient.js";
@@ -27,6 +27,7 @@ import {
 } from "../../../src/components/admin/ReportsList.jsx";
 import { banMessage, domainOf, ownDomain } from "../../../src/components/admin/blocklistUtils.js";
 import { useStaffRole } from "../../../src/lib/useIsAdmin.js";
+import { ContentWarningSheet } from "../../../src/components/posts/ContentWarning.jsx";
 
 // Where the reported thing can be opened in the app.
 const VIEW_ROUTE = {
@@ -102,6 +103,7 @@ export default function AdminReport() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(null);
+  const [cwOpen, setCwOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!client || !id) return;
@@ -280,6 +282,15 @@ export default function AdminReport() {
                 )
               }
             />
+            {flag.targetType === "Post" || flag.targetType === "Reply" ? (
+              <ActionButton
+                icon={<TriangleAlert size={16} color={ink(0.6)} strokeWidth={1.75} />}
+                label="Add content warning"
+                hint="Leave it up behind a warning. The reporter and the author are both told."
+                disabled={busy || t.exists === false || t.removed}
+                onPress={() => setCwOpen(true)}
+              />
+            ) : null}
             <ActionButton
               icon={<Trash2 size={16} color={ink(0.6)} strokeWidth={1.75} />}
               label="Remove"
@@ -354,6 +365,29 @@ export default function AdminReport() {
           </View>
         ) : null}
       </ScrollView>
+      {cwOpen ? (
+        <ContentWarningSheet
+          visible
+          title="Add a content warning"
+          doneLabel="Add warning"
+          value={null}
+          sensitive={false}
+          showSensitive={images.length > 0 || (t.attachments || []).length > 0}
+          busy={busy}
+          onClose={() => setCwOpen(false)}
+          onDone={(cw, sensitive) => {
+            if (!cw && !sensitive) {
+              Alert.alert("Nothing to add", "Choose at least one warning, write a note, or blur the photos.");
+              return;
+            }
+            setCwOpen(false);
+            run(
+              () => client.admin.warnFlaggedItem({ flagId: flag.id, contentWarning: cw, sensitive }),
+              "Content warning added. The reporter and the author have been told."
+            );
+          }}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
