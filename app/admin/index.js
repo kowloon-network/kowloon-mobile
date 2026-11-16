@@ -74,7 +74,7 @@ const SECTIONS = [
     items: [
       { route: "/admin/invites", label: "Invites", desc: "Links and QR codes for joining", Icon: Mail },
       { route: "/admin/themes", label: "Themes", desc: "The server's colours", Icon: Palette },
-      { web: "/admin/settings", label: "Settings", desc: "Name, email, rules, backups", Icon: Settings },
+      { route: "/admin/settings", label: "Settings", desc: "Email confirmation; more on the web", Icon: Settings },
       { web: "/admin/logs", label: "Logs", desc: "Technical errors and warnings", Icon: ScrollText },
     ],
   },
