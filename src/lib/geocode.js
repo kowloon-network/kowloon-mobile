@@ -14,7 +14,7 @@ const HEADERS = {
   Accept: "application/json",
   "Accept-Language": "en",
   // Nominatim's usage policy asks for a meaningful User-Agent.
-  "User-Agent": "kowloon-mobile/0.1 (https://github.com/jzellis/kowloon-mobile)",
+  "User-Agent": "kowloon-mobile/0.9 (https://github.com/kowloon-network/kowloon-mobile)",
 };
 
 function stripTrailingSlash(u) {
