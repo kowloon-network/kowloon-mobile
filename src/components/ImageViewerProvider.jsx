@@ -106,9 +106,11 @@ export function ImageViewerProvider({ children }) {
       // preview target the moment this provider (mounted at app root)
       // loaded, well before Save was ever tapped.
       const MediaLibrary = await import("expo-media-library");
-      const perm = await MediaLibrary.requestPermissionsAsync();
+      // Save-only access: we never read the library, and asking to would
+      // need READ_MEDIA_IMAGES, which Google Play restricts.
+      const perm = await MediaLibrary.requestPermissionsAsync(true);
       if (!perm.granted) {
-        Alert.alert("Permission needed", "Allow photo access to save images.");
+        Alert.alert("Permission needed", "Allow Kowloon to add photos to save images.");
         return;
       }
       const { uri } = await downloadCurrent();
