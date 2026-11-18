@@ -8,6 +8,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   Text,
@@ -42,6 +43,7 @@ import { pmToMarkdown } from "../../../src/lib/pmToMarkdown.js";
 import { useInk } from "../../../src/lib/useInk.js";
 import { contentWarningLabel } from "@kowloon/client";
 import { ContentWarningSheet } from "../../../src/components/posts/ContentWarning.jsx";
+import { FocusPicker } from "../../../src/components/posts/FocusPicker.jsx";
 
 const TOOLBAR_HEIGHT = 44;
 const EDITOR_HEIGHT = 320;
@@ -210,6 +212,7 @@ export default function EditPost() {
               name: a.name || "",
               mimeType: a.mediaType || "",
               kind: kindFromMime(a.mediaType, a.name),
+              focus: a.focus || null,
             }))
         );
       }
@@ -324,6 +327,12 @@ export default function EditPost() {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
 
+  // Index of the image whose focus point is being set, or null.
+  const [focusIndex, setFocusIndex] = useState(null);
+  function setAttachmentFocus(index, focus) {
+    setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, focus } : a)));
+  }
+
   async function handleSubmit() {
     if (submitting) return;
     const editorDoc = editorRef.current ? await editorRef.current.getJSON() : null;
@@ -365,16 +374,21 @@ export default function EditPost() {
                 title: a.name,
                 to: audience,
                 generateThumbnail: a.kind === "image",
+                focus: a.kind === "image" ? a.focus || undefined : undefined,
               })
             )
           );
           uploaded = results
-            .map((r, i) => ({ fileId: r?.file?.id, title: fresh[i].name || undefined }))
+            .map((r, i) => ({
+              fileId: r?.file?.id,
+              title: fresh[i].name || undefined,
+              focus: fresh[i].focus || undefined,
+            }))
             .filter((x) => x.fileId);
         }
         const kept = attachments
           .filter((a) => a.existing && a.fileId)
-          .map((a) => ({ fileId: a.fileId, title: a.name || undefined }));
+          .map((a) => ({ fileId: a.fileId, title: a.name || undefined, focus: a.focus || undefined }));
         updates.attachments = [...kept, ...uploaded];
       }
 
@@ -546,11 +560,16 @@ export default function EditPost() {
                         className="flex-row items-center bg-base-200 p-2"
                       >
                         {a.kind === "image" ? (
-                          <Image
-                            source={{ uri: a.url || a.uri }}
-                            className="w-14 h-14 bg-base-300"
-                            resizeMode="cover"
-                          />
+                          <Pressable
+                            onPress={() => setFocusIndex(i)}
+                            accessibilityLabel="Set this photo's focus point"
+                          >
+                            <Image
+                              source={{ uri: a.url || a.uri }}
+                              className="w-14 h-14 bg-base-300"
+                              resizeMode="cover"
+                            />
+                          </Pressable>
                         ) : (
                           <View className="w-14 h-14 bg-base-300 items-center justify-center">
                             <Text className="font-ui text-[10px] uppercase tracking-wide text-base-content/60">
@@ -558,12 +577,18 @@ export default function EditPost() {
                             </Text>
                           </View>
                         )}
-                        <Text
-                          numberOfLines={1}
-                          className="flex-1 mx-3 font-ui text-sm text-base-content"
-                        >
-                          {a.name || a.kind}
-                        </Text>
+                        <View className="flex-1 mx-3">
+                          <Text numberOfLines={1} className="font-ui text-sm text-base-content">
+                            {a.name || a.kind}
+                          </Text>
+                          {a.kind === "image" ? (
+                            <Pressable onPress={() => setFocusIndex(i)} hitSlop={6}>
+                              <Text className="font-ui text-xs text-primary mt-0.5">
+                                Adjust focus point
+                              </Text>
+                            </Pressable>
+                          ) : null}
+                        </View>
                         <Pressable
                           onPress={() => removeAttachment(i)}
                           hitSlop={8}
@@ -694,6 +719,38 @@ export default function EditPost() {
           </View>
         </>
       ) : null}
+
+      <Modal
+        visible={focusIndex !== null && !!attachments[focusIndex]}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFocusIndex(null)}
+        statusBarTranslucent
+      >
+        <Pressable
+          className="flex-1 bg-black/40 items-center justify-center px-6"
+          onPress={() => setFocusIndex(null)}
+        >
+          <Pressable onPress={() => {}} className="w-full max-w-sm bg-base-100 p-5">
+            {focusIndex !== null && attachments[focusIndex] ? (
+              <FocusPicker
+                uri={attachments[focusIndex].url || attachments[focusIndex].uri}
+                focus={attachments[focusIndex].focus || null}
+                onChange={(focus) => setAttachmentFocus(focusIndex, focus)}
+              />
+            ) : null}
+            <View className="flex-row justify-end mt-5">
+              <Pressable
+                onPress={() => setFocusIndex(null)}
+                android_ripple={{ color: "rgba(0,0,0,0.08)" }}
+                className="px-6 py-2.5 bg-primary"
+              >
+                <Text className="font-ui uppercase tracking-[0.16em] text-[11px] text-primary-content">Done</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }

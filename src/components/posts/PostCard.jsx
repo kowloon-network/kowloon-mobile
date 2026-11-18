@@ -10,7 +10,8 @@ import { useRouter } from "expo-router";
 import { Play, Music } from "lucide-react-native";
 
 import { resolveEmbed } from "@kowloon/client";
-import { SmartImage as Image } from "../ui/SmartImage.jsx";
+import { ImageRows, HeaderImage, toLayoutItem } from "./PostImages.jsx";
+import { FEED_IMAGE_LIMITS } from "@kowloon/client";
 import { Avatar } from "./Avatar.jsx";
 import { EmbedPlayer } from "./EmbedPlayer.jsx";
 import { LocationLine } from "./LocationLine.jsx";
@@ -253,11 +254,12 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
               </Text>
             ) : null}
             <LocationLine location={post?.location} />
-            {/* Media above the body — always, like the web card. Capped at 4
-                attachments (2x2); a 5th+ replaces the last cell with a
-                "+N more" link to the full post. Video/audio share the same
-                cap and cell treatment as images here -- full playback lives
-                on the detail screen (Card.md decision 2). */}
+            {/* Media above the body -- always, like the web card. Capped at 4
+                attachments; a 5th+ turns the last one into a "+N more" link
+                to the full post. Images keep their own shapes in rows,
+                cropped around their focus point (PostImages.jsx). Video and
+                audio show as tiles here -- full playback lives on the
+                detail screen (Card.md decision 2). */}
             {Array.isArray(post.attachments) && post.attachments.length > 0 ? (
               <SensitiveCover hidden={cw.mediaHidden} onReveal={cw.revealMedia} className="mb-3">
               <View className={cw.mediaHidden ? "" : "mb-3"}>
@@ -267,58 +269,40 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
                   const imageAtts = post.attachments.filter((a) => attachmentKind(a) === "image");
                   const imageItems = imageAtts.map(attItem);
                   return (
-                    <View className="flex-row flex-wrap" style={{ gap: 4 }}>
-                      {shown.map((att, i) => {
-                        const kind = attachmentKind(att);
-                        const isOverflowCell = i === shown.length - 1 && extra > 0;
-                        const isOddFinal =
-                          !isOverflowCell && shown.length > 1 && shown.length % 2 === 1 && i === shown.length - 1;
-                        const cellWidth = shown.length === 1 || isOddFinal ? "100%" : "49%";
-                        // Same cell shapes as the web feed card: square cells
-                        // (a lone image fills the full width as a square), and
-                        // an odd final item spans both columns at 2:1.
-                        const cellRatio = isOddFinal ? 2 : 1;
-                        const onPress =
-                          kind === "image"
-                            ? () => viewer?.open(imageItems, imageAtts.findIndex((a) => attUrl(a) === attUrl(att)))
-                            : open;
-                        return (
-                          <Pressable key={`${attUrl(att)}-${i}`} onPress={onPress} style={{ width: cellWidth }}>
-                            <View
-                              className="relative w-full bg-base-200 items-center justify-center overflow-hidden"
-                              style={{ aspectRatio: cellRatio }}
-                            >
-                              {kind === "image" && (
-                                <Image source={{ uri: attUrl(att) }} className="w-full h-full" resizeMode="cover" />
-                              )}
-                              {kind === "video" && <Play size={28} color={ink(0.55)} />}
-                              {kind === "audio" && <Music size={28} color={ink(0.55)} />}
-                              {isOverflowCell && (
-                                <View className="absolute inset-0 bg-black/60 items-center justify-center">
-                                  <Text className="font-ui text-sm uppercase tracking-widest text-white">
-                                    +{extra} more
-                                  </Text>
-                                </View>
-                              )}
-                            </View>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
+                    <ImageRows
+                      items={shown.map((att) => toLayoutItem(att, attachmentKind(att)))}
+                      onPressItem={(i) => {
+                        const att = shown[i];
+                        if (attachmentKind(att) !== "image" || (extra > 0 && i === shown.length - 1)) {
+                          open();
+                          return;
+                        }
+                        viewer?.open(imageItems, imageAtts.findIndex((a) => attUrl(a) === attUrl(att)));
+                      }}
+                      renderPlaceholder={(it) =>
+                        it.kind === "video" ? <Play size={28} color={ink(0.55)} /> : <Music size={28} color={ink(0.55)} />
+                      }
+                      renderOverlay={(i) =>
+                        extra > 0 && i === shown.length - 1 ? (
+                          <View className="absolute inset-0 bg-black/60 items-center justify-center">
+                            <Text className="font-ui text-sm uppercase tracking-widest text-white">+{extra} more</Text>
+                          </View>
+                        ) : null
+                      }
+                    />
                   );
                 })()}
               </View>
               </SensitiveCover>
             ) : image ? (
               <SensitiveCover hidden={cw.mediaHidden} onReveal={cw.revealMedia} className="mb-3">
-              <Pressable onPress={() => viewer?.open([image], 0)}>
-                <Image
-                  source={{ uri: image }}
-                  className={`w-full bg-base-200 ${cw.mediaHidden ? "" : "mb-3"}`}
-                  style={{ aspectRatio: 4 / 5 }}
-                  resizeMode="cover"
+                <HeaderImage
+                  uri={image}
+                  info={post?.featuredImageInfo}
+                  limits={FEED_IMAGE_LIMITS}
+                  className={cw.mediaHidden ? "" : "mb-3"}
+                  onPress={() => viewer?.open([image], 0)}
                 />
-              </Pressable>
               </SensitiveCover>
             ) : null}
             {previewHtml ? (
@@ -343,11 +327,7 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
               <EmbedPlayer embed={embed} poster={image} />
             ) : image ? (
               <Pressable onPress={openExternal} className="mb-3">
-                <Image
-                  source={{ uri: image }}
-                  className="w-full h-48   bg-base-200"
-                  resizeMode="cover"
-                />
+                <HeaderImage uri={image} info={post?.featuredImageInfo} />
               </Pressable>
             ) : null}
             </SensitiveCover>
@@ -419,7 +399,7 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
             {image ? (
               <SensitiveCover hidden={cw.mediaHidden} onReveal={cw.revealMedia} className="mb-3">
               <Pressable onPress={() => viewer?.open([image], 0)} className="mb-3">
-                <Image source={{ uri: image }} className="w-full h-48   bg-base-200" resizeMode="cover" />
+                <HeaderImage uri={image} info={post?.featuredImageInfo} />
               </Pressable>
               </SensitiveCover>
             ) : null}
@@ -462,11 +442,7 @@ export const PostCard = memo(function PostCard({ post, onDeleted, onRemove }) {
             {image ? (
               <SensitiveCover hidden={cw.mediaHidden} onReveal={cw.revealMedia} className="mb-3 mt-1">
               <Pressable onPress={() => viewer?.open([image], 0)} className="mb-3 mt-1">
-                <Image
-                  source={{ uri: image }}
-                  className="w-full h-48   bg-base-200"
-                  resizeMode="cover"
-                />
+                <HeaderImage uri={image} info={post?.featuredImageInfo} />
               </Pressable>
               </SensitiveCover>
             ) : null}

@@ -15,7 +15,6 @@ import { Linking, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 
 import { openKowloonLink } from "../../lib/parseKowloonUrl.js";
-import { SmartImage as Image } from "../ui/SmartImage.jsx";
 import { Avatar } from "./Avatar.jsx";
 import { AudioAttachment } from "./AudioAttachment.jsx";
 import { VideoAttachment } from "./VideoAttachment.jsx";
@@ -23,7 +22,7 @@ import { SensitiveCover } from "./ContentWarning.jsx";
 import { LocationLine } from "./LocationLine.jsx";
 import { HtmlContent } from "../HtmlContent.jsx";
 import { useImageViewer } from "../ImageViewerProvider.jsx";
-import { imageDisplayRatio } from "../../lib/imageRatio.js";
+import { ImageRows, HeaderImage, toLayoutItem } from "./PostImages.jsx";
 
 // An attachment may arrive as a rich { url, mediaType, name } object (enriched
 // feeds) or as a bare URL string (feeds that don't enrich, or empty mediaType
@@ -104,42 +103,19 @@ function formatEventRange(post) {
   };
 }
 
-// 2-column image grid identical to the feed card, but without the 2-row cap.
-// Tapping an image opens it fullscreen (swipeable across all the post's images).
+// All of a post's images, in rows that keep each image's shape (same rules
+// as the feed card, without its 4-image cap). Tapping one opens it
+// fullscreen, swipeable across all the post's images.
 function ImageGrid({ images }) {
   const viewer = useImageViewer();
   if (images.length === 0) return null;
   const items = images.map(attItem);
-  if (images.length === 1) {
-    return (
-      <Pressable onPress={() => viewer?.open(items, 0)}>
-        <Image
-          source={{ uri: attUrl(images[0]) }}
-          className="w-full mb-3 bg-base-200"
-          style={{ aspectRatio: imageDisplayRatio(images[0]) }}
-          resizeMode="cover"
-        />
-      </Pressable>
-    );
-  }
   return (
-    <View className="flex-row flex-wrap mb-2" style={{ gap: 4 }}>
-      {images.map((img, i) => {
-        const lastOdd = images.length % 2 === 1 && i === images.length - 1;
-        return (
-          <Pressable
-            key={`${attUrl(img)}-${i}`}
-            onPress={() => viewer?.open(items, i)}
-            style={{ width: lastOdd ? "100%" : "49%" }}
-          >
-            <Image
-              source={{ uri: attUrl(img) }}
-              className="w-full h-48 bg-base-200"
-              resizeMode="cover"
-            />
-          </Pressable>
-        );
-      })}
+    <View className="mb-3">
+      <ImageRows
+        items={images.map((img) => toLayoutItem(img, "image"))}
+        onPressItem={(i) => viewer?.open(items, i)}
+      />
     </View>
   );
 }
@@ -264,21 +240,14 @@ export function PostBody({ post, typography, mediaHidden = false, onRevealMedia 
       {hero ? (
         <SensitiveCover hidden={mediaHidden} onReveal={onRevealMedia} className="mb-5">
         {type === "Link" && post?.href ? (
-          <Pressable onPress={openHref}>
-            <Image
-              source={{ uri: hero }}
-              className="w-full h-72 mb-5   bg-base-200"
-              resizeMode="cover"
-            />
-          </Pressable>
+          <HeaderImage uri={hero} info={post?.featuredImageInfo} className="mb-5" onPress={openHref} />
         ) : (
-          <Pressable onPress={() => viewer?.open([hero], 0)}>
-            <Image
-              source={{ uri: hero }}
-              className="w-full h-72 mb-5 bg-base-200"
-              resizeMode="cover"
-            />
-          </Pressable>
+          <HeaderImage
+            uri={hero}
+            info={post?.featuredImageInfo}
+            className="mb-5"
+            onPress={() => viewer?.open([hero], 0)}
+          />
         )}
         </SensitiveCover>
       ) : null}

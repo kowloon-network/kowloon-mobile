@@ -69,6 +69,8 @@ import { ReplyReactScope } from "../src/components/posts/ReplyReactScope.jsx";
 import { LocationField } from "../src/components/posts/LocationField.jsx";
 import { ContentWarningButton, ContentWarningSheet } from "../src/components/posts/ContentWarning.jsx";
 import { DateTimeField } from "../src/components/posts/DateTimeField.jsx";
+import { FocusPicker } from "../src/components/posts/FocusPicker.jsx";
+import { HeaderImage } from "../src/components/posts/PostImages.jsx";
 import { useActiveClient } from "../src/lib/useActiveClient.js";
 import { requestFeedRefresh } from "../src/lib/feedRefreshSignal.js";
 import { consumePendingShare } from "../src/lib/pendingShare.js";
@@ -695,6 +697,8 @@ export default function Compose() {
 
   // Index of the attachment whose title/alt editor is open, or null.
   const [editingIndex, setEditingIndex] = useState(null);
+  // Whether the header image's focus-point editor is open.
+  const [editingFeatured, setEditingFeatured] = useState(false);
 
   // Toolbar's Link button prompt (see TOOLBAR_ACTIONS / the toolbar render below).
   const [linkPromptOpen, setLinkPromptOpen] = useState(false);
@@ -999,6 +1003,7 @@ export default function Compose() {
             mimeType: featuredImage.mimeType,
             to: audience,
             generateThumbnail: true,
+            focus: featuredImage.focus || undefined,
           });
           articleFeaturedFileId = res?.file?.id;
         } catch (e) {
@@ -1024,6 +1029,7 @@ export default function Compose() {
                 summary: a.alt?.trim() || undefined,
                 to: audience,
                 generateThumbnail: a.kind === "image",
+                focus: a.kind === "image" ? a.focus || undefined : undefined,
                 onProgress: ({ percent }) =>
                   setUploadProgress((prev) => ({ ...prev, [a.uri]: percent })),
               })
@@ -1034,6 +1040,9 @@ export default function Compose() {
               fileId: r?.file?.id,
               title: attachments[i].title?.trim() || attachments[i].name || undefined,
               alt: attachments[i].alt?.trim() || undefined,
+              // Also sent here so a focus changed after a failed post (whose
+              // file is reused on retry) still lands on the attachment.
+              focus: attachments[i].kind === "image" ? attachments[i].focus || undefined : undefined,
             }))
             .filter((x) => x.fileId);
         } catch (e) {
@@ -1383,12 +1392,10 @@ export default function Compose() {
                 preview once one's actually picked. */}
             {(type === "Article" || type === "Event") && featuredImage ? (
               <View className="px-4 pt-3">
-                <View className="  bg-field">
-                  <Image
-                    source={{ uri: featuredImage.uri }}
-                    className="w-full h-40"
-                    resizeMode="cover"
-                  />
+                <View className="bg-field">
+                  <Pressable onPress={() => setEditingFeatured(true)} accessibilityLabel="Set the header image's focus point">
+                    <HeaderImage uri={featuredImage.uri} info={{ focus: featuredImage.focus }} />
+                  </Pressable>
                   <Pressable
                     onPress={() => setFeaturedImage(null)}
                     hitSlop={6}
@@ -1687,7 +1694,15 @@ export default function Compose() {
             <Pressable onPress={() => {}} className="w-full max-w-sm bg-base-100">
               {editingIndex !== null && attachments[editingIndex] ? (
                 <>
-                  {attachments[editingIndex].thumbUri ? (
+                  {attachments[editingIndex].kind === "image" ? (
+                    <View className="px-5 pt-5">
+                      <FocusPicker
+                        uri={attachments[editingIndex].uri}
+                        focus={attachments[editingIndex].focus || null}
+                        onChange={(focus) => updateAttachment(editingIndex, { focus })}
+                      />
+                    </View>
+                  ) : attachments[editingIndex].thumbUri ? (
                     <Image
                       source={{ uri: attachments[editingIndex].thumbUri }}
                       style={{ width: "100%", height: 200 }}
@@ -1755,6 +1770,39 @@ export default function Compose() {
               ) : null}
             </Pressable>
           </Pressable>
+      </Modal>
+
+      {/* Header image focus point -- same picker as attachments. */}
+      <Modal
+        visible={editingFeatured && !!featuredImage}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditingFeatured(false)}
+        statusBarTranslucent
+      >
+        <Pressable
+          className="flex-1 bg-black/40 items-center justify-center px-6"
+          onPress={() => setEditingFeatured(false)}
+        >
+          <Pressable onPress={() => {}} className="w-full max-w-sm bg-base-100 p-5">
+            {featuredImage ? (
+              <FocusPicker
+                uri={featuredImage.uri}
+                focus={featuredImage.focus || null}
+                onChange={(focus) => setFeaturedImage((prev) => (prev ? { ...prev, focus } : prev))}
+              />
+            ) : null}
+            <View className="flex-row justify-end mt-5">
+              <Pressable
+                onPress={() => setEditingFeatured(false)}
+                android_ripple={{ color: "rgba(0,0,0,0.08)" }}
+                className="px-6 py-2.5 bg-primary"
+              >
+                <Text className="font-ui uppercase tracking-[0.16em] text-[11px] text-primary-content">Done</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );

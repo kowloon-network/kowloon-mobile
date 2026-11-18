@@ -22,6 +22,7 @@ export async function uploadFile(
     parentObject,
     generateThumbnail,
     thumbnailSizes,
+    focus,
     onProgress,
     signal,
   }
@@ -53,6 +54,8 @@ export async function uploadFile(
     parentObject,
     generateThumbnail,
     thumbnailSizes,
+    // Images: the poster's chosen focus point (where the subject is).
+    focus,
     onProgress,
     // Abort/timeout support is being added to client.files.upload as
     // options.signal; older client versions simply ignore the extra field.
