@@ -104,7 +104,7 @@
           "locationWhenInUsePermission": "Kowloon uses your location only when you tap \"Use current location\" to add a place to a post.",
           "locationAlwaysAndWhenInUsePermission": false,
           "locationAlwaysPermission": false,
-          "motionUsagePermission": false,
+          "motionUsagePermission": "Kowloon doesn't use motion or fitness data. This text is required by the location tools Kowloon uses when you add a place to a post.",
           "isIosBackgroundLocationEnabled": false,
           "isAndroidBackgroundLocationEnabled": false
         }
