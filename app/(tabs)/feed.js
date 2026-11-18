@@ -4,7 +4,7 @@
 // Cards show previews only; tapping a card opens the post detail screen.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { router as globalRouter, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import {
   ActivityIndicator,
@@ -26,7 +26,7 @@ import { UserMenu } from "../../src/components/UserMenu.jsx";
 import { LeftDrawer } from "../../src/components/drawer/LeftDrawer.jsx";
 import { TabletColumns } from "../../src/components/layout/TabletColumns.jsx";
 import { ComposeFab } from "../../src/components/nav/ComposeFab.jsx";
-import { ShareIntentRouter } from "../../src/components/ShareIntentRouter.jsx";
+import { ShareSheet } from "../../src/components/ShareSheet.jsx";
 import { FeedDiscoverRow } from "../../src/components/discover/FeedDiscoverRow.jsx";
 import { Globe, Menu, Search } from "lucide-react-native";
 import { useFeed } from "../../src/lib/useFeed.js";
@@ -313,25 +313,6 @@ export default function Feed() {
           >
             <Search size={20} color={ink(0.85)} strokeWidth={1.9} />
           </Pressable>
-          {/* TEMP DEBUG -- decisive test for the Android share-intent bug,
-              __DEV__-gated so it never ships in a real build. Confirmed a
-              real touch gesture pushing "/share" the exact same way
-              ComposeFab pushes "/compose" (bare `router` singleton, same
-              component depth, same .push() call) works every time -- proving
-              the route/dispatch-method/tree-position were never the issue;
-              it's specifically about non-gesture-triggered dispatch. Remove
-              once the share bug is root-caused. */}
-          {__DEV__ ? (
-            <Pressable
-              testID="debug-nav-share"
-              onPress={() => globalRouter.push("/share?url=https%3A%2F%2Fexample.com")}
-              hitSlop={8}
-              className="w-9 h-9 items-center justify-center mr-1 bg-red-500"
-              accessibilityLabel="Debug share nav"
-            >
-              <Text style={{ fontSize: 9, color: "white", fontWeight: "bold" }}>DBG</Text>
-            </Pressable>
-          ) : null}
           <Pressable
             onPress={() => setMenuOpen(true)}
             hitSlop={8}
@@ -442,18 +423,10 @@ export default function Feed() {
       />
       </TabletColumns>
 
-      {/* Renders nothing visible -- mounted here (matching ComposeFab's own
-          position a few lines up) because this is a genuine Tabs.Screen's
-          own content, not merely "somewhere inside the (tabs) layout".
-          Confirmed live that a sibling of <Tabs> itself (one level up, in
-          (tabs)/_layout.jsx) STILL produced the same state/paint desync as
-          every other position tried -- only a component actually rendered
-          as a Tabs.Screen's own content has a proven track record
-          (ComposeFab). All tabs stay mounted simultaneously (see this
-          layout's own top comment), so this keeps running regardless of
-          which tab is currently visible, the same as ComposeFab's own
-          effects would. */}
-      <ShareIntentRouter />
+      {/* The panel shown when something is shared into Kowloon. Lives in
+          the feed tab, which stays mounted under every other screen once
+          signed in -- see ShareSheet.jsx. */}
+      <ShareSheet />
     </View>
   );
 }

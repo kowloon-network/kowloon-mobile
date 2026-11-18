@@ -86,7 +86,7 @@ const NAV_RACE_PATTERNS = [
 ];
 // A genuine root-cause fix is still pending (routingQueue's flush is a
 // separate, decoupled effect from wherever router.push()/replace() was
-// actually called -- see ShareIntentRouter.jsx's header comment -- so no
+// actually called -- see issue #86 -- so no
 // try/catch at any call site can ever catch this); this stays the real
 // safety net. navRaceRetries/lastNavRaceAt are module-level and survive
 // Fast Refresh, resetting only on a true Metro restart -- so a LIFETIME cap
@@ -179,17 +179,8 @@ function RootLayout() {
                       <AudioPlayerProvider>
                         <StatusBar style={isDark ? "light" : "dark"} />
                         <HydrationBoot />
-                        {/* ShareIntentRouter (warm shares) moved to
-                            app/(tabs)/_layout.jsx -- confirmed live that
-                            mounting it here, a SIBLING of <Stack/> rather
-                            than a descendant of any of its actual screens,
-                            resolves useRouter() against the wrong navigator
-                            context (usePathname() updated correctly, but the
-                            visible screen never did, across every dispatch
-                            method tried). See that file's comment for the
-                            full story. Cold-start shares are handled
-                            entirely by app/index.js, a real Stack screen,
-                            which was never affected by this. */}
+                        {/* Shares into Kowloon are shown by ShareSheet,
+                            mounted in the feed tab -- see that file. */}
                         <Stack
                           screenOptions={{
                             headerShown: false,

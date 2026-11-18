@@ -1,6 +1,7 @@
-// Share chooser (issue #82) — when a URL is shared into Kowloon from the OS
-// share sheet, let the user pick where it lands: a Link post (to their feed) or
-// a private bookmark. Reached via ShareIntentRouter with ?url=<shared link>.
+// Share chooser (issue #82) — a Link post or a private bookmark for a shared
+// URL. ShareSheet (the panel shown when something is shared into Kowloon) now
+// makes that choice itself and comes here with ?mode=bookmark to open the
+// bookmark editor straight away; closing it goes back.
 
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -47,7 +48,8 @@ export default function ShareChooser() {
   const shared = typeof params.url === "string" ? params.url : Array.isArray(params.url) ? params.url[0] : "";
   const client = useActiveClient();
   const currentUser = client?.auth?.getUser?.() || null;
-  const [bookmarking, setBookmarking] = useState(false);
+  const direct = params.mode === "bookmark";
+  const [bookmarking, setBookmarking] = useState(direct);
   const ink = useInk();
 
   function dismiss() {
@@ -109,7 +111,7 @@ export default function ShareChooser() {
       {currentUser ? (
         <BookmarkComposer
           visible={bookmarking}
-          onClose={() => setBookmarking(false)}
+          onClose={() => (direct ? dismiss() : setBookmarking(false))}
           onSaved={dismiss}
           initialValues={{ href: shared }}
           client={client}
