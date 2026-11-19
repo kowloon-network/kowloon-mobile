@@ -29,8 +29,8 @@ import { AudioPlayerProvider } from "../src/lib/AudioPlayerProvider.jsx";
 import ToastStack from "../src/components/ui/ToastStack.jsx";
 import { ThemeProvider, THEME_VARS } from "../src/lib/ThemeContext.jsx";
 import { useColorScheme } from "nativewind";
-import { LogBox, View } from "react-native";
-import { Sentry, reportNearMiss } from "../src/lib/sentry.js";
+import { LogBox, Pressable, Text, View } from "react-native";
+import { Sentry } from "../src/lib/sentry.js";
 
 // Hold the native splash screen until fonts are ready — no flash of fallback
 // text. preventAutoHideAsync can reject during fast-refresh; ignore that.
@@ -53,83 +53,45 @@ setUnauthorizedHandler((accountId) => store.dispatch(signOutAccount(accountId)))
 // (now including the real error) still prints to the Metro terminal.
 LogBox.ignoreLogs(["React Native detected but AsyncStorage not available"]);
 
-// Root-level error boundary (Expo Router's file-based convention: exporting
-// ErrorBoundary from a layout file registers it for that segment -- here,
-// the whole app). Exists specifically for one confirmed, non-deterministic,
-// timing-based crash: a cold-start-via-share can hit Expo Router's own
-// "Attempted to navigate before mounting the Root Layout component" /
-// "action ... was not handled by any navigator" failures, thrown from deep
-// inside a passive effect (NOT catchable by any try/catch around the
-// triggering call -- confirmed across SIX different readiness-gating
-// attempts, each disproven on-device: navReady, routeNames inclusion,
-// navigationRef.isReady(), useSegments() resolving, sibling render order,
-// and combinations of these). What IS confirmed, repeatedly, on-device: a
-// retry from a settled/WARM state always succeeds immediately after.
-//
-// retry() (React re-rendering this same broken segment) was NOT enough on
-// its own -- confirmed on-device, it left a blank white screen, meaning
-// whatever's actually broken lives inside ExpoRoot/NavigationContainer's own
-// internals (above/outside what a route-level boundary's retry re-renders),
-// not something merely re-rendering our own component tree can fix.
-// DevSettings.reload() forces a genuinely fresh JS boot instead -- without
-// restarting the native Activity/process, so the OS-delivered share Intent
-// is still there for expo-share-intent to read again on the new boot, but
-// hopefully landing in the warm-equivalent state that's always worked.
-// DEV/DEV-CLIENT ONLY -- DevSettings.reload() is a no-op in a stripped
-// production build; a real production-safe equivalent needs expo-updates
-// (not currently installed) via Updates.reloadAsync(), a separate follow-up.
-import { DevSettings } from "react-native";
-
-const NAV_RACE_PATTERNS = [
-  "before mounting the Root Layout",
-  "was not handled by any navigator",
-];
-// A genuine root-cause fix is still pending (routingQueue's flush is a
-// separate, decoupled effect from wherever router.push()/replace() was
-// actually called -- see issue #86 -- so no
-// try/catch at any call site can ever catch this); this stays the real
-// safety net. navRaceRetries/lastNavRaceAt are module-level and survive
-// Fast Refresh, resetting only on a true Metro restart -- so a LIFETIME cap
-// silently exhausts across a long testing session: every recovered crash
-// (invisible to Josh by design -- a brief blank beat, then normal render)
-// spends the same budget as a visible one, so by the Nth occurrence in one
-// session it can run out and re-throw for real, looking like a regression
-// when it's actually just the counter running dry. Counting only retries
-// within a rolling window, instead of ever, fixes that.
-let navRaceRetries = 0;
-let lastNavRaceAt = 0;
-const MAX_NAV_RACE_RETRIES = 5;
-const NAV_RACE_WINDOW_MS = 10000;
-
-export function ErrorBoundary({ error }) {
-  const isNavRace = NAV_RACE_PATTERNS.some((p) => error?.message?.includes(p));
+// Root-level error boundary (Expo Router convention: exporting ErrorBoundary
+// from the root layout covers the whole app). Shows what went wrong and a
+// way out, instead of a blank screen or a crash. It used to swallow
+// navigation errors behind an empty View and "recover" with
+// DevSettings.reload() -- a no-op in real builds, so people were left on a
+// permanent white screen (the share bug, #86, whose real cause was Android
+// starting a second copy of the app: see documentLaunchMode in app.json).
+export function ErrorBoundary({ error, retry }) {
   useEffect(() => {
-    if (!isNavRace) return;
-    const now = Date.now();
-    if (now - lastNavRaceAt > NAV_RACE_WINDOW_MS) navRaceRetries = 0;
-    lastNavRaceAt = now;
-    // Recovered, not a real crash -- but a near-miss worth seeing trends on
-    // (#84), since this is the exact bug class that motivated adding Sentry.
-    reportNearMiss("nav-race", error?.message, { retryCount: navRaceRetries + 1 });
-    if (navRaceRetries >= MAX_NAV_RACE_RETRIES) return;
-    navRaceRetries += 1;
-    const t = setTimeout(() => DevSettings.reload(), 200 * navRaceRetries);
-    return () => clearTimeout(t);
-  }, [isNavRace]);
-
-  if (isNavRace && navRaceRetries <= MAX_NAV_RACE_RETRIES) {
-    // Same visual as the font-loading gate below -- a brief, expected beat,
-    // not an error state the user should ever really perceive.
-    return (
-      <View className="flex-1 items-center justify-center bg-base-100" />
-    );
-  }
-
-  // Anything else (or retries exhausted): a real error, not our nav race --
-  // report it, then fall through to Expo Router's own default error view by
-  // re-throwing.
-  Sentry.captureException(error);
-  throw error;
+    Sentry.captureException(error);
+  }, [error]);
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 32,
+        backgroundColor: "#FFFFFF",
+      }}
+    >
+      <Text style={{ fontSize: 20, fontWeight: "700", color: "#15161A", marginBottom: 8 }}>
+        Something went wrong
+      </Text>
+      <Text style={{ fontSize: 14, color: "#55565C", textAlign: "center", marginBottom: 24 }}>
+        Try again. If this keeps happening, close Kowloon completely and reopen it.
+      </Text>
+      <Pressable
+        onPress={retry}
+        style={{ backgroundColor: "#002FA7", paddingVertical: 12, paddingHorizontal: 28 }}
+        accessibilityRole="button"
+      >
+        <Text style={{ color: "#FFFFFF", fontWeight: "700", letterSpacing: 1 }}>TRY AGAIN</Text>
+      </Pressable>
+      <Text selectable style={{ fontSize: 11, color: "#8A8B90", marginTop: 24, textAlign: "center" }}>
+        {String(error?.message || error).slice(0, 300)}
+      </Text>
+    </View>
+  );
 }
 
 function HydrationBoot() {

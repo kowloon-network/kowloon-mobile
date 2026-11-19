@@ -144,7 +144,11 @@
           "androidMultiIntentFilters": [
             "image/*",
             "video/*"
-          ]
+          ],
+          "androidMainActivityAttributes": {
+            "android:launchMode": "singleTask",
+            "android:documentLaunchMode": "never"
+          }
         }
       ],
       "expo-image",
