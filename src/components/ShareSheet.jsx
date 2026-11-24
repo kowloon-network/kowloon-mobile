@@ -19,7 +19,8 @@
 //   text  -> Write a post (Note, text prefilled)
 //   files -> Post these (Media, attached)
 
-import { Modal, Pressable, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { AppState, Modal, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Image } from "expo-image";
@@ -122,6 +123,22 @@ export function ShareSheet() {
   const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntentContext();
   const ink = useInk();
 
+  // Android: a native Modal is a Dialog bound to whatever Activity is current
+  // at the moment it is created. A share arrives while the throwaway share
+  // Activity (see src/lib/singleRoot.js) is still current and finishing, so
+  // the Dialog gets built on it and is never shown -- and when the real
+  // Activity resumes, RN only updates the existing Dialog's props, it never
+  // re-shows it. Result: the first share opened the app with no sheet; the
+  // second worked. Fix: remount the Modal every time the app becomes active,
+  // so its Dialog is always created on the Activity actually on screen.
+  const [activeKey, setActiveKey] = useState(0);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next === "active") setActiveKey((n) => n + 1);
+    });
+    return () => sub.remove();
+  }, []);
+
   const share = hasShareIntent ? describeShare(shareIntent) : null;
 
   // Done with this share (acted on or cancelled): clear it, which closes the
@@ -166,7 +183,7 @@ export function ShareSheet() {
 
   const onLight = "#FAF4E8";
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={finish} statusBarTranslucent>
+    <Modal key={activeKey} visible transparent animationType="fade" onRequestClose={finish} statusBarTranslucent>
       <Pressable className="flex-1 bg-black/40 justify-end" onPress={finish}>
         <Pressable onPress={() => {}}>
           <SafeAreaView edges={["bottom"]} className="bg-base-100">
