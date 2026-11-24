@@ -35,6 +35,7 @@ import { useShareIntentContext } from "expo-share-intent";
 import { Bookmark as BookmarkIcon, ChevronRight, Image as ImageIcon, Link2, PenLine, X } from "lucide-react-native";
 
 import { setPendingShare } from "../lib/pendingShare.js";
+import { clearShare, useShare } from "../lib/shareStore.js";
 import { useNavigatorReady } from "../lib/navigatorReady.js";
 import { selectAccounts, selectAccountsStatus } from "../state/accountsSlice.js";
 import { useInk } from "../lib/useInk.js";
@@ -129,7 +130,10 @@ function Preview({ share }) {
 }
 
 export function ShareSheet() {
-  const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntentContext();
+  // The share comes from a module-level store, NOT the per-root
+  // useShareIntentContext() state -- see src/lib/shareStore.js.
+  const shareIntent = useShare();
+  const { resetShareIntent } = useShareIntentContext();
   const ink = useInk();
 
   const status = useSelector(selectAccountsStatus);
@@ -137,7 +141,7 @@ export function ShareSheet() {
   const navigatorReady = useNavigatorReady();
   const signedIn = status !== "idle" && status !== "loading" && accounts.length > 0;
 
-  const share = hasShareIntent && signedIn && navigatorReady ? describeShare(shareIntent) : null;
+  const share = shareIntent && signedIn && navigatorReady ? describeShare(shareIntent) : null;
 
   // Android back button cancels the sheet (a Modal did this via
   // onRequestClose; a plain overlay has to ask for it).
@@ -155,6 +159,7 @@ export function ShareSheet() {
   // natively (patches/expo-share-intent+8.0.1.patch); if one ever slipped
   // through, it would only show this sheet again, never post anything.
   function finish() {
+    clearShare();
     try { resetShareIntent?.(); } catch {}
   }
 
