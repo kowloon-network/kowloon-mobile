@@ -121,6 +121,9 @@ export default function GroupDetail() {
   // URL from the group id's home domain.
   const groupIdStr = String(id);
   const groupDomain = groupIdStr.split("@")[1] || account?.server;
+  // Groups are server-only for now (server refuses cross-server joins), so
+  // no Join on another server's group.
+  const groupIsRemote = !!account?.server && groupDomain !== account.server;
   const shareUrl =
     group?.url ||
     (groupDomain
@@ -322,6 +325,10 @@ export default function GroupDetail() {
                         {busy ? "…" : "Leave"}
                       </Text>
                     </Pressable>
+                  ) : groupIsRemote ? (
+                    <Text className="font-ui text-[11px] text-base-content/55 px-1 py-2">
+                      Only members of {groupDomain} can join for now
+                    </Text>
                   ) : inviteOnly ? null : (
                     <Pressable
                       onPress={handleJoin}
