@@ -6,21 +6,28 @@
 // as a share arrived. On Android that navigation, fired from a background
 // effect rather than a touch, was silently ignored most of the time -- twelve
 // different fixes failed. The SAME router.push() fired from a tap worked
-// every time. So this never navigates on its own: it shows a native Modal
-// over whatever screen is up (a Modal needs no navigation), and the person's
-// tap on a choice does the push.
+// every time. So this never navigates on its own: it shows a panel over
+// whatever screen is up, and the person's tap on a choice does the push.
 //
-// Mounted inside the feed tab (app/(tabs)/feed.js), which stays mounted under
-// every other screen once signed in. A share that arrives while signed out
-// simply waits (ShareIntentProvider has resetOnBackground:false) and the sheet
-// appears once the feed mounts after sign-in.
+// NOT a react-native <Modal>. On Android a Modal is a separate Dialog window
+// tied to one Activity, and a share briefly creates a second, throwaway
+// Activity (see src/lib/singleRoot.js). Depending on timing the Dialog was
+// built on the throwaway one (never shown) or dismissed when it was destroyed
+// (sheet flashes, then vanishes). A plain absolute-fill View inside the app's
+// own root view has no Activity of its own, so neither can happen.
+//
+// Mounted at the root (app/_layout.js, after the Stack) so it covers every
+// screen. Shown only once signed in and the navigator is up; a share that
+// arrives while signed out simply waits (ShareIntentProvider has
+// resetOnBackground:false) and the sheet appears after sign-in.
 //
 //   URL   -> Create a Link post | Save as a bookmark
 //   text  -> Write a post (Note, text prefilled)
 //   files -> Post these (Media, attached)
 
-import { useEffect, useState } from "react";
-import { AppState, Modal, Pressable, Text, View } from "react-native";
+import { useEffect } from "react";
+import { BackHandler, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSelector } from "react-redux";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Image } from "expo-image";
@@ -28,6 +35,8 @@ import { useShareIntentContext } from "expo-share-intent";
 import { Bookmark as BookmarkIcon, ChevronRight, Image as ImageIcon, Link2, PenLine, X } from "lucide-react-native";
 
 import { setPendingShare } from "../lib/pendingShare.js";
+import { useNavigatorReady } from "../lib/navigatorReady.js";
+import { selectAccounts, selectAccountsStatus } from "../state/accountsSlice.js";
 import { useInk } from "../lib/useInk.js";
 
 const URL_RE = /https?:\/\/\S+/i;
@@ -123,23 +132,23 @@ export function ShareSheet() {
   const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntentContext();
   const ink = useInk();
 
-  // Android: a native Modal is a Dialog bound to whatever Activity is current
-  // at the moment it is created. A share arrives while the throwaway share
-  // Activity (see src/lib/singleRoot.js) is still current and finishing, so
-  // the Dialog gets built on it and is never shown -- and when the real
-  // Activity resumes, RN only updates the existing Dialog's props, it never
-  // re-shows it. Result: the first share opened the app with no sheet; the
-  // second worked. Fix: remount the Modal every time the app becomes active,
-  // so its Dialog is always created on the Activity actually on screen.
-  const [activeKey, setActiveKey] = useState(0);
+  const status = useSelector(selectAccountsStatus);
+  const accounts = useSelector(selectAccounts);
+  const navigatorReady = useNavigatorReady();
+  const signedIn = status !== "idle" && status !== "loading" && accounts.length > 0;
+
+  const share = hasShareIntent && signedIn && navigatorReady ? describeShare(shareIntent) : null;
+
+  // Android back button cancels the sheet (a Modal did this via
+  // onRequestClose; a plain overlay has to ask for it).
   useEffect(() => {
-    const sub = AppState.addEventListener("change", (next) => {
-      if (next === "active") setActiveKey((n) => n + 1);
+    if (!share) return undefined;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      finish();
+      return true;
     });
     return () => sub.remove();
-  }, []);
-
-  const share = hasShareIntent ? describeShare(shareIntent) : null;
+  }, [share]);
 
   // Done with this share (acted on or cancelled): clear it, which closes the
   // sheet. Android's "reopen from Recents" replay of an old share is dropped
@@ -183,7 +192,7 @@ export function ShareSheet() {
 
   const onLight = "#FAF4E8";
   return (
-    <Modal key={activeKey} visible transparent animationType="fade" onRequestClose={finish} statusBarTranslucent>
+    <View style={[StyleSheet.absoluteFill, { zIndex: 1000, elevation: 1000 }]}>
       <Pressable className="flex-1 bg-black/40 justify-end" onPress={finish}>
         <Pressable onPress={() => {}}>
           <SafeAreaView edges={["bottom"]} className="bg-base-100">
@@ -238,6 +247,6 @@ export function ShareSheet() {
           </SafeAreaView>
         </Pressable>
       </Pressable>
-    </Modal>
+    </View>
   );
 }

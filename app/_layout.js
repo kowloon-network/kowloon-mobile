@@ -16,6 +16,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider, useDispatch } from "react-redux";
 import { ShareIntentProvider } from "expo-share-intent";
+import { ShareSheet } from "../src/components/ShareSheet.jsx";
 
 import { store } from "../src/state/store.js";
 import { hydrateAccounts, signOutAccount } from "../src/state/accountsSlice.js";
@@ -141,8 +142,6 @@ function RootLayout() {
                       <AudioPlayerProvider>
                         <StatusBar style={isDark ? "light" : "dark"} />
                         <HydrationBoot />
-                        {/* Shares into Kowloon are shown by ShareSheet,
-                            mounted in the feed tab -- see that file. */}
                         <Stack
                           screenOptions={{
                             headerShown: false,
@@ -151,6 +150,9 @@ function RootLayout() {
                             },
                           }}
                         />
+                        {/* Shares into Kowloon -- an overlay above every
+                            screen. See src/components/ShareSheet.jsx. */}
+                        <ShareSheet />
                         <ToastStack />
                       </AudioPlayerProvider>
                     </PushProvider>

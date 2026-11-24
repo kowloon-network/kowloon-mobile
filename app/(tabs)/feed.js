@@ -26,7 +26,6 @@ import { UserMenu } from "../../src/components/UserMenu.jsx";
 import { LeftDrawer } from "../../src/components/drawer/LeftDrawer.jsx";
 import { TabletColumns } from "../../src/components/layout/TabletColumns.jsx";
 import { ComposeFab } from "../../src/components/nav/ComposeFab.jsx";
-import { ShareSheet } from "../../src/components/ShareSheet.jsx";
 import { FeedDiscoverRow } from "../../src/components/discover/FeedDiscoverRow.jsx";
 import { Globe, Menu, Search } from "lucide-react-native";
 import { useFeed } from "../../src/lib/useFeed.js";
@@ -422,11 +421,6 @@ export default function Feed() {
         }
       />
       </TabletColumns>
-
-      {/* The panel shown when something is shared into Kowloon. Lives in
-          the feed tab, which stays mounted under every other screen once
-          signed in -- see ShareSheet.jsx. */}
-      <ShareSheet />
     </View>
   );
 }

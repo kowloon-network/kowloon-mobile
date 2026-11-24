@@ -3,7 +3,7 @@
 //   - has accounts -> /feed
 //
 // Shares into Kowloon are NOT routed from here any more: ShareSheet (mounted
-// in the feed) shows them as a panel once the feed is up, and a tap on a
+// at the root) shows them as a panel once signed in, and a tap on a
 // choice does the navigation. See src/components/ShareSheet.jsx.
 
 import { useSelector } from "react-redux";
