@@ -35,6 +35,18 @@ export default function ChangeEmail() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [done, setDone] = useState(null);
+  const [resend, setResend] = useState("idle"); // idle | sending | sent | failed
+
+  async function resendLink() {
+    if (!me?.email) return;
+    setResend("sending");
+    try {
+      await client.auth.resendVerification({ email: me.email });
+      setResend("sent");
+    } catch {
+      setResend("failed");
+    }
+  }
 
   const canSave = EMAIL_RE.test(email.trim()) && password.length > 0 && !saving;
 
@@ -82,9 +94,28 @@ export default function ChangeEmail() {
                   </Text>
                   <Text className="font-ui text-base text-base-content">{me.email}</Text>
                   {me.emailVerified === false ? (
-                    <Text className="font-ui text-xs text-base-content/50 mt-1">
-                      Not verified yet. Check your inbox for the link.
-                    </Text>
+                    <>
+                      <Text className="font-ui text-xs text-base-content/50 mt-1">
+                        {resend === "sent"
+                          ? "Sent. Check your inbox (and spam) for the new link."
+                          : resend === "failed"
+                          ? "Couldn't send it. Check your connection and try again."
+                          : "Not verified yet. Check your inbox for the link."}
+                      </Text>
+                      {resend !== "sent" ? (
+                        <Pressable
+                          onPress={resendLink}
+                          disabled={resend === "sending"}
+                          hitSlop={8}
+                          className="mt-2 self-start"
+                          accessibilityRole="button"
+                        >
+                          <Text className="font-ui text-sm text-primary">
+                            {resend === "sending" ? "Sending..." : "Send the link again"}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </>
                   ) : null}
                 </View>
               ) : null}

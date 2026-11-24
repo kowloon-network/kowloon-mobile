@@ -4,7 +4,7 @@
 
 import { useRouter } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Avatar } from "../../src/components/posts/Avatar.jsx";
@@ -265,6 +265,38 @@ export default function Settings() {
               onChange={setThemePref}
             />
           </View>
+        </View>
+
+        {/* -- Legal and help. Terms/Privacy/Rules are the active account's
+             server's own pages (each server writes its own); the app's
+             privacy policy and support live on kowloon.network. -- */}
+        <View className="px-6 mt-2">
+          <SectionLabel>Legal and Help</SectionLabel>
+          <NavRow
+            label="Terms of Service"
+            hint="Your server's terms"
+            onPress={() => router.push("/pages/terms")}
+          />
+          <NavRow
+            label="Privacy Policy"
+            hint="How your server handles your data"
+            onPress={() => router.push("/pages/privacy")}
+          />
+          <NavRow
+            label="Community Rules"
+            hint="What's allowed on your server"
+            onPress={() => router.push("/pages/rules")}
+          />
+          <NavRow
+            label="App Privacy Policy"
+            hint="What the Kowloon app itself collects"
+            onPress={() => Linking.openURL("https://kowloon.network/privacy").catch(() => {})}
+          />
+          <NavRow
+            label="Help and Support"
+            hint="kowloon.network/support"
+            onPress={() => Linking.openURL("https://kowloon.network/support").catch(() => {})}
+          />
         </View>
 
         <View className="px-6 mt-4">

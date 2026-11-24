@@ -79,6 +79,11 @@ export default function PreferencesScreen() {
               <Text className="font-ui uppercase tracking-[0.14em] text-xs text-base-content/55 px-4 pb-2">
                 {group.label}
               </Text>
+              {group.hint ? (
+                <Text className="font-ui text-xs text-base-content/50 px-4 pb-2">
+                  {group.hint}
+                </Text>
+              ) : null}
               <View className="bg-field">
                 {entries.map((entry) => (
                   <PrefControl
