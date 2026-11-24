@@ -22,14 +22,14 @@
 // resetOnBackground:false) and the sheet appears after sign-in.
 //
 //   URL   -> Create a Link post | Save as a bookmark
-//   text  -> Write a post (Note, text prefilled)
-//   files -> Post these (Media, attached)
+//   text  -> straight to the composer (Note, text prefilled), no sheet
+//   files -> straight to the composer (Media, attached), no sheet
 
 import { useEffect } from "react";
 import { BackHandler, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSelector } from "react-redux";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import { Image } from "expo-image";
 import { useShareIntentContext } from "expo-share-intent";
 import { Bookmark as BookmarkIcon, ChevronRight, Image as ImageIcon, Link2, PenLine, X } from "lucide-react-native";
@@ -143,6 +143,20 @@ export function ShareSheet() {
 
   const share = shareIntent && signedIn && navigatorReady ? describeShare(shareIntent) : null;
 
+  // Photos/files and plain text have only ONE thing to do -- start a post --
+  // so skip the sheet and go straight to the composer. A link keeps the
+  // sheet (post vs bookmark is a real choice). Wait until we're off the "/"
+  // boot route, so app/index.js's <Redirect> to /feed can't land on top of
+  // the composer. (Navigating without a tap used to fail on Android; that was
+  // the second-React-root bug fixed by src/lib/singleRoot.js, not a rule.)
+  const pathname = usePathname();
+  const direct = share && share.kind !== "url" && pathname && pathname !== "/";
+  useEffect(() => {
+    if (!direct) return;
+    if (share.kind === "files") postFiles();
+    else postText();
+  }, [direct]);
+
   // Android back button cancels the sheet (a Modal did this via
   // onRequestClose; a plain overlay has to ask for it).
   useEffect(() => {
@@ -193,7 +207,7 @@ export function ShareSheet() {
     go("/compose?fromShare=1");
   }
 
-  if (!share) return null;
+  if (!share || share.kind !== "url") return null;
 
   const onLight = "#FAF4E8";
   return (
